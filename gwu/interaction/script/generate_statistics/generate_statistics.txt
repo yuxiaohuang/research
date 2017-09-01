@@ -1,0 +1,3 @@
+
+# Here is the command for generating the statistics 
+python3 generate_statistics.py /Users/yuxiaohuang/Documents/github/research/code/interaction/data/simulated_data/interaction/ /Users/yuxiaohuang/Documents/github/research/code/interaction/result/interaction/ /Users/yuxiaohuang/Documents/github/research/code/interaction/result/statistics/statistics.txt
