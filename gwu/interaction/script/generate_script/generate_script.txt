@@ -1,3 +1,0 @@
-
-# Here is the command for generating the script 
-python3 generate_script.py search_for_interactions.py /Users/yuxiaohuang/Documents/github/research/code/interaction/script/ /Users/yuxiaohuang/Documents/github/research/code/interaction/data/simulated_data/data/source/ /Users/yuxiaohuang/Documents/github/research/code/interaction/data/simulated_data/data/target/ /Users/yuxiaohuang/Documents/github/research/code/interaction/result/interaction/ /Users/yuxiaohuang/Documents/github/research/code/interaction/result/log/ /Users/yuxiaohuang/Documents/github/research/code/interaction/result/figure/ 0.01 0.5 30 1 1 1 2 1 3 1 4 1 5 1 6 2 6 3 6 4 6 5 6 6 6

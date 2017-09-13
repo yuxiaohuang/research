@@ -1,4 +1,0 @@
-
-for myfile in /Users/yuxiaohuang/Documents/github/research/code/interaction/script/*.txt;         
-do (sh $myfile)  
-done
