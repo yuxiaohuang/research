@@ -8,9 +8,6 @@ import sys
 import os
 import csv
 import numpy as np
-import math
-import random
-
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -22,83 +19,111 @@ import random
 
 # Generate statistics
 def generate_statistics():
-    # Initialize prob_causal_interaction_L_Dic and interaction_Dic
-    prob_causal_interaction_L_Dic = {}
-    interaction_Dic = {}
+    # Initialize prob_interaction_ground_truth_L_Dic and interaction_result_Dic
+    prob_interaction_ground_truth_L_Dic = {}
+    interaction_result_Dic = {}
 
-    # Load the causal interaction file
-    with open(causal_interaction_file, 'r') as f:
+    # Load the interaction_ground_truth file
+    with open(interaction_ground_truth_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
-        # Get the target, probability and causal interaction
+        # Get the target, probability and interaction_ground_truth
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
             # Target lies in the first column in each row
             target = spamreader[i][0].strip()
             # Probability lies in the second column in each row
             prob = float(spamreader[i][1].strip())
-            # Causal interaction lies in the remaining columns, with the form interactionce_i, win_start_i, win_end_i
-            causal_interaction_LL = []
-            interactionce_num = (len(spamreader[i]) - 2) // 3
-            for j in range(interactionce_num):
-                interactionce_L = []
+            # interaction_ground_truth lies in the remaining columns, with the form component_i, win_start_i, win_end_i
+            interaction_ground_truth_LL = []
+            component_num = (len(spamreader[i]) - 2) // 3
+            for j in range(component_num):
+                component_L = []
                 # Name
-                interactionce_L.append(spamreader[i][j * 3 + 2].strip())
+                component_L.append(spamreader[i][j * 3 + 2].strip())
                 # Window start
-                interactionce_L.append(int(spamreader[i][j * 3 + 3].strip()))
+                component_L.append(int(spamreader[i][j * 3 + 3].strip()))
                 # Window end
-                interactionce_L.append(int(spamreader[i][j * 3 + 4].strip()))
-                causal_interaction_LL.append(interactionce_L)
-            if not target in prob_causal_interaction_L_Dic:
-                prob_causal_interaction_L_Dic[target] = []
-            prob_causal_interaction_L_Dic[target].append([prob, causal_interaction_LL])
+                component_L.append(int(spamreader[i][j * 3 + 4].strip()))
+                interaction_ground_truth_LL.append(component_L)
+            if not target in prob_interaction_ground_truth_L_Dic:
+                prob_interaction_ground_truth_L_Dic[target] = []
+            prob_interaction_ground_truth_L_Dic[target].append([prob, interaction_ground_truth_LL])
 
-    # Load the interaction file
-    with open(interaction_file, 'r') as f:
+    # Load the interaction_result file
+    with open(interaction_result_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ' '))
-        # Get the target and causal interaction
+        # Get the target and interaction_ground_truth
         for i in range(len(spamreader)):
             # Target lies in the end of the first column in each row
             target = spamreader[i][0].strip()
             target = target.replace('interaction for ', '')
             target = target.replace(':', '')
-            # interaction lies in the second column in each row
-            interaction = spamreader[i][1].strip()
-            interaction = interaction.replace('[', '')
-            interaction = interaction.replace(']', '')
-            interaction = interaction.replace('\'', '')
-            interaction = interaction.split(',')
-            interactionce_num = len(interaction) // 3
-            interaction_LL = []
-            for j in range(interactionce_num):
-                interactionce_L = []
+            # interaction_result lies in the second column in each row
+            interaction_result = spamreader[i][1].strip()
+            interaction_result = interaction_result.replace('[', '')
+            interaction_result = interaction_result.replace(']', '')
+            interaction_result = interaction_result.replace('\'', '')
+            interaction_result = interaction_result.split(',')
+            component_num = len(interaction_result) // 3
+            interaction_result_LL = []
+            for j in range(component_num):
+                component_L = []
                 # Name
-                interactionce_L.append(interaction[j * 3].strip())
+                component_L.append(interaction_result[j * 3].strip())
                 # Window start
-                interactionce_L.append(interaction[j * 3 + 1].strip())
+                component_L.append(interaction_result[j * 3 + 1].strip())
                 # Window end
-                interactionce_L.append(interaction[j * 3 + 2].strip())
-                interaction_LL.append(interactionce_L)
-            if not target in interaction_Dic:
-                interaction_Dic[target] = []
-            interaction_Dic[target].append(interaction_LL)
+                component_L.append(interaction_result[j * 3 + 2].strip())
+                interaction_result_LL.append(component_L)
+            if not target in interaction_result_Dic:
+                interaction_result_Dic[target] = []
+            interaction_result_Dic[target].append(interaction_result_LL)
 
     # Get true positive and false positive for the current dataset
     tp = 0
     fp = 0
+
+    # Get the absolute difference in the window start / end
+    global win_start_abs_dif_L
+    global win_end_abs_dif_L
+
     # For each target
-    for target in interaction_Dic:
-        # For each interaction
-        for interaction_LL in interaction_Dic[target]:
-            # Flag, indicating whether the interaction is a causal interaction
+    for target in interaction_result_Dic:
+        # For each interaction_result
+        for interaction_result_LL in interaction_result_Dic[target]:
+            # Flag, indicating whether the interaction_result is a interaction_ground_truth
             equal_F = False
-            if target in prob_causal_interaction_L_Dic:
-                # For each causal interaction and the probability
-                for prob, causal_interaction_LL in prob_causal_interaction_L_Dic[target]:
-                    # If the interaction is a causal interaction
-                    if equal(causal_interaction_LL, interaction_LL):
+            if target in prob_interaction_ground_truth_L_Dic:
+                # For each interaction_ground_truth and the probability
+                for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
+                    # If the interaction_result is a interaction_ground_truth
+                    if equal(interaction_ground_truth_LL, interaction_result_LL):
                         equal_F = True
+
+                        # Sort the two interaction_results based on the component name
+                        interaction_ground_truth_sor_LL = sorted(interaction_ground_truth_LL, key = lambda x: x[0])
+                        interaction_result_sor_LL = sorted(interaction_result_LL, key = lambda x: x[0])
+
+                        # If the sizes are different
+                        if len(interaction_ground_truth_sor_LL) != len(interaction_result_sor_LL):
+                            print('interaction_result size different!')
+                            exit(1)
+
+                        for i in range(len(interaction_ground_truth_sor_LL)):
+                            var_interaction_ground_truth, win_start_interaction_ground_truth, win_end_interaction_ground_truth = interaction_ground_truth_sor_LL[i]
+                            var_interaction_result, win_start_interaction_result, win_end_interaction_result = interaction_result_sor_LL[i]
+
+                            # If the component names are different
+                            if var_interaction_ground_truth != var_interaction_result:
+                                print('component name different!')
+                                exit(1)
+
+                            # Update win_start_abs_dif and win_end_abs_dif
+                            win_start_abs_dif_L.append(abs(int(win_start_interaction_ground_truth) - int(win_start_interaction_result)))
+                            win_end_abs_dif_L.append(abs(int(win_end_interaction_ground_truth) - int(win_end_interaction_result)))
+
                         break
-            # If the interaction is a causal interaction
+            # If the interaction_result is a interaction_ground_truth
             if equal_F is True:
                 # Increase true positive
                 tp += 1
@@ -109,19 +134,19 @@ def generate_statistics():
     # Get false negative
     fn = 0
     # For each target
-    for target in prob_causal_interaction_L_Dic:
-        # For each interaction
-        for prob, causal_interaction_LL in prob_causal_interaction_L_Dic[target]:
-            # Flag, indicating whether the causal interaction has been discovered
+    for target in prob_interaction_ground_truth_L_Dic:
+        # For each interaction_result
+        for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
+            # Flag, indicating whether the interaction_ground_truth has been discovered
             equal_F = False
-            if target in interaction_Dic:
-                # For each interaction
-                for interaction_LL in interaction_Dic[target]:
-                    # If the causal interaction has been discovered
-                    if equal(interaction_LL, causal_interaction_LL):
+            if target in interaction_result_Dic:
+                # For each interaction_result
+                for interaction_result_LL in interaction_result_Dic[target]:
+                    # If the interaction_ground_truth has been discovered
+                    if equal(interaction_result_LL, interaction_ground_truth_LL):
                         equal_F = True
                         break
-            # If the causal interaction has not been discovered
+            # If the interaction_ground_truth has not been discovered
             if equal_F is False:
                 # Increase false negative
                 fn += 1
@@ -129,36 +154,36 @@ def generate_statistics():
     return [tp, fp, fn]
 
 
-# Check whether the two interactions are equal
-def equal(interaction_i_LL, interaction_j_LL):
-    # The two interactions are equal if one belongs to another, and vice versa
-    if belong(interaction_i_LL, interaction_j_LL) is True and belong(interaction_j_LL, interaction_i_LL) is True:
+# Check whether the two interaction_results are equal
+def equal(interaction_result_i_LL, interaction_result_j_LL):
+    # The two interaction_results are equal if one belongs to another, and vice versa
+    if belong(interaction_result_i_LL, interaction_result_j_LL) is True and belong(interaction_result_j_LL, interaction_result_i_LL) is True:
         return True
     else:
         return False
 
 
-# Check whether interaction_i belongs to interaction_j
-def belong(interaction_i_LL, interaction_j_LL):
-    # If interaction_i is None or empty
-    if interaction_i_LL is None or len(interaction_i_LL) == 0:
+# Check whether interaction_result_i belongs to interaction_result_j
+def belong(interaction_result_i_LL, interaction_result_j_LL):
+    # If interaction_result_i is None or empty
+    if interaction_result_i_LL is None or len(interaction_result_i_LL) == 0:
         return True
-    # If interaction_j is None or empty
-    elif interaction_j_LL is None or len(interaction_j_LL) == 0:
+    # If interaction_result_j is None or empty
+    elif interaction_result_j_LL is None or len(interaction_result_j_LL) == 0:
         return False
 
-    # For each variable in interaction_i
-    for var_i, win_start_i, win_end_i in interaction_i_LL:
-        # Flag, indicating whether var_i is in interaction_j
+    # For each variable in interaction_result_i
+    for var_i, win_start_i, win_end_i in interaction_result_i_LL:
+        # Flag, indicating whether var_i is in interaction_result_j
         belong_F = False
 
-        # For each variable in interaction_j
-        for var_j, win_start_j, win_end_j in interaction_j_LL:
+        # For each variable in interaction_result_j
+        for var_j, win_start_j, win_end_j in interaction_result_j_LL:
             if var_i == var_j:
                 belong_F = True
                 break
 
-        # If var_i is not in interaction_j
+        # If var_i is not in interaction_result_j
         if belong_F is False:
             return False
 
@@ -169,8 +194,8 @@ def belong(interaction_i_LL, interaction_j_LL):
 if __name__=="__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    causal_interaction_dir = sys.argv[1]
-    interaction_dir = sys.argv[2]
+    interaction_ground_truth_dir = sys.argv[1]
+    interaction_result_dir = sys.argv[2]
     statistics_file = sys.argv[3]
 
     # Make directory
@@ -183,18 +208,22 @@ if __name__=="__main__":
     fp_all = 0
     fn_all = 0
 
+    # Initialize the list of absolute difference in the window start / end
+    win_start_abs_dif_L = []
+    win_end_abs_dif_L = []
+
     # Write statistics file
     with open(statistics_file, 'w') as f:
-        for causal_interaction_file in os.listdir(causal_interaction_dir):
-            if causal_interaction_file.endswith(".txt"):
-                # Get source setting file number
-                num = causal_interaction_file
+        for interaction_ground_truth_file in os.listdir(interaction_ground_truth_dir):
+            if interaction_ground_truth_file.endswith(".txt"):
+                # Get src setting file number
+                num = interaction_ground_truth_file
                 num = num.replace('interaction_', '')
                 num = num.replace('.txt', '')
-                # Get causal_interaction_file
-                causal_interaction_file = causal_interaction_dir + causal_interaction_file
-                # Get interaction file
-                interaction_file = interaction_dir + 'interaction_' + num + '.txt'
+                # Get interaction_ground_truth_file
+                interaction_ground_truth_file = interaction_ground_truth_dir + interaction_ground_truth_file
+                # Get interaction_result file
+                interaction_result_file = interaction_result_dir + 'interaction_' + num + '.txt'
 
                 # Generate statistics
                 [tp, fp, fn] = generate_statistics()
@@ -214,10 +243,23 @@ if __name__=="__main__":
                 fn_all += fn
 
         # Write statistics file
+
         # Write true positive, false positive and false negative across all datasets
         f.write('tp_all: ' + str(tp_all) + '\n')
         f.write('fp_all: ' + str(fp_all) + '\n')
         f.write('fn_all: ' + str(fn_all) + '\n')
         # Write precision and recall across all datasets
-        f.write('precision: ' + str(tp_all / (tp_all + fp_all)) + '\n')
-        f.write('recall: ' + str(tp_all / (tp_all + fn_all)) + '\n')
+        f.write('precision: ' + str(float(tp_all) / (tp_all + fp_all)) + '\n')
+        f.write('recall: ' + str(float(tp_all) / (tp_all + fn_all)) + '\n\n')
+
+        # Get the mean and std of absolute difference in the window start / end
+        mean_win_start_abs_dif = np.mean(win_start_abs_dif_L)
+        std_win_start_abs_dif = np.std(win_start_abs_dif_L)
+        mean_win_end_abs_dif = np.mean(win_end_abs_dif_L)
+        std_win_end_abs_dif = np.std(win_end_abs_dif_L)
+
+        # Write the list of absolute difference in the window start / end
+        f.write('mean_win_start_abs_dif: ' + str(mean_win_start_abs_dif) + '\n')
+        f.write('std_win_start_abs_dif: ' + str(std_win_start_abs_dif) + '\n\n')
+        f.write('mean_win_end_abs_dif: ' + str(mean_win_end_abs_dif) + '\n')
+        f.write('std_win_end_abs_dif: ' + str(std_win_end_abs_dif) + '\n')

@@ -43,16 +43,34 @@ def generate_data():
     random.seed()
 
     # Generate the source value
-    for time in range(time_num):
+    for day in range(day_num):
         for source in src_L:
-            # Initialization
-            if not time in val_Dic:
-                val_Dic[time] = {}
-            val_Dic[time][source] = 0
+            for hour in range(1, 25):
+                # Initialization
+                time = day * 24 + hour
+                if not time in val_Dic:
+                    val_Dic[time] = {}
+                val_Dic[time][source] = 0
             # Generate random number from [0, 1)
             rand_prob = random.random()
             if rand_prob < prob_Dic[source]:
-                val_Dic[time][source] = 1
+                # Generate random number from [9, 12] AM
+                rand_hour = random.randint(9, 12)
+                val_Dic[day * 24 + rand_hour][source] = 1
+            if num_Dic[var] > 1:
+                # Generate random number from [0, 1)
+                rand_prob = random.random()
+                if rand_prob < prob_Dic[source]:
+                    # Generate random number from [3, 6] PM
+                    rand_hour = random.randint(15, 18)
+                    val_Dic[day * 24 + rand_hour][source] = 1
+                if num_Dic[var] > 2:
+                    # Generate random number from [0, 1)
+                    rand_prob = random.random()
+                    if rand_prob < prob_Dic[source]:
+                        # Generate random number from [9, 12] PM
+                        rand_hour = random.randint(21, 24)
+                        val_Dic[day * 24 + rand_hour][source] = 1
 
     # Write the source file
     with open(src_data_file, 'w') as f:
@@ -125,7 +143,7 @@ def generate_data():
                 continue
 
             for [prob, interaction_LL] in prob_interaction_L_Dic[target]:
-                if get_presence(time, interaction_LL) is True:
+                if get_presence(time, interaction_LL):
                     # Generate random number from [0, 1]
                     rand_prob = random.uniform(0, 1)
                     if rand_prob < prob:
@@ -145,9 +163,9 @@ def generate_data():
             spamwriter.writerow(val_L)
 
 
-# Check the presence of each component in the pie
+# Check the presence of each component in the interaction
 def get_presence(time, interaction_LL):
-    # Check the presence of each component in the pie
+    # Check the presence of each component in the interaction
     for component_L in interaction_LL:
         # Get the name, window start and window end of the component
         var = component_L[0]
@@ -165,7 +183,7 @@ def get_presence(time, interaction_LL):
         if not presence_F:
             return False
 
-    # If all the components in the pie are present in the corresponding windows
+    # If all the components in the interaction are present in the corresponding windows
     return True
 
 
@@ -178,7 +196,7 @@ if __name__=="__main__":
     interaction_dir = sys.argv[3]
     src_data_dir = sys.argv[4]
     tar_data_dir = sys.argv[5]
-    time_num = int(sys.argv[6])
+    day_num = int(sys.argv[6])
 
     # Make directory
     directory = os.path.dirname(src_data_dir)
@@ -190,19 +208,19 @@ if __name__=="__main__":
 
     for src_setting_file in os.listdir(src_setting_dir):
         if src_setting_file.endswith(".txt"):
-            # Get src setting file number
+            # Get source setting file number
             num = src_setting_file
             num = num.replace('src_setting_', '')
             num = num.replace('.txt', '')
-            # Get src setting file
+            # Get source setting file
             src_setting_file = src_setting_dir + 'src_setting_' + num + '.txt'
-            # Get tar setting file
+            # Get target setting file
             tar_setting_file = tar_setting_dir + 'tar_setting_' + num + '.txt'
             # Get interaction file
             interaction_file = interaction_dir + 'interaction_' + num + '.txt'
-            # Get src data file
+            # Get source data file
             src_data_file = src_data_dir + 'src_data_' + num + '.txt'
-            # Get tar data file
+            # Get target data file
             tar_data_file = tar_data_dir + 'tar_data_' + num + '.txt'
 
             # The dictionary of value

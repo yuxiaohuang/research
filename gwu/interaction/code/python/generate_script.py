@@ -24,7 +24,7 @@ import random
 def generate_script():
     # Write the script file
     with open(script_file, 'w') as f:
-        script = 'python3' + ' ' + py_file + ' ' + src_data_dir + src_data_file + ' ' + tar_data_file + ' ' + interaction_file + ' ' + log_file + ' ' + fig_dir_num +  ' ' + p_val_cutoff + ' ' + sample_size_cutoff
+        script = 'python' + ' ' + py_file + ' ' + src_data_dir + src_data_file + ' ' + tar_data_file + ' ' + interaction_file + ' ' + log_file + ' ' + fig_dir_num +  ' ' + p_val_cutoff + ' ' + sample_size_cutoff
         for lag in lag_L:
             script += ' ' + lag
         # Write the file

@@ -3,10 +3,10 @@
 
 # Modules
 from __future__ import division
+import numpy as np
 from scipy import stats
 import sys
 import csv
-import numpy as np
 import math
 
 # Notations
@@ -216,7 +216,7 @@ def get_win_LL(lag_L):
 
 # Get components
 def get_x_LL():
-    for x in x_Dic:
+    for x in sorted(x_Dic.keys()):
         for win_L in win_LL:
             component_L = [x, win_L[0], win_L[1]]
             x_LL.append(component_L)
@@ -225,13 +225,13 @@ def get_x_LL():
 # Get the time series
 def get_time_series():
     # Get time_series_Dic
-    for var in val_Dic:
-        for time in val_Dic[var]:
+    for var in sorted(val_Dic.keys()):
+        for time in sorted(val_Dic[var].keys()):
             if not time in time_series_Dic:
                 time_series_Dic[time] = 1
 
     # Get time_series_L
-    for time in time_series_Dic:
+    for time in sorted(time_series_Dic.keys()):
         time_series_L.append(time)
 
     # Sort time_series_L
@@ -242,7 +242,7 @@ def get_time_series():
 def get_y_statistics(y_L):
     for y in y_L:
         val_L = []
-        for time in val_Dic[y]:
+        for time in sorted(val_Dic[y].keys()):
             # Remove the impact of the combination from the data
             if val_Dic[y][time] != -1:
                 val_L.append(val_Dic[y][time])
@@ -299,7 +299,7 @@ def get_y_cond_x_statistics(y, index, y_cond_X_time_LL):
 # Search for interactions
 def search_for_interactions():
     # For each target
-    for y in y_Dic:
+    for y in sorted(y_Dic.keys()):
         # Write target to the log file
         spamwriter_log.writerow(['search target: ', y])
         spamwriter_log.writerow('')
@@ -383,7 +383,7 @@ def get_y_cond_X_time_LL(y, X_L):
 
     # If the combination is None or empty, return the timepoints where the target is measured
     if X_L is None or len(X_L) == 0:
-        for time in val_Dic[y]:
+        for time in sorted(val_Dic[y].keys()):
             y_cond_X_time_LL.append([time])
         return y_cond_X_time_LL
 
@@ -450,7 +450,7 @@ def get_start_end_Dic(X_L):
         if not index in end_Dic:
             end_Dic[index] = {}
 
-        for time in val_Dic[var]:
+        for time in sorted(val_Dic[var].keys()):
             # If var occurs at this time
             if val_Dic[var][time] == 1:
                 start_time = time + win_start
@@ -1307,7 +1307,7 @@ def get_X_int_L(X_L):
             int_win_Dic[var] = []
 
     # Get the intersection of time windows
-    for var in int_win_Dic:
+    for var in sorted(int_win_Dic.keys()):
         win_LL = []
 
         # For each component in the combination
@@ -1349,7 +1349,7 @@ def get_X_int_L(X_L):
     X_int_L = []
 
     # For each var
-    for var in int_win_Dic:
+    for var in sorted(int_win_Dic.keys()):
         # Add each component
         for [win_start, win_end] in int_win_Dic[var]:
             X_int_L.append([var, win_start, win_end])
