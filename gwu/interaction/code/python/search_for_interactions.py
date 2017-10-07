@@ -555,10 +555,14 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         #     1) the component is in the combination
         # or  2) the component is a superset of some component in the combination
         # or  3) the component is always present
-        # or  4) the function is called when checking the necessary condition and the component is duplicate (we do this only when checking the necessary condition, since we want to find the intersection of windows when checking the sufficient condition)
+        # or  4) the component is always absent
+        # or  5) not enough sample when the component is present
+        # or  6) the function is called when checking the necessary condition and the component is duplicate (we do this only when checking the necessary condition, since we want to find the intersection of windows when checking the sufficient condition)
         if (index in X_L
             or is_sup_set(index, X_L) is True
             or not index in pro_y_cond_not_x_Dic[y]
+            or y_cond_x_time_LL_Dic[y][index] is None
+            or len(y_cond_x_time_LL_Dic[y][index]) <= sample_size_cutoff
             or (check_necessary_cond_F is True and duplicate(X_L, index) is True)):
             # Write empty line to the log file
             spamwriter_log.writerow('')
@@ -885,10 +889,14 @@ def expand(y, X_L, y_cond_X_time_LL):
         # and 2) has not been discovered in an interaction
         # and 3) has not been replaced when shrinking the combination
         # and 4) is not always present
+        # and 5) the component is not always absent
+        # and 6) enough sample when the component is present
         if (not index in X_L
             and not index in discovered_Dic
             and not index in replaced_Dic
-            and index in pro_y_cond_not_x_Dic[y]):
+            and index in pro_y_cond_not_x_Dic[y]
+            and y_cond_x_time_LL_Dic[y][index] is not None
+            and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff):
 
             spamwriter_log.writerow(["expand x_LL[index]: ", x_LL[index]])
             f_log.flush()
