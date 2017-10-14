@@ -21,9 +21,9 @@ import random
 
 # Global variables
 # The list of name of variables
-name_L = ['class', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22']
+name_L = ['Color', 'size', 'act', 'age', 'class']
 
-val_LL = ['1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1']
+val_LL = ['YELLOW, PURPLE', 'LARGE, SMALL', 'STRETCH, DIP', 'ADULT, CHILD', 'T']
 
 # The dictionary of value of each var at each time
 # key: time->var
@@ -40,10 +40,6 @@ def generate_data():
     with open(raw_file, 'r') as f:
         try:
             spamreader = list(csv.reader(f, delimiter=','))
-
-            global val_Dic
-            # Initialization
-            val_Dic = {}
 
             global max_time_stamp
             # Get the maximum time stamp
@@ -71,12 +67,10 @@ def generate_data():
                         else:
                             val_Dic[i][name_val] = 0
 
-            if raw_file.endswith("train.txt"):
-                write_file(src_data_training_file, 'src', 'training')
-                write_file(tar_data_training_file, 'tar', 'training')
-            else:
-                write_file(src_data_testing_file, 'src', 'testing')
-                write_file(tar_data_testing_file, 'tar', 'testing')
+            write_file(src_data_training_file, 'src', 'training')
+            write_file(src_data_testing_file, 'src', 'testing')
+            write_file(tar_data_training_file, 'tar', 'training')
+            write_file(tar_data_testing_file, 'tar', 'testing')
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
@@ -101,12 +95,16 @@ def write_file(file, src_tar_F, training_testing_F):
 
         # Write the value
         # Get start and end
-        start = 0
-        end = int(max_time_stamp)
+        if training_testing_F == 'training':
+            start = 0
+            end = int(0.8 * max_time_stamp)
+        else:
+            start = int(0.8 * max_time_stamp)
+            end = max_time_stamp
 
         # Get iteration
         if training_testing_F == 'training':
-            iteration = 1
+            iteration = 100
         else:
             iteration = 1
 
@@ -151,7 +149,12 @@ if __name__ == "__main__":
         os.makedirs(directory)
 
     for raw_file in os.listdir(raw_file_dir):
-        if raw_file.endswith("test.txt"):
+        if raw_file.endswith(".txt"):
+            # Get src data training file
+            src_data_training_file = src_data_dir + '/training/src_data_' + raw_file
+            # Get tar data training file
+            tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file
+
             # Get src data testing file
             src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file
             # Get tar data testing file
@@ -163,15 +166,3 @@ if __name__ == "__main__":
             # Generate data
             generate_data()
 
-    for raw_file in os.listdir(raw_file_dir):
-        if raw_file.endswith("train.txt"):
-            # Get src data training file
-            src_data_training_file = src_data_dir + '/training/src_data_' + raw_file
-            # Get tar data training file
-            tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file
-
-            # Update raw_file
-            raw_file = raw_file_dir + raw_file
-
-            # Generate data
-            generate_data()

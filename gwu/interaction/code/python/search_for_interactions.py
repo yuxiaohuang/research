@@ -633,8 +633,33 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_x)
         denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_x))
 
-        # If denominator is zero
-        if denominator == 0:
+        # # If denominator is zero
+        # if denominator == 0:
+        #     # The component cannot vote
+        #     vote_F = None
+        #
+        #     # Update conditioned_Dic
+        #     conditioned_Dic[index].append([list(X_L), vote_F])
+        #
+        #     # Write empty line to the log file
+        #     spamwriter_log.writerow('')
+        #     f_log.flush()
+        #
+        #     continue
+        #
+        # # Get z value
+        # z_val = numerator / denominator
+        # # Get p value
+        # p_val = stats.norm.sf(z_val)
+
+
+        # Update based on Balloons dataset
+        if pro == 0:
+            # Get z value
+            z_val = None
+            # Get p value
+            p_val = 1.0
+        elif pro == 1:
             # The component cannot vote
             vote_F = None
 
@@ -646,11 +671,11 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
             f_log.flush()
 
             continue
-
-        # Get z value
-        z_val = numerator / denominator
-        # Get p value
-        p_val = stats.norm.sf(z_val)
+        else:
+            # Get z value
+            z_val = numerator / denominator
+            # Get p value
+            p_val = stats.norm.sf(z_val)
 
         # Write z value and p value to the log file
         spamwriter_log.writerow(["check_sufficient_cond z_val: ", z_val])
@@ -935,11 +960,19 @@ def expand(y, X_L, y_cond_X_time_LL):
             # Get denominator
             num_y_cond_not_x = num_y_cond_not_x_Dic[y][index]
             num_y_1_cond_not_x = num_y_1_cond_not_x_Dic[y][index]
+            spamwriter_log.writerow(["expand num_y_1_cond_not_x: ", num_y_1_cond_not_x])
             pro = (num_y_1_cond_X_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_and_not_x + num_y_cond_not_x)
             denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_and_not_x + 1 / num_y_cond_not_x))
 
-            # If denominator is zero
-            if denominator == 0:
+            # # If denominator is zero
+            # if denominator == 0:
+            #     continue
+
+            # Update based on Ballons dataset
+            if pro == 0:
+                min_component = index
+                break
+            elif pro == 1:
                 continue
 
             # Get z value
@@ -1180,8 +1213,24 @@ def shrink(y, X_L, check_necessary_cond_F):
         pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_x)
         denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_x))
 
-        # If denominator is zero
-        if denominator == 0:
+        # # If denominator is zero
+        # if denominator == 0:
+        #     max_component = None
+        #
+        #     # Write empty line to the log file
+        #     spamwriter_log.writerow('')
+        #     f_log.flush()
+        #
+        #     break
+
+        # Update based on Balloons dataset
+        if pro == 0:
+            # Write empty line to the log file
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            continue
+        elif pro == 1:
             max_component = None
 
             # Write empty line to the log file

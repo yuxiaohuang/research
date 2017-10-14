@@ -27,6 +27,10 @@ interaction_result_Dic = {}
 
 # Initialization
 def initialization():
+    # Initialization
+    global val_Dic, interaction_result_Dic
+    val_Dic = {}
+    interaction_result_Dic = {}
 
     # Load source file
     load_data(src_data_file, True)
@@ -97,9 +101,9 @@ def generate_statistics():
     fn = 0
 
     for time in sorted(val_Dic.keys()):
-        if (time + 1) in val_Dic and target in val_Dic[time + 1]:
+        if target in val_Dic[time]:
             # Ground truth
-            val = val_Dic[time + 1][target]
+            val = val_Dic[time][target]
             # Predicited value, 0 by default
             val_hat = 0
 
@@ -145,7 +149,7 @@ if __name__=="__main__":
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # Initialize true positve, false positive, and false negative (across all datasets)
+    # Initialize true positve, false positive, true negative, and false negative (across all datasets)
     tp_all = 0
     fp_all = 0
     fn_all = 0
@@ -158,6 +162,8 @@ if __name__=="__main__":
                 # Get source and target file
                 src_data_file = src_data_dir + interaction_result_file.replace('interaction', 'src_data')
                 tar_data_file = tar_data_dir + interaction_result_file.replace('interaction', 'tar_data')
+                src_data_file = src_data_file.replace('train', 'test')
+                tar_data_file = tar_data_file.replace('train', 'test')
 
                 # Update interaction_result file
                 interaction_result_file = interaction_result_dir + interaction_result_file
@@ -165,53 +171,75 @@ if __name__=="__main__":
                 # Initialization
                 initialization()
 
+                # Write the name of the dataset
+                f.write(interaction_result_file + '\n')
                 for target in interaction_result_Dic:
                     # Generate statistics
                     [tp, fp, fn, tn] = generate_statistics()
-                    precision = float(tp) / (tp + fp)
-                    recall = float(tp) / (tp + fn)
-                    f1_score = 2 * precision * recall / (precision + recall)
-                    accuracy = float(tp + tn) / (tp + fp + tn + fn)
+
+                    if tp + fp != 0:
+                        precision = float(tp) / (tp + fp)
+                    else:
+                        precision = 'undefined'
+                    if tp + fn != 0:
+                        recall = float(tp) / (tp + fn)
+                    else:
+                        recall = 'undefined'
+                    if tp + fp != 0 and tp + fn != 0:
+                        f1_score = 2 * precision * recall / (precision + recall)
+                    else:
+                        f1_score = 'undefined'
+                    if tp + fp + tn + fn != 0:
+                        accuracy = float(tp + tn) / (tp + fp + tn + fn)
+                    else:
+                        accuracy = 'undefined'
 
                     # Write statistics file
-                    # Write the name of the dataset
-                    f.write(interaction_result_file + '\n')
                     # Write the target
                     f.write('statistics for target: ' + target + '\n')
-                    # Write true positive, false positive and false negative for the current dataset
+                    # Write true positive, false positive, true negative, and false negative for the current dataset
                     f.write('tp: ' + str(tp) + '\n')
                     f.write('fp: ' + str(fp) + '\n')
                     f.write('fn: ' + str(fn) + '\n')
                     f.write('tn: ' + str(tn) + '\n')
 
                     f.write('precision: ' + str(precision) + '\n')
-                    f.write('recall: ' + str(recall) + '\n\n')
-                    f.write('F1 score: ' + str(f1_score) + '\n\n')
+                    f.write('recall: ' + str(recall) + '\n')
+                    f.write('f1 score: ' + str(f1_score) + '\n')
                     f.write('accuracy: ' + str(accuracy) + '\n\n')
 
-
-                    f.write('\n\n')
-
-                    # Update true positive, false positive and false negative across all datasets
+                    # Update true positive, false positive, true negative, and false negative across all datasets
                     tp_all += tp
                     fp_all += fp
                     fn_all += fn
                     tn_all += tn
 
         # Write statistics file
-        # Write true positive, false positive and false negative across all datasets
+        # Write true positive, false positive, true negative, and false negative across all datasets
         f.write('tp_all: ' + str(tp_all) + '\n')
         f.write('fp_all: ' + str(fp_all) + '\n')
         f.write('fn_all: ' + str(fn_all) + '\n')
         f.write('tn_all: ' + str(tn_all) + '\n')
 
         # Write precision and recall across all datasets
-        precision = float(tp_all) / (tp_all + fp_all)
-        recall = float(tp_all) / (tp_all + fn_all)
-        f1_score = 2 * precision * recall / (precision + recall)
-        accuracy = float(tp_all + tn_all) / (tp_all + fp_all + tn_all + fn_all)
+        if tp_all + fp_all != 0:
+            precision = float(tp_all) / (tp_all + fp_all)
+        else:
+            precision = 'undefined'
+        if tp_all + fn_all != 0:
+            recall = float(tp_all) / (tp_all + fn_all)
+        else:
+            recall = 'undefined'
+        if tp_all + fp_all != 0 and tp_all + fn_all != 0:
+            f1_score = 2 * precision * recall / (precision + recall)
+        else:
+            f1_score = 'undefined'
+        if tp_all + fp_all + tn_all + fn_all != 0:
+            accuracy = float(tp_all + tn_all) / (tp_all + fp_all + tn_all + fn_all)
+        else:
+            accuracy = 'undefined'
 
         f.write('precision: ' + str(precision) + '\n')
-        f.write('recall: ' + str(recall) + '\n\n')
-        f.write('F1 score: ' + str(f1_score) + '\n\n')
+        f.write('recall: ' + str(recall) + '\n')
+        f.write('f1 score: ' + str(f1_score) + '\n')
         f.write('accuracy: ' + str(accuracy) + '\n\n')

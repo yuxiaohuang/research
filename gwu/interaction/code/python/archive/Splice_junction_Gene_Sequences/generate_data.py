@@ -25,6 +25,10 @@ import random
 # key: time->var
 # val: value of each var at each time
 val_Dic = {}
+val_rand_Dic = {}
+
+# Maximum time stamp
+max_time_stamp = 0
 
 
 # Generate source and target data
@@ -33,6 +37,7 @@ def generate_data():
     with open(raw_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
 
+    global max_time_stamp
     # Get the maximum time stamp
     max_time_stamp = len(spamreader)
 
@@ -41,21 +46,19 @@ def generate_data():
         # Initialization
         if not i in val_Dic:
             val_Dic[i] = {}
-        if not (i + 1) in val_Dic:
-            val_Dic[i + 1] = {}
 
         # Get the value of the class
         class_val = spamreader[i][0].strip()
 
         # Update val_Dic
-        for val in ['N', 'EI', 'IE']:
+        for val in ['EI', 'IE']:
             # Get name_val
             name_val = 'class_' + val
 
             if val == class_val:
-                val_Dic[i + 1][name_val] = 1
+                val_Dic[i][name_val] = 1
             else:
-                val_Dic[i + 1][name_val] = 0
+                val_Dic[i][name_val] = 0
 
         # Get the value of the sequence
         seq_val = spamreader[i][2].strip()
@@ -77,69 +80,71 @@ def generate_data():
                 else:
                     val_Dic[i][name_val] = 0
 
-    # Write the source file
-    with open(src_data_file, 'w') as f:
+    # Get val_rand_Dic
+    time_L = random.sample(list(range(max_time_stamp)), max_time_stamp)
+    for i in range(max_time_stamp):
+        time = time_L[i]
+        if not i in val_rand_Dic:
+            val_rand_Dic[i] = {}
+        for name_val in sorted(val_Dic[time].keys()):
+            val_rand_Dic[i][name_val] = val_Dic[time][name_val]
+
+    write_file(src_data_training_file, 'src', 'training')
+    write_file(src_data_testing_file, 'src', 'testing')
+    write_file(tar_data_training_file, 'tar', 'training')
+    write_file(tar_data_testing_file, 'tar', 'testing')
+
+
+# Write file
+def write_file(file, src_tar_F, training_testing_F):
+    # Write file
+    with open(file, 'w') as f:
         spamwriter = csv.writer(f, delimiter=',')
 
         # Get the header
-        src_L = []
-        for name_val in sorted(val_Dic[0].keys()):
-            if not 'class' in name_val:
-                src_L.append(name_val)
+        header_L = []
+        for name_val in sorted(val_rand_Dic[0].keys()):
+            if ((src_tar_F == 'src' and not 'class' in name_val)
+                or (src_tar_F == 'tar' and 'class' in name_val)):
+                header_L.append(name_val)
 
         # Write the header
-        spamwriter.writerow(src_L)
+        spamwriter.writerow(header_L)
 
         # Write the value
-        for time in range(0, max_time_stamp + 1):
-            # The list of value at the time
-            val_L = []
+        # Get start and end
+        if training_testing_F == 'training':
+            start = 0
+            end = int(0.8 * max_time_stamp)
+        else:
+            start = int(0.8 * max_time_stamp)
+            end = max_time_stamp
 
-            if time in val_Dic:
-                for name_val in src_L:
-                    if name_val in val_Dic[time]:
-                        val_L.append(val_Dic[time][name_val])
-                    else:
+        # Get iteration
+        if training_testing_F == 'training':
+            iteration = 10
+        else:
+            iteration = 1
+
+        for i in range(iteration):
+            for time in range(start, end):
+                # The list of value at the time
+                val_L = []
+
+                if time in val_rand_Dic:
+                    for name_val in header_L:
+                        if name_val in val_rand_Dic[time]:
+                            val_L.append(val_rand_Dic[time][name_val])
+                        else:
+                            val_L.append(0)
+                else:
+                    for name_val in src_L:
                         val_L.append(0)
-            else:
-                for name_val in src_L:
-                    val_L.append(0)
 
-            spamwriter.writerow(val_L)
-
-    # Write the target file
-    with open(tar_data_file, 'w') as f:
-        spamwriter = csv.writer(f, delimiter=',')
-
-        # Get the header
-        tar_L = []
-        for name_val in sorted(val_Dic[1].keys()):
-            if 'class' in name_val:
-                tar_L.append(name_val)
-
-        # Write the header
-        spamwriter.writerow(tar_L)
-
-        # Write the value
-        for time in range(0, max_time_stamp + 1):
-            # The list of value at the time
-            val_L = []
-
-            if time in val_Dic:
-                for name_val in tar_L:
-                    if name_val in val_Dic[time]:
-                        val_L.append(val_Dic[time][name_val])
-                    else:
-                        val_L.append(0)
-            else:
-                for name_val in tar_L:
-                    val_L.append(0)
-
-            spamwriter.writerow(val_L)
+                spamwriter.writerow(val_L)
 
 
-# Main function
-if __name__=="__main__":
+if __name__ == "__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
     raw_file_dir = sys.argv[1]
@@ -147,22 +152,33 @@ if __name__=="__main__":
     tar_data_dir = sys.argv[3]
 
     # Make directory
-    directory = os.path.dirname(src_data_dir)
+    directory = os.path.dirname(src_data_dir + '/training/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir)
+    directory = os.path.dirname(src_data_dir + '/testing/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(tar_data_dir + '/training/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(tar_data_dir + '/testing/')
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     for raw_file in os.listdir(raw_file_dir):
         if raw_file.endswith(".txt"):
-            # Get src data file
-            src_data_file = src_data_dir + 'src_data' + '_' + raw_file
-            # Get tar data file
-            tar_data_file = tar_data_dir + 'tar_data' + '_' + raw_file
+            # Get src data training file
+            src_data_training_file = src_data_dir + '/training/src_data_' + raw_file
+            # Get tar data training file
+            tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file
+
+            # Get src data testing file
+            src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file
+            # Get tar data testing file
+            tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file
 
             # Update raw_file
             raw_file = raw_file_dir + raw_file
-            
+
             # Generate data
             generate_data()

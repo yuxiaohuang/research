@@ -21,9 +21,9 @@ import random
 
 # Global variables
 # The list of name of variables
-name_L = ['class', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22']
+name_L = ['class', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6']
 
-val_LL = ['1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1']
+val_LL = ['1', '1, 2, 3', '1, 2, 3', '1, 2', '1, 2, 3', '1, 2, 3, 4', '1, 2']
 
 # The dictionary of value of each var at each time
 # key: time->var
@@ -38,49 +38,44 @@ max_time_stamp = 0
 def generate_data():
     # Load the raw file
     with open(raw_file, 'r') as f:
-        try:
-            spamreader = list(csv.reader(f, delimiter=','))
+        spamreader = list(csv.reader(f, delimiter=' '))
 
-            global val_Dic
-            # Initialization
-            val_Dic = {}
+    global val_Dic
+    # Initialization
+    val_Dic = {}
 
-            global max_time_stamp
-            # Get the maximum time stamp
-            max_time_stamp = len(spamreader)
+    global max_time_stamp
+    # Get the maximum time stamp
+    max_time_stamp = len(spamreader)
 
-            # From the first line to the last (since there is no header)
-            for i in range(0, max_time_stamp):
-                # Initialization
-                if not i in val_Dic:
-                    val_Dic[i] = {}
+    # From the first line to the last (since there is no header)
+    for i in range(0, max_time_stamp):
+        # Initialization
+        if not i in val_Dic:
+            val_Dic[i] = {}
 
-                # Get val_Dic
-                for j in range(len(name_L)):
-                    name = name_L[j]
-                    val_j = spamreader[i][j].strip()
+        # Get val_Dic
+        for j in range(len(name_L)):
+            name = name_L[j]
+            val_j = spamreader[i][j + 1].strip()
 
-                    for val in val_LL[j].split(','):
-                        val = val.strip()
-                        # Get name_val
-                        name_val = name + '_' + val
+            for val in val_LL[j].split(','):
+                val = val.strip()
+                # Get name_val
+                name_val = name + '_' + val
 
-                        # Update val_Dic
-                        if val == val_j:
-                            val_Dic[i][name_val] = 1
-                        else:
-                            val_Dic[i][name_val] = 0
+                # Update val_Dic
+                if val == val_j:
+                    val_Dic[i][name_val] = 1
+                else:
+                    val_Dic[i][name_val] = 0
 
-            if raw_file.endswith("train.txt"):
-                write_file(src_data_training_file, 'src', 'training')
-                write_file(tar_data_training_file, 'tar', 'training')
-            else:
-                write_file(src_data_testing_file, 'src', 'testing')
-                write_file(tar_data_testing_file, 'tar', 'testing')
-
-        except UnicodeDecodeError:
-            print("UnicodeDecodeError when reading the following file!")
-            print(raw_file)
+    if raw_file.endswith("train.txt"):
+        write_file(src_data_training_file, 'src', 'training')
+        write_file(tar_data_training_file, 'tar', 'training')
+    else:
+        write_file(src_data_testing_file, 'src', 'testing')
+        write_file(tar_data_testing_file, 'tar', 'testing')
 
 
 # Write file
@@ -106,7 +101,7 @@ def write_file(file, src_tar_F, training_testing_F):
 
         # Get iteration
         if training_testing_F == 'training':
-            iteration = 1
+            iteration = 100
         else:
             iteration = 1
 
@@ -162,7 +157,7 @@ if __name__ == "__main__":
 
             # Generate data
             generate_data()
-
+            
     for raw_file in os.listdir(raw_file_dir):
         if raw_file.endswith("train.txt"):
             # Get src data training file
@@ -175,3 +170,7 @@ if __name__ == "__main__":
 
             # Generate data
             generate_data()
+
+
+
+
