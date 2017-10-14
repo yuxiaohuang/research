@@ -1,3 +1,0 @@
-
-# Here is the command for generating the data from terminal 
-python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_data.py /home/yuxiaohuang/research/gwu/interaction/data/real_data/newHIV-1_data/raw/ /home/yuxiaohuang/research/gwu/interaction/data/real_data/newHIV-1_data/source/ /home/yuxiaohuang/research/gwu/interaction/data/real_data/newHIV-1_data/target/ 

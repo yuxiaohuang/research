@@ -1,0 +1,6 @@
+
+module load python
+
+for myfile in /home/yuxiaohuang/research/gwu/interaction/shell/generate_script/classification/*.txt;         
+do (sh $myfile)  
+done
