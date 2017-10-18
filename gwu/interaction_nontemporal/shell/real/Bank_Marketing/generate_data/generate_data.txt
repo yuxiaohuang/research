@@ -1,0 +1,3 @@
+
+# Here is the command for generating the data from terminal 
+python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_data.py /home/yuxiaohuang/research/gwu/interaction/data/real_data/Bank_Marketing/raw/ /home/yuxiaohuang/research/gwu/interaction/data/real_data/Bank_Marketing/source/ /home/yuxiaohuang/research/gwu/interaction/data/real_data/Bank_Marketing/target/ 

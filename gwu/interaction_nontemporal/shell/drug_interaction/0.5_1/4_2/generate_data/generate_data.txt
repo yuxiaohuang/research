@@ -1,0 +1,12 @@
+
+# Here is the command for generating the source setting from terminal 
+python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_setting.py /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/source/ 'src' 100 10 30 0.5 1.0 1 3
+
+# Here is the command for generating the target setting from terminal 
+python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_setting.py /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/target/ 'tar' 100 1 1 0.05 0.1
+
+# Here is the command for generating the interaction from terminal 
+python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_interaction.py /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/source/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/target/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/interaction/ 1 4 1 2 1 6 0.5 1.0
+
+# Here is the command for generating the data from terminal 
+python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_data.py /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/source/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/setting/target/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/interaction/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/data/source/ /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/data/target/ 1000
