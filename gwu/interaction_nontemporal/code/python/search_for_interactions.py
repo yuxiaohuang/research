@@ -8,6 +8,7 @@ from scipy import stats
 import sys
 import csv
 import math
+import time
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -1428,6 +1429,8 @@ if __name__ == "__main__":
     sample_size_cutoff = int(sys.argv[8])
     lag_L = sys.argv[9:]
 
+    start_time = time.clock()
+
     # Initialization
     initialization(source_data_file, target_data_file)
 
@@ -1437,5 +1440,12 @@ if __name__ == "__main__":
         with open(interaction_file, 'w') as f_interaction:
             # Write the causal combination file
             spamwriter_interaction = csv.writer(f_interaction, delimiter=' ')
+
             # Search for the interactions
             search_for_interactions()
+
+            end_time = time.clock()
+            run_time = end_time - start_time
+
+            # Write run time
+            spamwriter_interaction.writerow(['run time: ' + str(run_time)])

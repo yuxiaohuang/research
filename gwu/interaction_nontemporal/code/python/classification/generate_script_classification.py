@@ -24,7 +24,7 @@ import random
 def generate_script():
     # Write the script file
     with open(script_file, 'w') as f:
-        script = 'python' + ' ' + py_file + ' ' + src_data_training_dir + ' ' + tar_data_training_dir + ' ' + src_data_testing_dir + ' ' + tar_data_testing_dir + ' ' + statistics_file
+        script = 'python' + ' ' + py_file + ' ' + src_data_training_dir + ' ' + tar_data_training_dir + ' ' + src_data_testing_dir + ' ' + tar_data_testing_dir + ' ' + statistics_file + ' ' + statistics_all_file
         f.write(script + '\n')
 
 # Main function
@@ -38,12 +38,16 @@ if __name__=="__main__":
     src_data_testing_dir = sys.argv[5]
     tar_data_testing_dir = sys.argv[6]
     statistics_file = sys.argv[7]
+    statistics_all_file = sys.argv[8]
 
     # Make directory
     directory = os.path.dirname(script_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
     directory = os.path.dirname(statistics_file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(statistics_all_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
