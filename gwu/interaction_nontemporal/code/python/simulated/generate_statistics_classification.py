@@ -25,6 +25,8 @@ val_Dic = {}
 
 interaction_result_Dic = {}
 
+tar_L = []
+
 # Initialization
 def initialization():
     # Initialization
@@ -43,38 +45,49 @@ def initialization():
         spamreader = list(csv.reader(f, delimiter=' '))
         # Get the target and interaction_ground_truth
         for i in range(len(spamreader)):
-            # Target lies in the end of the first column in each row
-            target = spamreader[i][0].strip()
-            target = target.replace('interaction for ', '')
-            target = target.replace(':', '')
-            # interaction_result lies in the second column in each row
-            interaction_result = spamreader[i][1].strip()
-            interaction_result = interaction_result.replace('[', '')
-            interaction_result = interaction_result.replace(']', '')
-            interaction_result = interaction_result.replace('\'', '')
-            interaction_result = interaction_result.split(',')
-            component_num = len(interaction_result) // 3
-            interaction_result_LL = []
+            if 'interaction for' in spamreader[i][0]:
+                # Target lies in the end of the first column in each row
+                target = spamreader[i][0].strip()
+                target = target.replace('interaction for ', '')
+                target = target.replace(':', '')
+                # interaction_result lies in the second column in each row
+                interaction_result = spamreader[i][1].strip()
+                interaction_result = interaction_result.replace('[', '')
+                interaction_result = interaction_result.replace(']', '')
+                interaction_result = interaction_result.replace('\'', '')
+                interaction_result = interaction_result.split(',')
+                component_num = len(interaction_result) // 3
+                interaction_result_LL = []
 
-            for j in range(component_num):
-                component_L = []
-                # Name
-                component_L.append(interaction_result[j * 3].strip())
-                # Window start
-                component_L.append(interaction_result[j * 3 + 1].strip())
-                # Window end
-                component_L.append(interaction_result[j * 3 + 2].strip())
-                interaction_result_LL.append(component_L)
+                for j in range(component_num):
+                    component_L = []
+                    # Name
+                    component_L.append(interaction_result[j * 3].strip())
+                    # Window start
+                    component_L.append(interaction_result[j * 3 + 1].strip())
+                    # Window end
+                    component_L.append(interaction_result[j * 3 + 2].strip())
+                    interaction_result_LL.append(component_L)
 
-            if not target in interaction_result_Dic:
-                interaction_result_Dic[target] = []
-            interaction_result_Dic[target].append(interaction_result_LL)
+                if not target in interaction_result_Dic:
+                    interaction_result_Dic[target] = []
+                interaction_result_Dic[target].append(interaction_result_LL)
 
 
 # Load data
 def load_data(data_file, x_F):
     with open(data_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter=','))
+
+        # Get tar_L
+        if x_F is False:
+            # Initialization
+            global tar_L
+            tar_L = []
+            
+            for j in range(len(spamreader[0])):
+                var = spamreader[0][j].strip()
+                tar_L.append(var)
 
         # Get val_Dic
         # From the second line to the last (since the first line is the header)
@@ -108,19 +121,20 @@ def generate_statistics():
             val_hat = 0
 
             # For each interaction_result
-            for interaction_result_LL in interaction_result_Dic[target]:
-                exist_F = True
+            if target in interaction_result_Dic:
+                for interaction_result_LL in interaction_result_Dic[target]:
+                    exist_F = True
 
-                for interaction_result_L in interaction_result_LL:
-                    var = interaction_result_L[0]
-                    if not var in val_Dic[time] or val_Dic[time][var] == 0:
-                        exist_F = False
+                    for interaction_result_L in interaction_result_LL:
+                        var = interaction_result_L[0]
+                        if not var in val_Dic[time] or val_Dic[time][var] == 0:
+                            exist_F = False
+                            break
+
+                    if exist_F is True:
+                        # Update predicted value
+                        val_hat = 1
                         break
-
-                if exist_F is True:
-                    # Update predicted value
-                    val_hat = 1
-                    break
 
             # Update tp and fp
             if val == 1 and val_hat == 1:
@@ -173,10 +187,11 @@ if __name__=="__main__":
 
                 # Write the name of the dataset
                 f.write(interaction_result_file + '\n')
-                for target in interaction_result_Dic:
+                for target in tar_L:
                     # Generate statistics
                     [tp, fp, fn, tn] = generate_statistics()
 
+                    # Get precision, recall, f1_score, and accuracy
                     if tp + fp != 0:
                         precision = float(tp) / (tp + fp)
                     else:
@@ -185,7 +200,7 @@ if __name__=="__main__":
                         recall = float(tp) / (tp + fn)
                     else:
                         recall = 'undefined'
-                    if tp + fp != 0 and tp + fn != 0:
+                    if precision != 'undefined' and recall != 'undefined' and (precision != 0 or recall != 0):
                         f1_score = 2 * precision * recall / (precision + recall)
                     else:
                         f1_score = 'undefined'
@@ -230,7 +245,7 @@ if __name__=="__main__":
             recall = float(tp_all) / (tp_all + fn_all)
         else:
             recall = 'undefined'
-        if tp_all + fp_all != 0 and tp_all + fn_all != 0:
+        if precision != 'undefined' and recall != 'undefined' and (precision != 0 or recall != 0):
             f1_score = 2 * precision * recall / (precision + recall)
         else:
             f1_score = 'undefined'
