@@ -30,9 +30,15 @@ val_LL = ['1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '
 # val: value of each var at each time
 val_Dic = {}
 
+# The dictionary of value of each var at each time
+# key: time->var
+# val: value of each var at each time
+val_raw_Dic = {}
+
 # Maximum time stamp
 max_time_stamp = 0
 
+file_type = ".txt"
 
 # Generate source and target data
 def generate_data():
@@ -41,9 +47,10 @@ def generate_data():
         try:
             spamreader = list(csv.reader(f, delimiter=','))
 
-            global val_Dic
+            global val_Dic, val_raw_Dic
             # Initialization
             val_Dic = {}
+            val_raw_Dic = {}
 
             global max_time_stamp
             # Get the maximum time stamp
@@ -54,11 +61,15 @@ def generate_data():
                 # Initialization
                 if not i in val_Dic:
                     val_Dic[i] = {}
+                    val_raw_Dic[i] = {}
 
-                # Get val_Dic
+                # Get val_Dic and val_raw_Dic
                 for j in range(len(name_L)):
                     name = name_L[j]
                     val_j = spamreader[i][j].strip()
+
+                    # Update val_raw_Dic
+                    val_raw_Dic[i][name] = val_j
 
                     for val in val_LL[j].split(','):
                         val = val.strip()
@@ -72,11 +83,17 @@ def generate_data():
                             val_Dic[i][name_val] = 0
 
             if raw_file.endswith("train.txt"):
-                write_file(src_data_training_file, 'src', 'training')
-                write_file(tar_data_training_file, 'tar', 'training')
+                write_file(src_data_training_file, 'src', 'training', val_Dic)
+                write_file(tar_data_training_file, 'tar', 'training', val_Dic)
+                write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
+                write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
+
+
             else:
-                write_file(src_data_testing_file, 'src', 'testing')
-                write_file(tar_data_testing_file, 'tar', 'testing')
+                write_file(src_data_testing_file, 'src', 'testing', val_Dic)
+                write_file(tar_data_testing_file, 'tar', 'testing', val_Dic)
+                write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
+                write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
@@ -84,7 +101,7 @@ def generate_data():
 
 
 # Write file
-def write_file(file, src_tar_F, training_testing_F):
+def write_file(file, src_tar_F, training_testing_F, val_Dic):
     # Write file
     with open(file, 'w') as f:
         spamwriter = csv.writer(f, delimiter=',')
@@ -106,7 +123,7 @@ def write_file(file, src_tar_F, training_testing_F):
 
         # Get iteration
         if training_testing_F == 'training':
-            iteration = 1
+            iteration = 100
         else:
             iteration = 1
 
@@ -137,41 +154,53 @@ if __name__ == "__main__":
     tar_data_dir = sys.argv[3]
 
     # Make directory
-    directory = os.path.dirname(src_data_dir + '/training/')
+    directory = os.path.dirname(src_data_dir + '/training/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(src_data_dir + '/testing/')
+    directory = os.path.dirname(src_data_dir + '/testing/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + '/training/')
+    directory = os.path.dirname(tar_data_dir + '/training/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + '/testing/')
+    directory = os.path.dirname(tar_data_dir + '/testing/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for raw_file in os.listdir(raw_file_dir):
-        if raw_file.endswith("test.txt"):
-            # Get src data testing file
-            src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file
-            # Get tar data testing file
-            tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file
+    for i in range(100):
+        for raw_file in os.listdir(raw_file_dir):
+            if raw_file.endswith("train.txt"):
+                # Get src data training file
+                src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Update raw_file
-            raw_file = raw_file_dir + raw_file
+                # Get src data training file
+                src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Generate data
-            generate_data()
+                # Update raw_file
+                raw_file = raw_file_dir + raw_file
 
-    for raw_file in os.listdir(raw_file_dir):
-        if raw_file.endswith("train.txt"):
-            # Get src data training file
-            src_data_training_file = src_data_dir + '/training/src_data_' + raw_file
-            # Get tar data training file
-            tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file
+                # Generate data
+                generate_data()
 
-            # Update raw_file
-            raw_file = raw_file_dir + raw_file
+    for i in range(100):
+        for raw_file in os.listdir(raw_file_dir):
+            if raw_file.endswith("test.txt"):
+                # Get src data testing file
+                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Generate data
-            generate_data()
+                # Get src data testing file
+                src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+
+                # Update raw_file
+                raw_file = raw_file_dir + raw_file
+
+                # Generate data
+                generate_data()

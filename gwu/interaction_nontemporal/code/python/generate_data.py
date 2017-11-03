@@ -1,5 +1,4 @@
 
-
 # Please cite the following paper when using the code
 
 
@@ -20,239 +19,188 @@ import random
 # _LL_Dic : indicates the data structure is a dictionary, where the value is a list of list
 
 
+# Global variables
+# The list of name of variables
+name_L = ['class', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22']
+
+val_LL = ['1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1', '0, 1']
+
+# The dictionary of value of each var at each time
+# key: time->var
+# val: value of each var at each time
+val_Dic = {}
+
+# The dictionary of value of each var at each time
+# key: time->var
+# val: value of each var at each time
+val_raw_Dic = {}
+
+# Maximum time stamp
+max_time_stamp = 0
+
+file_type = ".txt"
+
 # Generate source and target data
 def generate_data():
-    # Load the source setting file
-    with open(src_setting_file, 'r') as f:
-        spamreader = list(csv.reader(f, delimiter = ','))
+    # Load the raw file
+    with open(raw_file, 'r') as f:
+        try:
+            spamreader = list(csv.reader(f, delimiter=','))
 
-        # Get the source list
-        src_L = []
-
-        # From the second line to the last (since the first line is the header)
-        for i in range(1, len(spamreader)):
-            # Get the name of the var, the number of times of its presence, and the probability of its presence
-            var = spamreader[i][0].strip()
-            num = int(spamreader[i][1].strip())
-            num_Dic[var] = num
-            prob = float(spamreader[i][2].strip())
-            prob_Dic[var] = prob
-            # Update the source list
-            src_L.append(var)
-
-    random.seed()
-
-    # Generate the source value
-    for time in range(time_num):
-        for source in src_L:
+            global val_Dic, val_raw_Dic
             # Initialization
-            if not time in val_Dic:
-                val_Dic[time] = {}
-            val_Dic[time][source] = 0
-            # Generate random number from [0, 1)
-            rand_prob = random.random()
-            if rand_prob < prob_Dic[source]:
-                val_Dic[time][source] = 1
+            val_Dic = {}
+            val_raw_Dic = {}
 
-    # Write the source training file
-    with open(src_data_training_file, 'w') as f:
-        spamwriter = csv.writer(f, delimiter = ',')
-        # Write the header
-        spamwriter.writerow(src_L)
-        # Write the value
-        for time in range(int(0.8 * time_num)):
-            val_L = []
-            for source in src_L:
-                val_L.append(val_Dic[time][source])
-            spamwriter.writerow(val_L)
+            global max_time_stamp
+            # Get the maximum time stamp
+            max_time_stamp = len(spamreader)
 
-    # Write the source testing file
-    with open(src_data_testing_file, 'w') as f:
-        spamwriter = csv.writer(f, delimiter=',')
-        # Write the header
-        spamwriter.writerow(src_L)
-        # Write the value
-        for time in range(int(0.8 * time_num), time_num):
-            val_L = []
-            for source in src_L:
-                val_L.append(val_Dic[time][source])
-            spamwriter.writerow(val_L)
+            # From the first line to the last (since there is no header)
+            for i in range(0, max_time_stamp):
+                # Initialization
+                if not i in val_Dic:
+                    val_Dic[i] = {}
+                    val_raw_Dic[i] = {}
 
-    # Load the interaction file
-    with open(interaction_file, 'r') as f:
-        spamreader = list(csv.reader(f, delimiter = ','))
-        # Get the target, probability and interaction
-        # From the second line to the last (since the first line is the header)
-        for i in range(1, len(spamreader)):
-            # Target lies in the first column in each row
-            target = spamreader[i][0].strip()
-            # Probability lies in the second column in each row
-            prob = float(spamreader[i][1].strip())
-            # interaction lies in the remaining columns, with the form component_i, win_start_i, win_end_i
-            interaction_LL = []
-            component_num = (len(spamreader[i]) - 2) // 3
-            for j in range(component_num):
-                component_L = []
-                # Name
-                component_L.append(spamreader[i][j * 3 + 2].strip())
-                # Window start
-                component_L.append(int(spamreader[i][j * 3 + 3].strip()))
-                # Window end
-                component_L.append(int(spamreader[i][j * 3 + 4].strip()))
-                interaction_LL.append(component_L)
-            if not target in prob_interaction_L_Dic:
-                prob_interaction_L_Dic[target] = []
-            prob_interaction_L_Dic[target].append([prob, interaction_LL])
+                # Get val_Dic and val_raw_Dic
+                for j in range(len(name_L)):
+                    name = name_L[j]
+                    val_j = spamreader[i][j].strip()
 
-    # Load the target setting file
-    with open(tar_setting_file, 'r') as f:
-        spamreader = list(csv.reader(f, delimiter = ','))
+                    # Update val_raw_Dic
+                    val_raw_Dic[i][name] = val_j
 
-        # Initialize the target list
-        tar_L = []
+                    for val in val_LL[j].split(','):
+                        val = val.strip()
+                        # Get name_val
+                        name_val = name + '_' + val
 
-        # From the second line to the last (since the first line is the header)
-        for i in range(1, len(spamreader)):
-            # Get the name of the var and the probability of its presence
-            var = spamreader[i][0].strip()
-            prob = float(spamreader[i][1].strip())
-            prob_Dic[var] = prob
-            # Update the target list
-            tar_L.append(var)
+                        # Update val_Dic
+                        if val == val_j:
+                            val_Dic[i][name_val] = 1
+                        else:
+                            val_Dic[i][name_val] = 0
 
-    # Generate the target value
-    for target in tar_L:
-        # Initialization
-        for time in sorted(val_Dic.keys()):
-            rand_prob = random.random()
-            if rand_prob < prob_Dic[target]:
-                # Add noise
-                val_Dic[time][target] = 1
+            if raw_file.endswith("train.txt"):
+                write_file(src_data_training_file, 'src', 'training', val_Dic)
+                write_file(tar_data_training_file, 'tar', 'training', val_Dic)
+                write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
+                write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
+
+
             else:
-                val_Dic[time][target] = 0
+                write_file(src_data_testing_file, 'src', 'testing', val_Dic)
+                write_file(tar_data_testing_file, 'tar', 'testing', val_Dic)
+                write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
+                write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
 
-        # Add the impact of the interactions
-        for time in sorted(val_Dic.keys()):
-            if val_Dic[time][target] == 1:
-                continue
+        except UnicodeDecodeError:
+            print("UnicodeDecodeError when reading the following file!")
+            print(raw_file)
 
-            for [prob, interaction_LL] in prob_interaction_L_Dic[target]:
-                if get_presence(time, interaction_LL) is True:
-                    # Generate random number from [0, 1]
-                    rand_prob = random.uniform(0, 1)
-                    if rand_prob < prob:
-                        val_Dic[time][target] = 1
-                        break
 
-    # Write the target training file
-    with open(tar_data_training_file, 'w') as f:
+# Write file
+def write_file(file, src_tar_F, training_testing_F, val_Dic):
+    # Write file
+    with open(file, 'w') as f:
         spamwriter = csv.writer(f, delimiter=',')
+
+        # Get the header
+        header_L = []
+        for name_val in sorted(val_Dic[0].keys()):
+            if ((src_tar_F == 'src' and not 'class' in name_val)
+                or (src_tar_F == 'tar' and 'class' in name_val)):
+                header_L.append(name_val)
+
         # Write the header
-        spamwriter.writerow(tar_L)
+        spamwriter.writerow(header_L)
+
         # Write the value
-        for time in range(int(0.8 * time_num)):
-            val_L = []
-            for target in tar_L:
-                val_L.append(val_Dic[time][target])
-            spamwriter.writerow(val_L)
+        # Get start and end
+        start = 0
+        end = int(max_time_stamp)
 
-    # Write the target testing file
-    with open(tar_data_testing_file, 'w') as f:
-        spamwriter = csv.writer(f, delimiter=',')
-        # Write the header
-        spamwriter.writerow(tar_L)
-        # Write the value
-        for time in range(int(0.8 * time_num), time_num):
-            val_L = []
-            for target in tar_L:
-                val_L.append(val_Dic[time][target])
-            spamwriter.writerow(val_L)
+        # Get iteration
+        if training_testing_F == 'training':
+            iteration = 100
+        else:
+            iteration = 1
 
-# Check the presence of each component in the pie
-def get_presence(time, interaction_LL):
-    # Check the presence of each component in the pie
-    for component_L in interaction_LL:
-        # Get the name, window start and window end of the component
-        var = component_L[0]
-        win_start = component_L[1]
-        win_end = component_L[2]
+        for i in range(iteration):
+            for time in range(start, end):
+                # The list of value at the time
+                val_L = []
 
-        # Check the presence of the component in time window [time - window end, time - window start]
-        # Default is absence
-        presence_F = False
-        for prev_time in range(time - win_end, time - win_start + 1):
-            if prev_time in val_Dic and val_Dic[prev_time][var] == 1:
-                presence_F = True
+                if time in val_Dic:
+                    for name_val in header_L:
+                        if name_val in val_Dic[time]:
+                            val_L.append(val_Dic[time][name_val])
+                        else:
+                            val_L.append(0)
+                else:
+                    for name_val in header_L:
+                        val_L.append(0)
 
-        # If the component is absent in the window above
-        if not presence_F:
-            return False
-
-    # If all the components in the pie are present in the corresponding windows
-    return True
+                spamwriter.writerow(val_L)
 
 
 # Main function
-if __name__=="__main__":
+if __name__ == "__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    src_setting_dir = sys.argv[1]
-    tar_setting_dir = sys.argv[2]
-    interaction_dir = sys.argv[3]
-    src_data_dir = sys.argv[4]
-    tar_data_dir = sys.argv[5]
-    time_num = int(sys.argv[6])
+    raw_file_dir = sys.argv[1]
+    src_data_dir = sys.argv[2]
+    tar_data_dir = sys.argv[3]
 
     # Make directory
-    directory = os.path.dirname(src_data_dir + 'training/')
+    directory = os.path.dirname(src_data_dir + '/training/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(src_data_dir + 'testing/')
+    directory = os.path.dirname(src_data_dir + '/testing/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + 'training/')
+    directory = os.path.dirname(tar_data_dir + '/training/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + 'testing/')
+    directory = os.path.dirname(tar_data_dir + '/testing/raw/')
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for src_setting_file in os.listdir(src_setting_dir):
-        if src_setting_file.endswith(".txt"):
-            # Get src setting file number
-            num = src_setting_file
-            num = num.replace('src_setting_', '')
-            num = num.replace('.txt', '')
-            # Get src setting file
-            src_setting_file = src_setting_dir + 'src_setting_' + num + '.txt'
-            # Get tar setting file
-            tar_setting_file = tar_setting_dir + 'tar_setting_' + num + '.txt'
-            # Get interaction file
-            interaction_file = interaction_dir + 'interaction_' + num + '.txt'
-            # Get src data training file
-            src_data_training_file = src_data_dir + 'training/src_data_' + num + '.txt'
-            # Get tar data training file
-            tar_data_training_file = tar_data_dir + 'training/tar_data_' + num + '.txt'
-            # Get src data testing file
-            src_data_testing_file = src_data_dir + 'testing/src_data_' + num + '.txt'
-            # Get tar data testing file
-            tar_data_testing_file = tar_data_dir + 'testing/tar_data_' + num + '.txt'
+    for i in range(100):
+        for raw_file in os.listdir(raw_file_dir):
+            if raw_file.endswith("train.txt"):
+                # Get src data training file
+                src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # The dictionary of value
-            # key: time->var
-            # val: value of var at the time
-            val_Dic = {}
+                # Get src data training file
+                src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # The dictionary of probabiity and interaction
-            # key: target
-            # val: list comprised of probability and the interactions
-            prob_interaction_L_Dic = {}
+                # Update raw_file
+                raw_file = raw_file_dir + raw_file
 
-            # The dictionary of the number of times of the variable (source and target) being present
-            num_Dic = {}
+                # Generate data
+                generate_data()
 
-            # The dictionary of the probability of the variable (source and target) being present
-            prob_Dic = {}
+    for i in range(100):
+        for raw_file in os.listdir(raw_file_dir):
+            if raw_file.endswith("test.txt"):
+                # Get src data testing file
+                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Generate data
-            generate_data()
+                # Get src data testing file
+                src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+
+                # Update raw_file
+                raw_file = raw_file_dir + raw_file
+
+                # Generate data
+                generate_data()
