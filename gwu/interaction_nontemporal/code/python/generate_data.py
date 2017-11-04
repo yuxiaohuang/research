@@ -20,176 +20,87 @@ import random
 
 
 # Global variables
-# The number of names, bins
-feature_num = 20
-con_feature_col_L = [0, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-con_feature_val_L_Dic = {}
-exc_feature_col_L = [10]
-class_val_L = ['yes']
-file_type = ".csv"
-delimiter_type = ';'
-training_iteration = 1
+# The list of name of variables
+name_L = ['Color', 'size', 'act', 'age', 'class']
+
+val_LL = ['YELLOW, PURPLE', 'LARGE, SMALL', 'STRETCH, DIP', 'ADULT, CHILD', 'T']
 
 # The dictionary of value of each var at each time
 # key: time->var
 # val: value of each var at each time
 val_Dic = {}
 
-# The dictionary of discretized value of each var at each time
+# The dictionary of value of each var at each time
 # key: time->var
-# val: discretized value of each var at each time
-val_dis_Dic = {}
-
-# The dictionary of continuous value of each var at each time
-# key: time->var
-# val: continuous value of each var at each time
+# val: value of each var at each time
 val_raw_Dic = {}
 
 # Maximum time stamp
-max_time_stamp = 41189
+max_time_stamp = 0
 
-header = 1
+file_type = ".txt"
 
 
 # Generate source and target data
 def generate_data():
-    global con_feature_val_L_Dic
-    con_feature_val_L_Dic = {}
-    # Get con_feature_val_L_Dic
-    for col in con_feature_col_L:
-        con_feature_val_L_Dic[col] = [0, 1]
-
-    global val_Dic, val_dis_Dic, val_raw_Dic
-    val_Dic = {}
-    val_dis_Dic = {}
-    val_raw_Dic = {}
-
     # Load the raw file
     with open(raw_file, 'r') as f:
         try:
-            spamreader = list(csv.reader(f, delimiter=delimiter_type))
+            spamreader = list(csv.reader(f, delimiter=','))
 
-            # Get val_Dic
-            # From the second line to the last (since there is a header)
-            for i in range(header, max_time_stamp):
+            global max_time_stamp, val_Dic, val_raw_Dic
+            # Get the maximum time stamp
+            max_time_stamp = len(spamreader)
+            val_Dic = {}
+            val_raw_Dic = {}
+
+            # From the first line to the last (since there is no header)
+            for i in range(0, max_time_stamp):
                 # Initialization
-                if not i - header in val_Dic:
-                    val_Dic[i - header] = {}
+                if not i in val_Dic:
+                    val_Dic[i] = {}
+                if not i in val_raw_Dic:
+                    val_raw_Dic[i] = {}
 
-                # Get val_Dic
-                for j in range(feature_num + 1):
+                # Get val_Dic and val_raw_Dic
+                for j in range(len(name_L)):
+                    name = name_L[j]
                     val_j = spamreader[i][j].strip()
-                    val_Dic[i - header][j] = val_j
 
-            # Get val_dis_Dic
-            for j in range(feature_num + 1):
-                # Exclude feature 11 (duration), as suggested by the contributor of the dataset
-                if j in exc_feature_col_L:
-                    continue
+                    idx = 0
+                    for val in val_LL[j].split(','):
+                        val = val.strip()
+                        # Get name_val
+                        name_val = name + '_' + val
 
-                # Get the list of value
-                val_L = []
-                # If continuous feature
-                if j in con_feature_col_L:
-                    for i in range(max_time_stamp - header):
-                        val = float(val_Dic[i][j])
-                        val_L.append(val)
-
-                    # Get the list of discretized value
-                    bin_num = len(con_feature_val_L_Dic[j])
-                    val_dis_L = discretize(val_L, bin_num)
-                else:
-                    distinct_val_L = []
-                    for i in range(max_time_stamp - header):
-                        val = val_Dic[i][j]
-                        val_L.append(val)
-                        if not val in distinct_val_L:
-                            distinct_val_L.append(val)
-
-                # Update val_raw_Dic and val_dis_Dic
-                for i in range(max_time_stamp - header):
-                    # Initialization
-                    if not i in val_raw_Dic:
-                        val_raw_Dic[i] = {}
-                    if not i in val_dis_Dic:
-                        val_dis_Dic[i] = {}
-
-                    # If continuous feature
-                    if j in con_feature_col_L:
-                        # Get name_val_raw
-                        name_val_raw = 'feature_' + str(j)
-
-                        # Update val_raw_Dic
-                        val_raw_Dic[i][name_val_raw] = val_Dic[i][j]
-
-                        val_dis = val_dis_L[i]
-                        for val in con_feature_val_L_Dic[j]:
-                            # Get name_val_dis
-                            name_val_dis = 'feature_' + str(j) + '_' + str(val)
-
-                            # Update val_dis_Dic
-                            if val == val_dis:
-                                val_dis_Dic[i][name_val_dis] = 1
+                        # Update val_Dic
+                        if val == val_j:
+                            if 'class' in name:
+                                val_raw_Dic[i][name] = 1
                             else:
-                                val_dis_Dic[i][name_val_dis] = 0
-                    else:
-                        val_dis = val_L[i]
-
-                        # If feature
-                        if j < feature_num:
-                            for k in range(len(distinct_val_L)):
-                                val = distinct_val_L[k]
-                                # Get name_val_raw
-                                name_val_raw = 'feature_' + str(j)
-
-                                # Get name_val_dis
-                                name_val_dis = 'feature_' + str(j) + '_' + str(val)
-
-                                # Update val_raw_Dic and val_dis_Dic
-                                if val == val_dis:
-                                    val_raw_Dic[i][name_val_raw] = k
-                                    val_dis_Dic[i][name_val_dis] = 1
-                                else:
-                                    val_dis_Dic[i][name_val_dis] = 0
+                                val_raw_Dic[i][name] = idx
+                            val_Dic[i][name_val] = 1
                         else:
-                            for k in range(len(class_val_L)):
-                                val = class_val_L[k]
-                                # Get name_val_raw
-                                name_val_raw = 'class'
+                            if 'class' in name:
+                                val_raw_Dic[i][name] = 0
+                            val_Dic[i][name_val] = 0
 
-                                # Get name_val_dis
-                                name_val_dis = 'class_' + val
-
-                                # Update val_raw_Dic and val_dis_Dic
-                                if val == val_dis:
-                                    val_raw_Dic[i][name_val_raw] = 1
-                                    val_dis_Dic[i][name_val_dis] = 1
-                                else:
-                                    val_raw_Dic[i][name_val_raw] = 0
-                                    val_dis_Dic[i][name_val_dis] = 0
+                        # Update idx
+                        idx += 1
 
             write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
             write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
             write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
             write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
 
-            write_file(src_data_training_file, 'src', 'training', val_dis_Dic)
-            write_file(src_data_testing_file, 'src', 'testing', val_dis_Dic)
-            write_file(tar_data_training_file, 'tar', 'training', val_dis_Dic)
-            write_file(tar_data_testing_file, 'tar', 'testing', val_dis_Dic)
+            write_file(src_data_training_file, 'src', 'training', val_Dic)
+            write_file(src_data_testing_file, 'src', 'testing', val_Dic)
+            write_file(tar_data_training_file, 'tar', 'training', val_Dic)
+            write_file(tar_data_testing_file, 'tar', 'testing', val_Dic)
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
             print(raw_file)
-
-
-# Discretize val_L into bin_num bins
-def discretize(val_L, bin_num):
-    split_L = np.array_split(np.sort(val_L), bin_num)
-    cutoff_L = [split[-1] for split in split_L]
-    cutoff_L = cutoff_L[:-1]
-    val_dis_L = np.digitize(val_L, cutoff_L, right = True)
-    return val_dis_L
 
 
 # Write file
@@ -215,11 +126,11 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
             end = int(0.8 * max_time_stamp)
         else:
             start = int(0.8 * max_time_stamp)
-            end = max_time_stamp - header
+            end = max_time_stamp
 
         # Get iteration
         if training_testing_F == 'training':
-            iteration = training_iteration
+            iteration = 1
         else:
             iteration = 1
 

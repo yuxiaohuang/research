@@ -40,6 +40,7 @@ max_time_stamp = 0
 
 file_type = ".txt"
 
+
 # Generate source and target data
 def generate_data():
     # Load the raw file
@@ -61,6 +62,7 @@ def generate_data():
                 # Initialization
                 if not i in val_Dic:
                     val_Dic[i] = {}
+                if not i in val_raw_Dic:
                     val_raw_Dic[i] = {}
 
                 # Get val_Dic and val_raw_Dic
