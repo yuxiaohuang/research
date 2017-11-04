@@ -1,0 +1,16 @@
+cause,effect,window_start,window_end,alpha
+x_Normal,y,1,1,0.0
+y_Normal,y,1,1,0.0
+z_Normal,y,1,1,0.0
+x_Low,y,1,1,0.0
+z_Low,y,1,1,0.0
+x_Normal,x,1,1,0.0
+y_Normal,x,1,1,0.0
+z_Normal,x,1,1,0.0
+x_Low,x,1,1,0.0
+z_Low,x,1,1,0.0
+x_Low,z,1,1,-1.0
+x_High,z,1,1,1.0
+y_Normal,z,1,1,0.0
+x_Normal,z,1,1,0.0
+z_Normal,z,1,1,0.0
