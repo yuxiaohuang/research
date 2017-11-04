@@ -9,12 +9,14 @@ import sys
 import os
 import csv
 import math
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LinearRegression
 import time
 from multiprocessing import Pool
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -82,8 +84,14 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
     # # SVM
     # svm()
 
-    # KNN
-    knn()
+    # Multi-layer Perceptron
+    mlp()
+
+    # # KNN
+    # knn()
+
+    # # Gaussian Naive Bayes
+    # gnb()
 
 
 # Get feature and class vectors
@@ -224,6 +232,43 @@ def svm():
         f.flush()
 
 
+# Multi-layer Perceptron
+def mlp():
+    f.write('Multi-layer Perceptron' + '\n')
+
+    col = -1
+    for y in name_val_L:
+        f.write('statistics for class: ' + y + '\n')
+
+        # Get the corresponding class vector
+        col += 1
+        y_training_col_L = []
+        for y_L in y_training_L:
+            y_training_col_L.append(y_L[col])
+
+        start_time = time.clock()
+
+        # Training
+        model = MLPClassifier()
+        model.fit(X_training_L, y_training_col_L)
+
+        end_time = time.clock()
+        run_time = end_time - start_time
+
+        # Testing
+        y_testing_col_L = []
+        for y_L in y_testing_L:
+            y_testing_col_L.append(y_L[col])
+
+        y_testing_hat_col_L = model.predict(X_testing_L)
+
+        get_statistics(y_testing_col_L, y_testing_hat_col_L)
+
+        # Write run time
+        f.write('run time: ' + str(run_time) + '\n\n')
+        f.flush()
+
+
 # KNN
 def knn():
     f.write('knn' + '\n')
@@ -241,7 +286,44 @@ def knn():
         start_time = time.clock()
 
         # Training
-        model = KNeighborsClassifier(n_neighbors=2)
+        model = KNeighborsClassifier()
+        model.fit(X_training_L, y_training_col_L)
+
+        end_time = time.clock()
+        run_time = end_time - start_time
+
+        # Testing
+        y_testing_col_L = []
+        for y_L in y_testing_L:
+            y_testing_col_L.append(y_L[col])
+
+        y_testing_hat_col_L = model.predict(X_testing_L)
+
+        get_statistics(y_testing_col_L, y_testing_hat_col_L)
+
+        # Write run time
+        f.write('run time: ' + str(run_time) + '\n\n')
+        f.flush()
+
+
+# Gaussian Naive Bayes
+def gnb():
+    f.write('Gaussian Naive Bayes' + '\n')
+
+    col = -1
+    for y in name_val_L:
+        f.write('statistics for class: ' + y + '\n')
+
+        # Get the corresponding class vector
+        col += 1
+        y_training_col_L = []
+        for y_L in y_training_L:
+            y_training_col_L.append(y_L[col])
+
+        start_time = time.clock()
+
+        # Training
+        model = GaussianNB()
         model.fit(X_training_L, y_training_col_L)
 
         end_time = time.clock()
