@@ -40,8 +40,10 @@ val_Dic = {}
 # val: discretized value of each var at each time
 val_dis_Dic = {}
 
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: continuous value of each var at each time
 val_raw_Dic = {}
-
 
 # Maximum time stamp
 max_time_stamp = 41189
@@ -166,7 +168,6 @@ def generate_data():
                                     val_raw_Dic[i][name_val_raw] = 0
                                     val_dis_Dic[i][name_val_dis] = 0
 
-
             write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
             write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
             write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
@@ -262,31 +263,32 @@ if __name__ == "__main__":
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for raw_file in os.listdir(raw_file_dir):
-        if raw_file.endswith(file_type):
-            # Get src data training file
-            src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '.txt')
-            # Get tar data training file
-            tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '.txt')
+    for i in range(100):
+        for raw_file in os.listdir(raw_file_dir):
+            if raw_file.endswith(file_type):
+                # Get src data training file
+                src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Get src data testing file
-            src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '.txt')
-            # Get tar data testing file
-            tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '.txt')
+                # Get src data testing file
+                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Get src data training file
-            src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '.txt')
-            # Get tar data training file
-            tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '.txt')
+                # Get src data training file
+                src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Get src data testing file
-            src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '.txt')
-            # Get tar data testing file
-            tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '.txt')
+                # Get src data testing file
+                src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-            # Update raw_file
-            raw_file = raw_file_dir + raw_file
+                # Update raw_file
+                raw_file = raw_file_dir + raw_file
 
-            # Generate data
-            generate_data()
+                # Generate data
+                generate_data()
 
