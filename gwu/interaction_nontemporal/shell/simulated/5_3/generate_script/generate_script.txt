@@ -1,3 +1,0 @@
-
-# Here is the command for generating the script 
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_script.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/search_for_interactions.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/script/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/simulated_data/data/source/training/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/simulated_data/data/target/training/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/interaction/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/log/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/figure/ 0.01 0.5 30 0 0

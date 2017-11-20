@@ -19,16 +19,48 @@ import random
 # _LL_Dic : indicates the data structure is a dictionary, where the value is a list of list
 
 
-# Global variables
-# The number of names, bins
-feature_num = 20
-con_feature_col_L = [0, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-con_feature_val_L_Dic = {}
-exc_feature_col_L = [10]
-class_val_L = ['yes']
+# File type
 file_type = ".csv"
+
+# Delimiter type
 delimiter_type = ';'
+
+# Flag, indicating whether there is a header (1, yes; 0, no)
+header = 1
+
+# The row number
+row_num = 41189
+
+# The column number
+col_num = 21
+
+# Global variables
+# The column of class
+class_col = 20
+
+# The list of class values we are interested in
+class_val_L = ['yes']
+
+# The columns of continuous features
+con_feature_col_L = [0, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+
+# The number of bins
+bins_num = 2
+
+# The columns of features that should be excluded
+exclude_feature_col_L = [10]
+
+# The character for missing values
+missing_char = '?'
+
+# The percentage of the training set
+training_percentage = 0.8
+
+# The number of repetition of training set
 training_iteration = 1
+
+# The number of repetition of experiments
+interation_num = 100
 
 # The dictionary of value of each var at each time
 # key: time->var
@@ -45,53 +77,76 @@ val_dis_Dic = {}
 # val: continuous value of each var at each time
 val_raw_Dic = {}
 
-# Maximum time stamp
-max_time_stamp = 41189
+# The dictionary of discretized value of each var at each time
+# key: time->var
+# val: discretized value of each var at each time
+val_dis_rand_Dic = {}
 
-header = 1
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: continuous value of each var at each time
+val_raw_rand_Dic = {}
+
+# The dictionary of discretized values of continuous features
+# key: var
+# val: discretized value of continuous features
+con_feature_val_L_Dic = {}
 
 
 # Generate source and target data
 def generate_data():
+    # Get con_feature_val_L_Dic
     global con_feature_val_L_Dic
     con_feature_val_L_Dic = {}
-    # Get con_feature_val_L_Dic
     for col in con_feature_col_L:
-        con_feature_val_L_Dic[col] = [0, 1]
+        con_feature_val_L_Dic[col] = range(bins_num)
 
-    global val_Dic, val_dis_Dic, val_raw_Dic
+    global val_Dic, val_dis_Dic, val_raw_Dic, val_dis_rand_Dic, val_raw_rand_Dic
     val_Dic = {}
     val_dis_Dic = {}
     val_raw_Dic = {}
+    val_dis_rand_Dic = {}
+    val_raw_rand_Dic = {}
 
     # Load the raw file
     with open(raw_file, 'r') as f:
         try:
-            spamreader = list(csv.reader(f, delimiter=delimiter_type))
+            spamreader = list(csv.reader(f, delimiter=delimiter_type, skipinitialspace=True))
+            # The number of rows containing missing values
+            missing_row_num = 0
 
             # Get val_Dic
-            # From the second line to the last (since there is a header)
-            for i in range(header, max_time_stamp):
+            for i in range(header, row_num):
                 # Initialization
-                if not i - header in val_Dic:
-                    val_Dic[i - header] = {}
+                if not i - header - missing_row_num in val_Dic:
+                    val_Dic[i - header - missing_row_num] = {}
 
                 # Get val_Dic
-                for j in range(feature_num + 1):
+                for j in range(col_num):
+                    # Exclude the features suggested by the contributor of the dataset
+                    if j in exclude_feature_col_L:
+                        continue
+
                     val_j = spamreader[i][j].strip()
-                    val_Dic[i - header][j] = val_j
+                    # If not missing
+                    if val_j != missing_char:
+                        val_Dic[i - header - missing_row_num][j] = val_j
+                    else:
+                        del val_Dic[i - header - missing_row_num]
+                        missing_row_num += 1
+                        break
 
             # Get val_dis_Dic
-            for j in range(feature_num + 1):
-                # Exclude feature 11 (duration), as suggested by the contributor of the dataset
-                if j in exc_feature_col_L:
+            for j in range(col_num):
+                # Exclude the features suggested by the contributor of the dataset
+                if j in exclude_feature_col_L:
                     continue
 
                 # Get the list of value
                 val_L = []
                 # If continuous feature
                 if j in con_feature_col_L:
-                    for i in range(max_time_stamp - header):
+                    for i in sorted(val_Dic.keys()):
                         val = float(val_Dic[i][j])
                         val_L.append(val)
 
@@ -100,14 +155,14 @@ def generate_data():
                     val_dis_L = discretize(val_L, bin_num)
                 else:
                     distinct_val_L = []
-                    for i in range(max_time_stamp - header):
+                    for i in sorted(val_Dic.keys()):
                         val = val_Dic[i][j]
                         val_L.append(val)
                         if not val in distinct_val_L:
                             distinct_val_L.append(val)
 
                 # Update val_raw_Dic and val_dis_Dic
-                for i in range(max_time_stamp - header):
+                for i in sorted(val_Dic.keys()):
                     # Initialization
                     if not i in val_raw_Dic:
                         val_raw_Dic[i] = {}
@@ -124,7 +179,7 @@ def generate_data():
 
                         val_dis = val_dis_L[i]
                         for val in con_feature_val_L_Dic[j]:
-                            # Get name_val_dis
+                            # Get name_val_dis (one-hot encoding)
                             name_val_dis = 'feature_' + str(j) + '_' + str(val)
 
                             # Update val_dis_Dic
@@ -136,13 +191,13 @@ def generate_data():
                         val_dis = val_L[i]
 
                         # If feature
-                        if j < feature_num:
+                        if j != class_col:
                             for k in range(len(distinct_val_L)):
                                 val = distinct_val_L[k]
                                 # Get name_val_raw
                                 name_val_raw = 'feature_' + str(j)
 
-                                # Get name_val_dis
+                                # Get name_val_dis (one-hot encoding)
                                 name_val_dis = 'feature_' + str(j) + '_' + str(val)
 
                                 # Update val_raw_Dic and val_dis_Dic
@@ -157,7 +212,7 @@ def generate_data():
                                 # Get name_val_raw
                                 name_val_raw = 'class'
 
-                                # Get name_val_dis
+                                # Get name_val_dis (one-hot encoding)
                                 name_val_dis = 'class_' + val
 
                                 # Update val_raw_Dic and val_dis_Dic
@@ -168,15 +223,38 @@ def generate_data():
                                     val_raw_Dic[i][name_val_raw] = 0
                                     val_dis_Dic[i][name_val_dis] = 0
 
-            write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
-            write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
-            write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
-            write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
+            # Get val_dis_rand_Dic and val_raw_rand_Dic
+            time_L = random.sample(list(sorted(val_Dic.keys())), len(val_Dic.keys()))
+            for i in sorted(val_Dic.keys()):
+                time = time_L[i]
+                if not i in val_dis_rand_Dic:
+                    val_dis_rand_Dic[i] = {}
+                if not i in val_raw_rand_Dic:
+                    val_raw_rand_Dic[i] = {}
+                for name_val in sorted(val_dis_Dic[time].keys()):
+                    val_dis_rand_Dic[i][name_val] = val_dis_Dic[time][name_val]
+                for name_val in sorted(val_raw_Dic[time].keys()):
+                    val_raw_rand_Dic[i][name_val] = val_raw_Dic[time][name_val]
 
             write_file(src_data_training_file, 'src', 'training', val_dis_Dic)
             write_file(src_data_testing_file, 'src', 'testing', val_dis_Dic)
             write_file(tar_data_training_file, 'tar', 'training', val_dis_Dic)
             write_file(tar_data_testing_file, 'tar', 'testing', val_dis_Dic)
+
+            write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
+            write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
+            write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
+            write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
+
+            # write_file(src_data_training_file, 'src', 'training', val_dis_rand_Dic)
+            # write_file(src_data_testing_file, 'src', 'testing', val_dis_rand_Dic)
+            # write_file(tar_data_training_file, 'tar', 'training', val_dis_rand_Dic)
+            # write_file(tar_data_testing_file, 'tar', 'testing', val_dis_rand_Dic)
+            #
+            # write_file(src_data_training_raw_file, 'src', 'training', val_raw_rand_Dic)
+            # write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_rand_Dic)
+            # write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_rand_Dic)
+            # write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_rand_Dic)
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
@@ -212,10 +290,10 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
         # Get start and end
         if training_testing_F == 'training':
             start = 0
-            end = int(0.8 * max_time_stamp)
+            end = int(training_percentage * len(val_Dic.keys()))
         else:
-            start = int(0.8 * max_time_stamp)
-            end = max_time_stamp - header
+            start = int(training_percentage * len(val_Dic.keys()))
+            end = len(val_Dic.keys())
 
         # Get iteration
         if training_testing_F == 'training':
@@ -233,10 +311,11 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
                         if name_val in val_Dic[time]:
                             val_L.append(val_Dic[time][name_val])
                         else:
-                            val_L.append(0)
+                            print("name_val not in val_Dic[time]!")
+                            sys.exit()
                 else:
-                    for name_val in header_L:
-                        val_L.append(0)
+                    print("time not in val_Dic!")
+                    sys.exit()
 
                 spamwriter.writerow(val_L)
 
@@ -263,7 +342,7 @@ if __name__ == "__main__":
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for i in range(100):
+    for i in range(interation_num):
         for raw_file in os.listdir(raw_file_dir):
             if raw_file.endswith(file_type):
                 # Get src data training file

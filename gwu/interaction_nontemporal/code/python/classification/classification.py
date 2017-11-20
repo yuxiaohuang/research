@@ -78,14 +78,14 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
 
     global model, run_time
 
-    # # Random forest
-    # random_forest()
+    # Random forest
+    random_forest()
 
     # # SVM
     # svm()
 
-    # Multi-layer Perceptron
-    mlp()
+    # # Multi-layer Perceptron
+    # mlp()
 
     # # KNN
     # knn()
