@@ -9,7 +9,8 @@ import csv
 import numpy as np
 import math
 import random
-
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -77,6 +78,16 @@ val_dis_Dic = {}
 # val: continuous value of each var at each time
 val_raw_Dic = {}
 
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: standardized value of each var at each time
+val_raw_std_Dic = {}
+
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: normalized value of each var at each time
+val_raw_mms_Dic = {}
+
 # The dictionary of discretized values of continuous features
 # key: var
 # val: discretized value of continuous features
@@ -91,10 +102,12 @@ def generate_data():
     for col in con_feature_col_L:
         con_feature_val_L_Dic[col] = range(bins_num)
 
-    global val_Dic, val_dis_Dic, val_raw_Dic
+    global val_Dic, val_dis_Dic, val_raw_Dic, val_raw_std_Dic, val_raw_mms_Dic
     val_Dic = {}
     val_dis_Dic = {}
     val_raw_Dic = {}
+    val_raw_std_Dic = {}
+    val_raw_mms_Dic = {}
 
     # Load the raw file
     with open(raw_file, 'r') as f:
@@ -117,7 +130,7 @@ def generate_data():
 
                     val_j = spamreader[i][j].strip()
                     # If not missing
-                    if val_j != missing_char:
+                    if val_j != missing_char and val_j != '':
                         val_Dic[i - header - missing_row_num][j] = val_j.replace('$', '')
                     else:
                         del val_Dic[i - header - missing_row_num]
@@ -212,6 +225,42 @@ def generate_data():
                             else:
                                 val_dis_Dic[i][name_val_dis] = 0
 
+            # Get val_raw_std_Dic and val_raw_mms_Dic
+            for name_val_raw in sorted(val_raw_Dic[0].keys()):
+                # Initialization
+                val_raw_L = []
+
+                for i in sorted(val_raw_Dic.keys()):
+                    # Initialization
+                    if not i in val_raw_std_Dic:
+                        val_raw_std_Dic[i] = {}
+                    if not i in val_raw_mms_Dic:
+                        val_raw_mms_Dic[i] = {}
+
+                    if not 'class' in name_val_raw:
+                        # Update val_raw_L
+                        val_raw_L.append(float(val_raw_Dic[i][name_val_raw]))
+                    else:
+                        # Update val_raw_L
+                        val_raw_L.append(val_raw_Dic[i][name_val_raw])
+
+                if not 'class' in name_val_raw:
+                    # Standardization and min - max normalization
+                    stdsc = StandardScaler()
+                    mms = MinMaxScaler()
+                    val_raw_std_L = stdsc.fit_transform(val_raw_L)
+                    val_raw_mms_L = mms.fit_transform(val_raw_L)
+
+                    # Update val_raw_std_Dic and val_raw_mms_Dic
+                    for i in sorted(val_raw_Dic.keys()):
+                        val_raw_std_Dic[i][name_val_raw] = val_raw_std_L[i]
+                        val_raw_mms_Dic[i][name_val_raw] = val_raw_mms_L[i]
+                else:
+                    # Update val_raw_std_Dic and val_raw_mms_Dic
+                    for i in sorted(val_raw_Dic.keys()):
+                        val_raw_std_Dic[i][name_val_raw] = val_raw_L[i]
+                        val_raw_mms_Dic[i][name_val_raw] = val_raw_L[i]
+
             write_file(src_data_training_file, 'src', 'training', val_dis_Dic)
             write_file(src_data_testing_file, 'src', 'testing', val_dis_Dic)
             write_file(tar_data_training_file, 'tar', 'training', val_dis_Dic)
@@ -221,6 +270,16 @@ def generate_data():
             write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
             write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
             write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
+
+            write_file(src_data_training_raw_std_file, 'src', 'training', val_raw_std_Dic)
+            write_file(src_data_testing_raw_std_file, 'src', 'testing', val_raw_std_Dic)
+            write_file(tar_data_training_raw_std_file, 'tar', 'training', val_raw_std_Dic)
+            write_file(tar_data_testing_raw_std_file, 'tar', 'testing', val_raw_std_Dic)
+
+            write_file(src_data_training_raw_mms_file, 'src', 'training', val_raw_mms_Dic)
+            write_file(src_data_testing_raw_mms_file, 'src', 'testing', val_raw_mms_Dic)
+            write_file(tar_data_training_raw_mms_file, 'tar', 'training', val_raw_mms_Dic)
+            write_file(tar_data_testing_raw_mms_file, 'tar', 'testing', val_raw_mms_Dic)
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
@@ -295,16 +354,29 @@ if __name__ == "__main__":
     tar_data_dir = sys.argv[3]
 
     # Make directory
-    directory = os.path.dirname(src_data_dir + '/training/raw/')
+    directory = os.path.dirname(src_data_dir + '/training/raw/std/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(src_data_dir + '/testing/raw/')
+    directory = os.path.dirname(src_data_dir + '/training/raw/mms/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + '/training/raw/')
+    directory = os.path.dirname(src_data_dir + '/testing/raw/std/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-    directory = os.path.dirname(tar_data_dir + '/testing/raw/')
+    directory = os.path.dirname(src_data_dir + '/testing/raw/mms/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    directory = os.path.dirname(tar_data_dir + '/training/raw/std/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(tar_data_dir + '/training/raw/mms/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(tar_data_dir + '/testing/raw/std/')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    directory = os.path.dirname(tar_data_dir + '/testing/raw/mms/')
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -312,24 +384,64 @@ if __name__ == "__main__":
         for raw_file in os.listdir(raw_file_dir):
             if raw_file.endswith(file_type):
                 # Get src data training file
-                src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type,
+                                                                                                 '_' + str(i) + '.txt')
                 # Get tar data training file
-                tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type,
+                                                                                                 '_' + str(i) + '.txt')
 
                 # Get src data testing file
-                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type,
+                                                                                               '_' + str(i) + '.txt')
                 # Get tar data testing file
-                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type,
+                                                                                               '_' + str(i) + '.txt')
 
                 # Get src data training file
-                src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type,
+                                                                                                         '_' + str(
+                                                                                                             i) + '.txt')
                 # Get tar data training file
-                tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type,
+                                                                                                         '_' + str(
+                                                                                                             i) + '.txt')
 
                 # Get src data testing file
-                src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type,
+                                                                                                       '_' + str(
+                                                                                                           i) + '.txt')
                 # Get tar data testing file
-                tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type,
+                                                                                                       '_' + str(
+                                                                                                           i) + '.txt')
+
+                # Get src data training file
+                src_data_training_raw_std_file = src_data_dir + '/training/raw/std/src_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_std_file = tar_data_dir + '/training/raw/std/tar_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+
+                # Get src data testing file
+                src_data_testing_raw_std_file = src_data_dir + '/testing/raw/std/src_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_raw_std_file = tar_data_dir + '/testing/raw/std/tar_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+
+                # Get src data training file
+                src_data_training_raw_mms_file = src_data_dir + '/training/raw/mms/src_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_mms_file = tar_data_dir + '/training/raw/mms/tar_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+
+                # Get src data testing file
+                src_data_testing_raw_mms_file = src_data_dir + '/testing/raw/mms/src_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_raw_mms_file = tar_data_dir + '/testing/raw/mms/tar_data_' + raw_file.replace(
+                    file_type, '_' + str(i) + '.txt')
 
                 # Update raw_file
                 raw_file = raw_file_dir + raw_file

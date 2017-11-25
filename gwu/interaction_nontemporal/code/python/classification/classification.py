@@ -78,14 +78,14 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
 
     global model, run_time
 
-    # Random forest
-    random_forest()
+    # # Random forest
+    # random_forest()
 
     # # SVM
     # svm()
 
-    # # Multi-layer Perceptron
-    # mlp()
+    # Multi-layer Perceptron
+    mlp()
 
     # # KNN
     # knn()
@@ -127,16 +127,11 @@ def load_data(data_file):
                 # var's name lies in jth column in the first row
                 var = spamreader[0][j].strip()
 
-                # If the value at [i][j] is not missing
-                if spamreader[i][j]:
-                    # Get the value
-                    val = spamreader[i][j].strip()
+                # Get the value
+                val = spamreader[i][j].strip()
 
-                    # Get val_Dic
-                    if val == '1':
-                        val_Dic[i][var] = 1
-                    else:
-                        val_Dic[i][var] = 0
+                # Get val_Dic
+                val_Dic[i][var] = float(val)
 
 
 # Get feature vector
@@ -408,6 +403,9 @@ def get_statistics_all():
     tn_all = 0
     fn_all = 0
     run_time_all = 0
+    f1_score_max = None
+    accuracy_max = None
+
 
     with open(statistics_file, 'r') as f:
         # Update tp_all, fp_all, tn_all, fn_all, and run_time_all
@@ -430,6 +428,18 @@ def get_statistics_all():
         elif 'run time: ' in line:
             run_time = float(line.replace('run time: ', '').strip())
             run_time_all += run_time
+        elif 'f1 score: ' in line:
+            f1_score = line.replace('f1 score: ', '').strip()
+            if not "undefined" in f1_score:
+                f1_score = float(f1_score)
+                if f1_score_max is None or f1_score_max < f1_score:
+                    f1_score_max = f1_score
+        elif 'accuracy: ' in line:
+            accuracy = line.replace('accuracy: ', '').strip()
+            if not "undefined" in accuracy:
+                accuracy = float(accuracy)
+                if accuracy_max is None or accuracy_max < accuracy:
+                    accuracy_max = accuracy
 
     # Write true positive, false positive, true negative, and false negative across all datasets
     f_all.write('tp_all: ' + str(tp_all) + '\n')
@@ -458,9 +468,11 @@ def get_statistics_all():
     # Write precision, recall, f1 score, accuracy, and run_time_all
     f_all.write('precision_all: ' + str(precision) + '\n')
     f_all.write('recall_all: ' + str(recall) + '\n')
-    f_all.write('f1 score_all: ' + str(f1_score) + '\n')
+    f_all.write('f1_score_all: ' + str(f1_score) + '\n')
     f_all.write('accuracy_all: ' + str(accuracy) + '\n')
     f_all.write('run_time_all: ' + str(run_time_all) + '\n\n')
+    f_all.write('f1_score_max: ' + str(f1_score_max) + '\n')
+    f_all.write('accuracy_max: ' + str(accuracy_max) + '\n\n')
     f_all.flush()
 
 
