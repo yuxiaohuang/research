@@ -46,7 +46,8 @@ def generate_setting(type):
                 spamwriter.writerow([type + '_' + str(i), num, prob])
             else:
                 # Write the var and probability
-                spamwriter.writerow([type + '_' + str(i), prob])
+                # spamwriter.writerow([type + '_' + str(i), prob])
+                spamwriter.writerow([type + '_' + str(1), prob])
 
 
 # Main function

@@ -80,6 +80,17 @@ def generate_interaction():
                 # Add the components to the interaction
                 for j in range(component_num):
                     var = var_L[j]
+                    # Get the negation probability
+                    neg_prob = random.uniform(neg_prob_range_L[0], neg_prob_range_L[1])
+                    # Generate random number from [0, 1]
+                    rand_prob = random.uniform(0, 1)
+
+                    if rand_prob < neg_prob:
+                        # Negation, or absence
+                        var += '_0'
+                    else:
+                        var += '_1'
+
                     win_start = win_LL[j][0]
                     win_end = win_LL[j][1]
                     interaction_LL.append([var, win_start, win_end])
@@ -119,6 +130,7 @@ if __name__=="__main__":
     component_num_range_L = [int(sys.argv[6]), int(sys.argv[7])]
     win_range_L = [int(sys.argv[8]), int(sys.argv[9])]
     prob_range_L = [float(sys.argv[10]), float(sys.argv[11])]
+    neg_prob_range_L = [float(sys.argv[12]), float(sys.argv[13])]
 
     # Make directory
     directory = os.path.dirname(interaction_dir)

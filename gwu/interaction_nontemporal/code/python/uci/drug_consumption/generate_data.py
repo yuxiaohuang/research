@@ -28,30 +28,32 @@ file_type = ".txt"
 delimiter_type = ','
 
 # Flag, indicating whether there is a header (1, yes; 0, no)
-header = 1
+header = 0
 
 # The row number
-row_num = 0
+row_num = 1885
 
 # The column number
-col_num = 0
+col_num = 32
 
 # Global variables
 # The column of class
-class_col = 0
+class_col = 14
 
 # The list of class values we are interested in
-class_val_L = ['1']
+class_val_L = ['CL0']
 
 # The columns of continuous features
 # con_feature_col_L = range(13)
 con_feature_col_L = []
 
 # The list of number of bins
-bins_num_L = []
+bins_num_L = [0, 6, 2, 9, 7, 7, 49, 44, 37, 49, 43, 10, 11, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
 
 # The columns of features that should be excluded
-exclude_feature_col_L = []
+# exclude_feature_col_L = list(set([i for i in range(14, 32)]) - set([class_col]))
+# exclude_feature_col_L = [0] + [i for i in range(6, 23)] + [i for i in range(24, 32)]
+exclude_feature_col_L = range(13)
 
 # The character for missing values
 missing_char = '?'
@@ -60,7 +62,7 @@ missing_char = '?'
 training_percentage = 0.8
 
 # The number of repetition of training set
-training_iteration = 1
+training_iteration = 100
 
 # The number of repetition of experiments
 interation_num = 1
@@ -139,20 +141,6 @@ def generate_data():
     with open(raw_file, 'r') as f:
         try:
             spamreader = list(csv.reader(f, delimiter=delimiter_type, skipinitialspace=True))
-
-            # The row number
-            global row_num
-            row_num = len(spamreader)
-
-            # The column number
-            global col_num
-            col_num = len(spamreader[0])
-
-            # Global variables
-            # The column of class
-            global class_col
-            class_col = col_num - 1
-
             # The number of rows containing missing values
             missing_row_num = 0
 
@@ -213,7 +201,7 @@ def generate_data():
                     # If continuous feature
                     if j in con_feature_col_L:
                         # Get name_val_raw
-                        name_val_raw = 'src_' + str(j)
+                        name_val_raw = 'feature_' + str(j)
 
                         # Update val_raw_Dic
                         val_raw_Dic[i][name_val_raw] = val_Dic[i][j]
@@ -221,7 +209,7 @@ def generate_data():
                         val_dis = val_dis_L[i]
                         for val in con_feature_val_L_Dic[j]:
                             # Get name_val_dis (one-hot encoding)
-                            name_val_dis = 'src_' + str(j) + '_' + str(val)
+                            name_val_dis = 'feature_' + str(j) + '_' + str(val)
 
                             # Update val_dis_Dic
                             if val == val_dis:
@@ -236,10 +224,10 @@ def generate_data():
                             for k in range(len(distinct_val_L)):
                                 val = distinct_val_L[k]
                                 # Get name_val_raw
-                                name_val_raw = 'src_' + str(j)
+                                name_val_raw = 'feature_' + str(j)
 
                                 # Get name_val_dis (one-hot encoding)
-                                name_val_dis = 'src_' + str(j) + '_' + str(val)
+                                name_val_dis = 'feature_' + str(j) + '_' + str(val)
 
                                 # Update val_raw_Dic and val_dis_Dic
                                 if val == val_dis:
@@ -251,10 +239,10 @@ def generate_data():
                             for k in range(len(class_val_L)):
                                 val = class_val_L[k]
                                 # Get name_val_raw
-                                name_val_raw = 'tar'
+                                name_val_raw = 'class'
 
                                 # Get name_val_dis (one-hot encoding)
-                                name_val_dis = 'tar_' + val
+                                name_val_dis = 'class_' + val
 
                                 # Update val_raw_Dic and val_dis_Dic
                                 if val == val_dis:
@@ -276,14 +264,14 @@ def generate_data():
                     if not i in val_raw_mms_Dic:
                         val_raw_mms_Dic[i] = {}
 
-                    if not 'tar' in name_val_raw:
+                    if not 'class' in name_val_raw:
                         # Update val_raw_L
                         val_raw_L.append(float(val_raw_Dic[i][name_val_raw]))
                     else:
                         # Update val_raw_L
                         val_raw_L.append(val_raw_Dic[i][name_val_raw])
 
-                if not 'tar' in name_val_raw:
+                if not 'class' in name_val_raw:
                     # Standardization and min - max normalization
                     stdsc = StandardScaler()
                     mms = MinMaxScaler()
@@ -384,8 +372,8 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
         # Get the header
         header_L = []
         for name_val in sorted(val_Dic[0].keys()):
-            if ((src_tar_F == 'src' and not 'tar' in name_val)
-                or (src_tar_F == 'tar' and 'tar' in name_val)):
+            if ((src_tar_F == 'src' and not 'class' in name_val)
+                or (src_tar_F == 'tar' and 'class' in name_val)):
                 header_L.append(name_val)
 
         # Write the header

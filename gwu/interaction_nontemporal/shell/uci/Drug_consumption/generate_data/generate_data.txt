@@ -1,0 +1,3 @@
+
+# Here is the command for generating the data from terminal 
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_data.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Drug_consumption/raw/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Drug_consumption/source/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Drug_consumption/target/ 

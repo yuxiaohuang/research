@@ -559,12 +559,16 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         # or  4) the component is always absent
         # or  5) not enough sample when the component is present
         # or  6) the function is called when checking the necessary condition and the component is duplicate (we do this only when checking the necessary condition, since we want to find the intersection of windows when checking the sufficient condition)
+        # or  7) the component under consideration and any component in the interaction are not the same variable
+        # or  8) the component is the negation of a component in the interaction
         if (index in X_L
             or is_sup_set(index, X_L) is True
             or not index in pro_y_cond_not_x_Dic[y]
             or y_cond_x_time_LL_Dic[y][index] is None
             or len(y_cond_x_time_LL_Dic[y][index]) <= sample_size_cutoff
-            or (check_necessary_cond_F is True and duplicate(X_L, index) is True)):
+            or (check_necessary_cond_F is True and duplicate(X_L, index) is True)
+            or are_same_var(index, X_L) is True
+            or (index in discovered_Dic and discovered_Dic[index] == 0)):
             # Write empty line to the log file
             spamwriter_log.writerow('')
             f_log.flush()
@@ -874,6 +878,12 @@ def helper_for_interaction(y, X_L, y_cond_X_time_LL):
         if duplicate(X_L, index) is True:
             discovered_Dic[index] = 1
 
+    # Update discovered_Dic
+    for index in range(len(x_LL)):
+        # If the component under consideration and a component in the interaction are the same variable
+        if are_same_var(index, X_L) is True:
+            discovered_Dic[index] = 0
+
     # Remove the impact of the combination from the data
     remove_impact(y, y_cond_X_time_LL)
 
@@ -917,13 +927,14 @@ def expand(y, X_L, y_cond_X_time_LL):
         # and 4) is not always present
         # and 5) the component is not always absent
         # and 6) enough sample when the component is present
+        # and 7) the component under consideration and any component in the interaction are not the same variable
         if (not index in X_L
             and not index in discovered_Dic
             and not index in replaced_Dic
             and index in pro_y_cond_not_x_Dic[y]
             and y_cond_x_time_LL_Dic[y][index] is not None
-            and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff):
-
+            and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff
+            and are_same_var(index, X_L) is False):
             spamwriter_log.writerow(["expand x_LL[index]: ", x_LL[index]])
             f_log.flush()
 
@@ -1351,6 +1362,28 @@ def is_sup_set(idx_sup, X_L):
             return True
 
     return False
+
+# Are the component under consideration and a component in the interaction the same variable
+def are_same_var(idx_i, X_L):
+    var_i, win_start_i, win_end_i = x_LL[idx_i]
+
+    for idx_j in X_L:
+        # If the two components are the same
+        if idx_j == idx_i:
+            continue
+
+        var_j, win_start_j, win_end_j = x_LL[idx_j]
+
+        if get_var_name(var_i) == get_var_name(var_j):
+            return True
+
+    return False
+
+
+# Get the var name (the substring prior to the last '_')
+def get_var_name(var_val):
+    idx = var_val.rfind('_')
+    return var_val[:idx]
 
 
 # Get the combination where the time window of each component is the intersection of time windows of components with the same name

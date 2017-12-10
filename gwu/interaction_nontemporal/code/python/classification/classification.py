@@ -10,6 +10,7 @@ import os
 import csv
 import math
 import time
+import matplotlib.pyplot as plt
 from multiprocessing import Pool
 
 from sklearn.ensemble import RandomForestClassifier
@@ -17,6 +18,8 @@ from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn import tree
+from sklearn.tree import _tree
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -42,6 +45,13 @@ y_testing_L = []
 
 # The list of name+val
 name_val_L = []
+
+# The list of feature+val
+feature_val_L = []
+
+# The list of interactions
+interaction_LL = []
+
 
 # Call classification in a parallel fashion
 def parallel(src_data_training_file):
@@ -73,19 +83,29 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
     global name_val_L
     name_val_L = []
     for var in sorted(val_Dic[1].keys()):
-        if 'class' in var or 'tar' in var:
+        if 'target' in var or 'tar' in var:
             name_val_L.append(var)
+
+    # Get feature_val_L
+    global feature_val_L
+    feature_val_L = []
+    for var in sorted(val_Dic[1].keys()):
+        if not 'target' in var and not 'tar' in var:
+            feature_val_L.append(var)
 
     global model, run_time
 
+    # Decision tree
+    decision_tree(src_data_training_file)
+
     # # Random forest
-    # random_forest()
+    # random_forest(src_data_training_file)
 
     # # SVM
     # svm()
 
-    # Multi-layer Perceptron
-    mlp()
+    # # Multi-layer Perceptron
+    # mlp()
 
     # # KNN
     # knn()
@@ -142,8 +162,8 @@ def get_feature_vector(X_y_F):
         val_L = []
 
         for var in sorted(val_Dic[time].keys()):
-            if ((X_y_F == 'X' and ('class' in var or 'tar' in var))
-                or (X_y_F == 'y' and (not 'class' in var and not 'tar' in var))):
+            if ((X_y_F == 'X' and ('target' in var or 'tar' in var))
+                or (X_y_F == 'y' and (not 'target' in var and not 'tar' in var))):
                 continue
 
             val = val_Dic[time][var]
@@ -153,8 +173,135 @@ def get_feature_vector(X_y_F):
     return val_LL
 
 
+# Decision tree
+def decision_tree(src_data_training_file):
+    f.write('decision tree' + '\n')
+
+    col = -1
+    for y in name_val_L:
+        f.write('statistics for class: ' + y + '\n')
+
+        # Get the corresponding class vector
+        col += 1
+        y_training_col_L = []
+        for y_L in y_training_L:
+            y_training_col_L.append(y_L[col])
+
+        start_time = time.clock()
+
+        # Training
+        # model = tree.DecisionTreeClassifier(min_samples_leaf = 30)
+        model = tree.DecisionTreeClassifier(max_leaf_nodes = 5)
+        model.fit(X_training_L, y_training_col_L)
+
+        end_time = time.clock()
+        run_time = end_time - start_time
+
+        # Testing
+        y_testing_col_L = []
+        for y_L in y_testing_L:
+            y_testing_col_L.append(y_L[col])
+
+        y_testing_hat_col_L = model.predict(X_testing_L)
+
+        get_statistics(y_testing_col_L, y_testing_hat_col_L)
+
+        # Write run time
+        f.write('run time: ' + str(run_time) + '\n\n')
+        f.flush()
+
+        # Decision tree file
+        decision_tree_file = os.path.dirname(statistics_file) + '/tree/' + os.path.basename(
+            src_data_training_file).replace("src_data", "tree")
+        decision_tree_file = decision_tree_file.replace(".txt", "")
+        decision_tree_file += os.path.basename(statistics_file).replace("statistics_classification", "")
+        decision_tree_file = decision_tree_file.replace(".txt", ".dot")
+
+        # Create file
+        directory = os.path.dirname(decision_tree_file)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Write decision tree file
+        decision_tree_file = open(decision_tree_file, 'w')
+        tree.export_graphviz(model, out_file = decision_tree_file, feature_names = feature_val_L, class_names = ['0', '1'])
+        decision_tree_file.close()
+
+        # Get interaction_LL
+        # Initialization
+        global interaction_LL
+        interaction_LL = []
+        get_interaction_LL(model, y)
+
+        # Interaction file
+        Interaction_file = os.path.dirname(statistics_file) + '/interaction/' + os.path.basename(
+            src_data_training_file).replace("src_data", "interaction")
+        Interaction_file = Interaction_file.replace(".txt", "")
+        Interaction_file += os.path.basename(statistics_file).replace("statistics_classification", "")
+
+        # Create file
+        directory = os.path.dirname(Interaction_file)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Write interaction file
+        with open(Interaction_file, 'w') as f_interaction:
+            spamwriter_interaction = csv.writer(f_interaction, delimiter=' ')
+            for interaction_L in interaction_LL:
+                spamwriter_interaction.writerow(['interaction for ' + y + ': ', interaction_L])
+                f_interaction.flush()
+
+            # Write run time
+            spamwriter_interaction.writerow(['run time: ' + str(run_time)])
+
+
+# Get interaction_LL
+def get_interaction_LL(tree, y):
+    tree_ = tree.tree_
+    helper(tree_, 0, [], y)
+
+
+# Helper function
+def helper(tree_, node, interaction_L, y):
+    # If leaf node
+    if tree_.feature[node] == _tree.TREE_UNDEFINED:
+        value = tree_.value[node]
+        idx = np.argmax(value)
+        if idx == 1:
+            if not interaction_L in interaction_LL:
+                temp = list(interaction_L)
+                interaction_LL.append(temp)
+                return
+    # Otherwise
+    else:
+        # Left subtree
+        temp_left = list(interaction_L)
+        feature_val = feature_val_L[tree_.feature[node]]
+        # If one-hot encoding
+        if '_' in feature_val.replace('src_', ''):
+            if feature_val[-1:] == '0':
+                feature_val_left = feature_val[:-1] + '1'
+            else:
+                feature_val_left = feature_val[:-1] + '0'
+        else:
+            feature_val_left = feature_val + '_0'
+        temp_left.append([feature_val_left, 0, 0])
+        helper(tree_, tree_.children_left[node], temp_left, y)
+
+        # Right subtree
+        temp_right = list(interaction_L)
+        feature_val = feature_val_L[tree_.feature[node]]
+        # If one-hot encoding
+        if '_' in feature_val.replace('src_', ''):
+            feature_val_right = feature_val
+        else:
+            feature_val_right = feature_val + '_1'
+        temp_right.append([feature_val_right, 0, 0])
+        helper(tree_, tree_.children_right[node], temp_right, y)
+
+
 # Random forest
-def random_forest():
+def random_forest(src_data_training_file):
     f.write('random forest' + '\n')
 
     col = -1
@@ -188,6 +335,61 @@ def random_forest():
         # Write run time
         f.write('run time: ' + str(run_time) + '\n\n')
         f.flush()
+
+        # Feature importance
+        importances = model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+
+        # Feature importance text file
+        importance_txt_file = os.path.dirname(statistics_file) + '/importance_txt/' + os.path.basename(src_data_training_file).replace("src", "importance_txt")
+        importance_txt_file = importance_txt_file.replace(".txt", "")
+        importance_txt_file += os.path.basename(statistics_file).replace("statistics_classification", "")
+
+        # Create file
+        directory = os.path.dirname(importance_txt_file)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Write file
+        with open(importance_txt_file, 'w') as f_importance_txt:
+            for idx in indices:
+                f_importance_txt.write(str(feature_val_L[idx]) + ', ' + str(importances[idx]) + '\n' )
+
+        # Feature importance histogram figure
+        importance_hist_fig = os.path.dirname(statistics_file) + '/importance_hist/' + os.path.basename(
+            src_data_training_file).replace("src", "importance_hist")
+        importance_hist_fig = importance_hist_fig.replace(".txt", "")
+        importance_hist_fig += os.path.basename(statistics_file).replace("statistics_classification", "")
+        importance_hist_fig = importance_hist_fig.replace(".txt", ".pdf")
+
+        # Create figure
+        directory = os.path.dirname(importance_hist_fig)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Draw figure
+        plt.title('Feature Importances')
+        bar_L = []
+        for i in range(min(len(indices), 25)):
+            idx = indices[i]
+            bar_L.append(importances[idx])
+
+        plt.bar(range(min(len(indices), 25)),
+                bar_L,
+                color='lightblue',
+                align='center')
+
+        xticks_L = []
+        for i in range(min(len(indices), 25)):
+            idx = indices[i]
+            xticks_L.append(feature_val_L[idx])
+
+        plt.xticks(range(min(len(indices), 25)),
+                   xticks_L, rotation=90)
+        plt.xlim([-1, min(len(indices), 25)])
+        plt.tight_layout()
+        plt.savefig(importance_hist_fig, dpi=300)
+        plt.close()
 
 
 # SVM
