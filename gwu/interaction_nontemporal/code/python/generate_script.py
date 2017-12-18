@@ -58,7 +58,7 @@ if __name__=="__main__":
 
 
     for src_data_file in os.listdir(src_data_dir):
-        if src_data_file.endswith(".txt"):
+        if not src_data_file.startswith('.') and src_data_file.endswith(".txt"):
             # Get source data file number
             num = src_data_file
             num = num.replace('src_data_', '')

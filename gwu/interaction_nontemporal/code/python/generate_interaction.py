@@ -96,7 +96,7 @@ def generate_interaction():
                     interaction_LL.append([var, win_start, win_end])
 
                 # Check whether the interaction intersects with the existing ones
-                if not check_intersect(interaction_LL, interaction_LLL):
+                if check_intersect(interaction_LL, interaction_LLL) is False:
                     interaction_LLL.append(interaction_LL)
                     # Write the target, probability, and the interaction
                     interaction_L = []
@@ -113,10 +113,16 @@ def check_intersect(i_LL, j_LLL):
         for j_LL in j_LLL:
             for j_L in j_LL:
                 # Check whether i_L[0] equals j_L[0], i.e., the name of the source is the same
-                if j_L[0] == i_L[0]:
+                if get_var_name(j_L[0]) == get_var_name(i_L[0]):
                     return True
 
     return False
+
+
+# Get the var name (the substring prior to the last '_')
+def get_var_name(var_val):
+    idx = var_val.rfind('_')
+    return var_val[:idx]
 
 
 # Main function
@@ -138,7 +144,7 @@ if __name__=="__main__":
         os.makedirs(directory)
 
     for src_setting_file in os.listdir(src_setting_dir):
-        if src_setting_file.endswith(".txt"):
+        if not src_setting_file.startswith('.') and src_setting_file.endswith(".txt"):
             # Get source setting file number
             num = src_setting_file
             num = num.replace('src_setting_', '')

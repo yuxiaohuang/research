@@ -219,7 +219,7 @@ if __name__=="__main__":
     # Write statistics file
     with open(statistics_file, 'w') as f:
         for interaction_ground_truth_file in os.listdir(interaction_ground_truth_dir):
-            if interaction_ground_truth_file.endswith(".txt"):
+            if not interaction_ground_truth_file.startswith('.') and interaction_ground_truth_file.endswith(".txt"):
                 # Get src setting file number
                 num = interaction_ground_truth_file
                 num = num.replace('interaction_', '')

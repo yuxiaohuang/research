@@ -37,7 +37,7 @@ def helper(statistics_file):
     # Write statistics file
     with open(statistics_file, 'w') as f:
         for interaction_ground_truth_file in os.listdir(interaction_ground_truth_dir):
-            if interaction_ground_truth_file.endswith(".txt"):
+            if not interaction_ground_truth_file.startswith('.') and interaction_ground_truth_file.endswith(".txt"):
                 # Get src setting file number
                 num = interaction_ground_truth_file
                 num = num.replace('interaction_', '')
@@ -91,17 +91,17 @@ def helper(statistics_file):
         f.write('recall: ' + str(recall) + '\n')
         f.write('f1 score: ' + str(f1_score) + '\n\n')
 
-        # Get the mean and std of absolute difference in the window start / end
-        mean_win_start_abs_dif = np.mean(win_start_abs_dif_L)
-        std_win_start_abs_dif = np.std(win_start_abs_dif_L)
-        mean_win_end_abs_dif = np.mean(win_end_abs_dif_L)
-        std_win_end_abs_dif = np.std(win_end_abs_dif_L)
-
-        # Write the list of absolute difference in the window start / end
-        f.write('mean_win_start_abs_dif: ' + str(mean_win_start_abs_dif) + '\n')
-        f.write('std_win_start_abs_dif: ' + str(std_win_start_abs_dif) + '\n\n')
-        f.write('mean_win_end_abs_dif: ' + str(mean_win_end_abs_dif) + '\n')
-        f.write('std_win_end_abs_dif: ' + str(std_win_end_abs_dif) + '\n')
+        # # Get the mean and std of absolute difference in the window start / end
+        # mean_win_start_abs_dif = np.mean(win_start_abs_dif_L)
+        # std_win_start_abs_dif = np.std(win_start_abs_dif_L)
+        # mean_win_end_abs_dif = np.mean(win_end_abs_dif_L)
+        # std_win_end_abs_dif = np.std(win_end_abs_dif_L)
+        #
+        # # Write the list of absolute difference in the window start / end
+        # f.write('mean_win_start_abs_dif: ' + str(mean_win_start_abs_dif) + '\n')
+        # f.write('std_win_start_abs_dif: ' + str(std_win_start_abs_dif) + '\n\n')
+        # f.write('mean_win_end_abs_dif: ' + str(mean_win_end_abs_dif) + '\n')
+        # f.write('std_win_end_abs_dif: ' + str(std_win_end_abs_dif) + '\n')
 
 
 # Generate statistics
@@ -175,6 +175,8 @@ def generate_statistics(interaction_ground_truth_file, interaction_result_file, 
 
     # For each target
     for target in interaction_result_Dic:
+        # The list of ground truth interactions that have been used for mapping
+        interaction_ground_truth_LLL = []
         # For each interaction_result
         for interaction_result_LL in interaction_result_Dic[target]:
             # Flag, indicating whether the interaction_result is a interaction_ground_truth
@@ -184,11 +186,15 @@ def generate_statistics(interaction_ground_truth_file, interaction_result_file, 
                 for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
                     # If the interaction_result is a interaction_ground_truth
                     if belong(interaction_ground_truth_LL, interaction_result_LL):
-                        equal_F = True
+                        if not interaction_ground_truth_LL in interaction_ground_truth_LLL:
+                            interaction_ground_truth_LLL.append(interaction_ground_truth_LL)
+                            equal_F = True
+                        else:
+                            equal_F = None
 
                         # Sort the two interaction_results based on the component name
-                        interaction_ground_truth_sor_LL = sorted(interaction_ground_truth_LL, key = lambda x: x[0])
-                        interaction_result_sor_LL = sorted(interaction_result_LL, key = lambda x: x[0])
+                        # interaction_ground_truth_sor_LL = sorted(interaction_ground_truth_LL, key = lambda x: x[0])
+                        # interaction_result_sor_LL = sorted(interaction_result_LL, key = lambda x: x[0])
 
                         # # If the sizes are different
                         # if len(interaction_ground_truth_sor_LL) != len(interaction_result_sor_LL):
@@ -208,12 +214,12 @@ def generate_statistics(interaction_ground_truth_file, interaction_result_file, 
                         #     win_start_abs_dif_L.append(abs(int(win_start_interaction_ground_truth) - int(win_start_interaction_result)))
                         #     win_end_abs_dif_L.append(abs(int(win_end_interaction_ground_truth) - int(win_end_interaction_result)))
                         #
-                        # break
+                        break
             # If the interaction_result is a interaction_ground_truth
             if equal_F is True:
                 # Increase true positive
                 tp += 1
-            else:
+            elif equal_F is False:
                 # Increase false positive
                 fp += 1
 

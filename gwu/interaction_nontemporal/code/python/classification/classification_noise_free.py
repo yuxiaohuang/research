@@ -60,37 +60,40 @@ def parallel(src_data_training_file):
         src_data_testing_file = src_data_testing_dir + src_data_training_file.replace('train', 'test')
         tar_data_testing_file = tar_data_testing_dir + src_data_training_file.replace('src', 'tar').replace('train',
                                                                                                             'test')
+        interaction_ground_truth_file = interaction_ground_truth_dir + src_data_training_file.replace('src_data_data', 'interaction')
+        interaction_ground_truth_file = interaction_ground_truth_file.replace('_0.txt', '.txt')
+
         src_data_training_file = src_data_training_dir + src_data_training_file
 
         # Write the name of the dataset
         f.write(src_data_training_file.replace('src_data_', '') + '\n')
 
         # Classification
-        classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file)
+        classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file, interaction_ground_truth_file)
 
 
 # Classification
-def classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file):
+def classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file, interaction_ground_truth_file):
     # Get X_training_L and y_training_L
     global X_training_L, y_training_L
-    [X_training_L, y_training_L] = get_feature_and_class_vectors(src_data_training_file, tar_data_training_file)
+    [X_training_L, y_training_L] = get_feature_and_class_vectors(src_data_training_file, tar_data_training_file, None)
 
     # Get X_testing_L and y_testing_L
     global X_testing_L, y_testing_L
-    [X_testing_L, y_testing_L] = get_feature_and_class_vectors(src_data_testing_file, tar_data_testing_file)
+    [X_testing_L, y_testing_L] = get_feature_and_class_vectors(src_data_testing_file, tar_data_testing_file, interaction_ground_truth_file)
 
     # Get name_val_L
     global name_val_L
     name_val_L = []
     for var in sorted(val_Dic[1].keys()):
-        if 'target' in var or 'tar' in var or 'class' in var:
+        if 'target' in var or 'tar' in var:
             name_val_L.append(var)
 
     # Get feature_val_L
     global feature_val_L
     feature_val_L = []
     for var in sorted(val_Dic[1].keys()):
-        if not 'target' in var and not 'tar' in var and not 'class' in var:
+        if not 'target' in var and not 'tar' in var:
             feature_val_L.append(var)
 
     global model, run_time
@@ -115,16 +118,16 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
 
 
 # Get feature and class vectors
-def get_feature_and_class_vectors(src_data_file, tar_data_file):
+def get_feature_and_class_vectors(src_data_file, tar_data_file, interaction_ground_truth_file):
     # Initialization
     global val_Dic
     val_Dic = {}
 
     # Load src file
-    load_data(src_data_file)
+    load_data(src_data_file, interaction_ground_truth_file)
 
     # Load tar file
-    load_data(tar_data_file)
+    load_data(tar_data_file, interaction_ground_truth_file)
 
     # Get feature vectors, X_LL and y_LL
     X_LL = get_feature_vector('X')
@@ -134,10 +137,39 @@ def get_feature_and_class_vectors(src_data_file, tar_data_file):
 
 
 # Load data
-def load_data(data_file):
+def load_data(data_file, interaction_ground_truth_file):
+    # Initialization
+    prob_interaction_ground_truth_L_Dic = {}
+
+    if interaction_ground_truth_file is not None:
+        # Load the interaction_ground_truth file
+        with open(interaction_ground_truth_file, 'r') as f:
+            spamreader = list(csv.reader(f, delimiter=','))
+            # Get the target, probability and interaction_ground_truth
+            # From the second line to the last (since the first line is the header)
+            for i in range(1, len(spamreader)):
+                # Target lies in the first column in each row
+                target = spamreader[i][0].strip()
+                # Probability lies in the second column in each row
+                prob = float(spamreader[i][1].strip())
+                # interaction_ground_truth lies in the remaining columns, with the form component_i, win_start_i, win_end_i
+                interaction_ground_truth_LL = []
+                component_num = (len(spamreader[i]) - 2) // 3
+                for j in range(component_num):
+                    component_L = []
+                    # Name
+                    component_L.append(spamreader[i][j * 3 + 2].strip())
+                    # Window start
+                    component_L.append(int(spamreader[i][j * 3 + 3].strip()))
+                    # Window end
+                    component_L.append(int(spamreader[i][j * 3 + 4].strip()))
+                    interaction_ground_truth_LL.append(component_L)
+                if not target in prob_interaction_ground_truth_L_Dic:
+                    prob_interaction_ground_truth_L_Dic[target] = []
+                prob_interaction_ground_truth_L_Dic[target].append([prob, interaction_ground_truth_LL])
+
     with open(data_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter=','))
-
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
             if not i in val_Dic:
@@ -153,6 +185,23 @@ def load_data(data_file):
                 # Get val_Dic
                 val_Dic[i][var] = float(val)
 
+                # If var is a target
+                if var in prob_interaction_ground_truth_L_Dic:
+                    for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[var]:
+                        exist_ground_truth_F = True
+
+                        for interaction_ground_truth_L in interaction_ground_truth_LL:
+                            var_src = interaction_ground_truth_L[0]
+                            if not var_src in val_Dic[i] or val_Dic[i][var_src] == 0:
+                                exist_ground_truth_F = False
+                                break
+
+                        if exist_ground_truth_F is True:
+                            break
+
+                    if exist_ground_truth_F is False:
+                        val_Dic[i][var] = float('0')
+
 
 # Get feature vector
 def get_feature_vector(X_y_F):
@@ -162,8 +211,8 @@ def get_feature_vector(X_y_F):
         val_L = []
 
         for var in sorted(val_Dic[time].keys()):
-            if ((X_y_F == 'X' and ('target' in var or 'tar' in var or 'class' in var))
-                or (X_y_F == 'y' and (not 'target' in var and not 'tar' in var and not 'class' in var))):
+            if ((X_y_F == 'X' and ('target' in var or 'tar' in var))
+                or (X_y_F == 'y' and (not 'target' in var and not 'tar' in var))):
                 continue
 
             val = val_Dic[time][var]
@@ -248,11 +297,7 @@ def decision_tree(src_data_training_file):
         with open(Interaction_file, 'w') as f_interaction:
             spamwriter_interaction = csv.writer(f_interaction, delimiter=' ')
             for interaction_L in interaction_LL:
-                # If not one-hot encoding
-                if y[-2:] != '_1':
-                    spamwriter_interaction.writerow(['interaction for ' + y + '_1: ', interaction_L])
-                else:
-                    spamwriter_interaction.writerow(['interaction for ' + y + ': ', interaction_L])
+                spamwriter_interaction.writerow(['interaction for ' + y + ': ', interaction_L])
                 f_interaction.flush()
 
             # Write run time
@@ -690,8 +735,9 @@ if __name__ == "__main__":
     tar_data_training_dir = sys.argv[2]
     src_data_testing_dir = sys.argv[3]
     tar_data_testing_dir = sys.argv[4]
-    statistics_file = sys.argv[5]
-    statistics_all_file = sys.argv[6]
+    interaction_ground_truth_dir = sys.argv[5]
+    statistics_file = sys.argv[6]
+    statistics_all_file = sys.argv[7]
 
     with open(statistics_file, 'w') as f:
         num_cores = 10
