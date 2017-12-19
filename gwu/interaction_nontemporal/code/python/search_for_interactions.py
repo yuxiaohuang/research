@@ -437,6 +437,27 @@ def get_y_cond_X_time_LL(y, X_L):
     return y_cond_X_time_LL
 
 
+# Get the timepoints where the target cannot be changed by the combination
+def get_y_cond_not_X_time_LL(y, X_L):
+    # Initialization
+    y_cond_not_X_time_LL = []
+
+    # If the combination is None or empty, return the timepoints where the target is measured
+    if X_L is None or len(X_L) == 0:
+        for time in sorted(val_Dic[y].keys()):
+            y_cond_not_X_time_LL.append([time])
+        return y_cond_not_X_time_LL
+
+    # Get the timepoints where the target is measured
+    y_time_LL = get_y_cond_X_time_LL(y, [])
+    # Get the timepoints where the target can be changed by the combination
+    y_cond_X_time_LL = get_y_cond_X_time_LL(y, X_L)
+    # Get the timepoints where the target cannot be changed by the combination
+    y_cond_not_X_time_LL = get_y_cond_X_and_not_x_time_LL(y_time_LL, y_cond_X_time_LL)
+
+    return y_cond_not_X_time_LL
+
+
 # Get the dictionary of window start and window end
 def get_start_end_Dic(X_L):
     # Initialization
@@ -510,7 +531,8 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
     # Get P(target | not combination)
-    pro_y_cond_not_X, num_y_cond_not_X, num_y_1_cond_not_X = get_pro_num_y_cond_not_X(y, y_cond_X_time_LL)
+    y_cond_not_X_time_LL = get_y_cond_not_X_time_LL(y, X_L)
+    pro_y_cond_not_X, num_y_cond_not_X, num_y_1_cond_not_X = get_pro_num_y_cond_X(y, y_cond_not_X_time_LL)
 
     # Write to the log file
     spamwriter_log.writerow(["check_sufficient_cond pro_y_cond_not_X: ", pro_y_cond_not_X])
@@ -680,13 +702,30 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         # denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_x))
 
         # Get numerator
-        numerator = pro_y_cond_X_min_x_and_not_x - pro_y_cond_not_X
+        y_cond_not_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_not_X_time_LL, y_cond_x_time_LL)
+        pro_y_cond_not_X_and_not_x, num_y_cond_not_X_and_not_x, num_y_1_cond_not_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_not_X_and_not_x_time_LL)
+
+        # If P(target | not combination and not component) is None
+        if pro_y_cond_not_X_and_not_x is None:
+            # The component cannot vote
+            vote_F = None
+
+            # Update conditioned_Dic
+            conditioned_Dic[index].append([list(X_L), vote_F])
+
+            # Write empty line to the log file
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            continue
+
+        numerator = pro_y_cond_X_min_x_and_not_x - pro_y_cond_not_X_and_not_x
         spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
         f_log.flush()
 
         # Get denominator
-        pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_X) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_X)
-        denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_X))
+        pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_X_and_not_x) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_X_and_not_x)
+        denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_X_and_not_x))
 
         # # If denominator is zero
         # if denominator == 0:
@@ -840,8 +879,6 @@ def get_pro_num_y_cond_X(y, time_LL):
         return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
 
     # Get pro_y_cond_X, num_y_cond_X, and num_y_1_cond_X
-    denominator = 0
-
     # For each time_L
     for time_L in time_LL:
         # Get temp_L
@@ -859,54 +896,48 @@ def get_pro_num_y_cond_X(y, time_LL):
             # Update num_y_cond_X, num_y_1_cond_X, and denominator
             num_y_cond_X += 1
             num_y_1_cond_X += max(temp_L)
-            denominator += math.pow(not_pro_y_Dic[y], len(temp_L))
 
-    if denominator != 0:
-        numerator = num_y_cond_X - num_y_1_cond_X
-        pro_y_cond_X = 1 - numerator / denominator
+    if num_y_cond_X != 0:
+        pro_y_cond_X = num_y_1_cond_X / num_y_cond_X
 
     return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
 
 
-# Get P(target | not combination), #(target | not combination), and #(target = 1 | not combination)
-def get_pro_num_y_cond_not_X(y, time_LL):
-    # Initialization
-    pro_y_cond_not_X = None
-    num_y_cond_not_X = 0
-    num_y_1_cond_not_X = 0
-
-    # If time_LL is None or empty
-    if time_LL is None or len(time_LL) == 0:
-        return [pro_y_Dic[y], num_y_Dic[y], num_y_1_Dic[y]]
-
-    # Get time_y_cond_X_Dic
-    # Initialization
-    time_y_cond_X_Dic = {}
-    # For each time_L
-    for time_L in time_LL:
-        for time in time_L:
-            if time in val_Dic[y]:
-                time_y_cond_X_Dic[time] = 1
-
-    # Get pro_y_cond_not_X, num_y_cond_not_X, and num_y_1_cond_not_X
-    denominator = 0
-
-    # For each time
-    for time in sorted(val_Dic[y].keys()):
-        val = val_Dic[y][time]
-
-        # If val is not the removed value of the target
-        if val != -1:
-            # Update num_y_cond_not_X, num_y_1_cond_not_X, and denominator
-            num_y_cond_not_X += 1
-            num_y_1_cond_not_X += val
-            denominator += math.pow(not_pro_y_Dic[y], 1)
-
-    if denominator != 0:
-        numerator = num_y_cond_not_X - num_y_1_cond_not_X
-        pro_y_cond_not_X = 1 - numerator / denominator
-
-    return [pro_y_cond_not_X, num_y_cond_not_X, num_y_1_cond_not_X]
+# # Get P(target | not combination), #(target | not combination), and #(target = 1 | not combination)
+# def get_pro_num_y_cond_not_X(y, time_LL):
+#     # Initialization
+#     pro_y_cond_not_X = None
+#     num_y_cond_not_X = 0
+#     num_y_1_cond_not_X = 0
+#
+#     # If time_LL is None or empty
+#     if time_LL is None or len(time_LL) == 0:
+#         return [pro_y_Dic[y], num_y_Dic[y], num_y_1_Dic[y]]
+#
+#     # Get time_y_cond_X_Dic
+#     # Initialization
+#     time_y_cond_X_Dic = {}
+#     # For each time_L
+#     for time_L in time_LL:
+#         for time in time_L:
+#             if time in val_Dic[y]:
+#                 time_y_cond_X_Dic[time] = 1
+#
+#     # Get pro_y_cond_not_X, num_y_cond_not_X, and num_y_1_cond_not_X
+#     # For each time
+#     for time in sorted(val_Dic[y].keys()):
+#         val = val_Dic[y][time]
+#
+#         # If val is not the removed value of the target
+#         if val != -1:
+#             # Update num_y_cond_not_X, num_y_1_cond_not_X, and denominator
+#             num_y_cond_not_X += 1
+#             num_y_1_cond_not_X += val
+#
+#     if num_y_cond_not_X != 0:
+#         pro_y_cond_not_X = num_y_1_cond_not_X / num_y_cond_not_X
+#
+#     return [pro_y_cond_not_X, num_y_cond_not_X, num_y_1_cond_not_X]
 
 
 # Get the minimum window length of components in the combination
@@ -994,7 +1025,7 @@ def helper_for_interaction(y, X_L, y_cond_X_time_LL):
     return [X_L, y_cond_X_time_LL]
 
 
-# Expand the combination by adding the component that yields the minimum P(target | combination and not component)
+# Expand the combination by adding the component that yields the minimum z value of P(target | combination and not component) - P(target | not component)
 def expand(y, X_L, y_cond_X_time_LL):
     # Write the target and combination to the log file
     spamwriter_log.writerow(["expand target: ", y])
@@ -1007,7 +1038,7 @@ def expand(y, X_L, y_cond_X_time_LL):
     # This is the component that yields the minimum z value
     min_component = None
     # This is the minimum z value
-    min_pro = None
+    min_z_val = None
 
     # For each component in x_LL
     for index in range(len(x_LL)):
@@ -1031,7 +1062,6 @@ def expand(y, X_L, y_cond_X_time_LL):
 
             # Get the target's value that can be changed by the component
             y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
-
             # Get the timepoints where the target can be changed by the combination but not the component
             y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
             # Get P(target | combination and not component)
@@ -1050,9 +1080,49 @@ def expand(y, X_L, y_cond_X_time_LL):
                 or num_y_cond_X_and_not_x <= sample_size_cutoff):
                 continue
 
-            if min_pro is None or min_pro > pro_y_cond_X_and_not_x:
+            # Get P(target | not combination and not component)
+            y_cond_not_X_time_LL = get_y_cond_not_X_time_LL(y, X_L)
+            y_cond_not_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_not_X_time_LL, y_cond_x_time_LL)
+            pro_y_cond_not_X_and_not_x, num_y_cond_not_X_and_not_x, num_y_1_cond_not_X_and_not_x = get_pro_num_y_cond_X(
+                y, y_cond_not_X_and_not_x_time_LL)
+
+            # If:
+            #    1) P(target | not combination and not component) is None
+            # or 2) not enough sample
+            if (pro_y_cond_not_X_and_not_x is None
+                or num_y_cond_not_X_and_not_x <= sample_size_cutoff):
+                continue
+
+            # Get numerator
+            numerator = pro_y_cond_X_and_not_x - pro_y_cond_not_X_and_not_x
+            spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
+            f_log.flush()
+
+            # Get denominator
+            pro = (num_y_1_cond_X_and_not_x + num_y_1_cond_not_X_and_not_x) / (
+                num_y_cond_X_and_not_x + num_y_cond_not_X_and_not_x)
+            denominator = math.sqrt(
+                pro * (1 - pro) * (1 / num_y_cond_X_and_not_x + 1 / num_y_cond_not_X_and_not_x))
+
+            # Update based on Ballons dataset
+            if pro == 0:
                 min_component = index
-                min_pro = pro_y_cond_X_and_not_x
+                break
+            elif pro == 1:
+                continue
+
+            # Get z value
+            z_val = numerator / denominator
+
+            # Write z value to the log file
+            spamwriter_log.writerow(["expand z_val: ", z_val])
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            if min_z_val is None or min_z_val > z_val:
+                min_component = index
+                min_z_val = z_val
+
 
     # If the combination cannot be expanded anymore
     if min_component is None:
@@ -1200,7 +1270,7 @@ def remove_impact(y, y_cond_X_time_LL):
 
 
 # Shrink the combination by removing the component that yields,
-#    1) the maximum P(target | combination \ component and not component)
+#    1) the maximum z value of P(target | combination \ component and not component) - P(target | not combination \ component and not component)
 # or 2) the maximum P(target | combination \ component)
 def shrink(y, X_L, check_necessary_cond_F):
     # Write the target and combination to the log file
@@ -1215,9 +1285,9 @@ def shrink(y, X_L, check_necessary_cond_F):
     # This is the component that yields the maximum z value
     max_component = None
     # This is the maximum z value
-    max_pro = None
+    max_z_val = None
     # This is the timepoints where the target can be changed by the remaining combination but not max_component
-    max_y_cond_X_time_LL = []
+    max_y_cond_X_min_x_time_LL = []
 
     # For each component in the combination
     for index in X_L:
@@ -1239,13 +1309,13 @@ def shrink(y, X_L, check_necessary_cond_F):
         temp_L.remove(index)
 
         # Get the timepoints where the target can be changed by temp_L (i.e., combination \ component)
-        y_cond_X_time_LL = get_y_cond_X_time_LL(y, temp_L)
+        y_cond_X_min_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
 
         # Get the target's value that can be changed by the component
         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
 
         # Get the timepoints where the target can be changed by the combination but not the component
-        y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
+        y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_min_x_time_LL, y_cond_x_time_LL)
 
         # Get P(target | combination \ component and not component)
         pro_y_cond_X_min_x_and_not_x, num_y_cond_X_min_x_and_not_x, num_y_1_cond_X_min_x_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_and_not_x_time_LL)
@@ -1266,13 +1336,65 @@ def shrink(y, X_L, check_necessary_cond_F):
 
             break
 
-        # Update max_component and max_z_val
-        if max_pro is None or max_pro < pro_y_cond_X_min_x_and_not_x:
-            max_component = index
-            max_pro = pro_y_cond_X_min_x_and_not_x
-            max_y_cond_X_time_LL = y_cond_X_time_LL
+        # Get P(target | not combination \ component and not component)
+        y_cond_not_X_min_x_time_LL = get_y_cond_not_X_time_LL(y, temp_L)
+        y_cond_not_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_not_X_min_x_time_LL, y_cond_x_time_LL)
+        pro_y_cond_not_X__min_x_and_not_x, num_y_cond_not_X_min_x_and_not_x, num_y_1_cond_not_X_min_x_and_not_x = get_pro_num_y_cond_X(
+            y, y_cond_not_X_min_x_and_not_x_time_LL)
 
-    # If P(target | combination \ component and not component) is not None for any component
+        # If P(target | not combination \ component and not component) is None
+        if pro_y_cond_not_X__min_x_and_not_x is None:
+            max_component = None
+
+            # Write empty line to the log file
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            break
+
+        # Get numerator
+        numerator = pro_y_cond_X_min_x_and_not_x - pro_y_cond_not_X__min_x_and_not_x
+        spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
+        f_log.flush()
+
+        # Get denominator
+        pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_X_min_x_and_not_x) / (
+            num_y_cond_X_min_x_and_not_x + num_y_cond_not_X_min_x_and_not_x)
+        denominator = math.sqrt(
+            pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_X_min_x_and_not_x))
+
+        # Update based on Balloons dataset
+        if pro == 0:
+            # Write empty line to the log file
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            continue
+        elif pro == 1:
+            max_component = None
+
+            # Write empty line to the log file
+            spamwriter_log.writerow('')
+            f_log.flush()
+
+            break
+
+        # Get z value
+        z_val = numerator / denominator
+
+        # Write z value to the log file
+        spamwriter_log.writerow(["shrink z_val: ", z_val])
+        spamwriter_log.writerow('')
+        f_log.flush()
+
+        # Update max_component and max_z_val
+        if max_z_val is None or max_z_val < z_val:
+            max_component = index
+            max_z_val = z_val
+            max_y_cond_X_min_x_time_LL = y_cond_X_min_x_time_LL
+
+    # If  P(target | combination \ component and not component) is not None for any component
+    # and P(target | not combination \ component and not component) is not None for any component
     if max_component is not None:
         # Remove max_component from the combination
         X_L.remove(max_component)
@@ -1288,7 +1410,7 @@ def shrink(y, X_L, check_necessary_cond_F):
         # Update replaced_Dic
         replaced_Dic[max_component] = 1
 
-        return [X_L, max_y_cond_X_time_LL]
+        return [X_L, max_y_cond_X_min_x_time_LL]
 
     # This is the component that yields the maximum probability
     max_component = None
@@ -1311,26 +1433,26 @@ def shrink(y, X_L, check_necessary_cond_F):
         temp_L.remove(index)
 
         # Get the timepoints where the target can be changed by temp_L (i.e., combination \ component)
-        y_cond_X_not_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
+        y_cond_X_min_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
 
         # Get P(target | combination \ component)
-        pro_y_cond_X_not_x, num_y_cond_X_not_x, num_y_1_cond_X_not_x = get_pro_num_y_cond_X(y, y_cond_X_not_x_time_LL)
+        pro_y_cond_X_min_x, num_y_cond_X_min_x, num_y_1_cond_X_min_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_time_LL)
 
         # Write the log file
-        spamwriter_log.writerow(["shrink pro_y_cond_X_not_x: ", pro_y_cond_X_not_x])
-        spamwriter_log.writerow(["shrink num_y_cond_X_not_x: ", num_y_cond_X_not_x])
-        spamwriter_log.writerow(["shrink num_y_1_cond_X_not_x: ", num_y_1_cond_X_not_x])
+        spamwriter_log.writerow(["shrink pro_y_cond_X_min_x: ", pro_y_cond_X_min_x])
+        spamwriter_log.writerow(["shrink num_y_cond_X_min_x: ", num_y_cond_X_min_x])
+        spamwriter_log.writerow(["shrink num_y_1_cond_X_min_x: ", num_y_1_cond_X_min_x])
         f_log.flush()
 
         # If P(target | combination \ component) is None
-        if pro_y_cond_X_not_x is None:
+        if pro_y_cond_X_min_x is None:
             continue
 
         # Update max_component and max_pro
-        if max_pro is None or max_pro < pro_y_cond_X_not_x:
+        if max_pro is None or max_pro < pro_y_cond_X_min_x:
             max_component = index
-            max_pro = pro_y_cond_X_not_x
-            max_y_cond_X_time_LL = y_cond_X_not_x_time_LL
+            max_pro = pro_y_cond_X_min_x
+            max_y_cond_X_time_LL = y_cond_X_min_x_time_LL
 
     # If P(target | combination \ component) is None for some component
     if max_component is None:
