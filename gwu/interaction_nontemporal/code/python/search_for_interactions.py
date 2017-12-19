@@ -662,13 +662,13 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
 
         # Get the timepoints where the target can be changed by the combination but not the component
-        y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
+        y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
 
         # Get P(target | combination \ component and not component)
-        pro_y_cond_X_min_x_and_not_x, num_y_cond_X_min_x_and_not_x, num_y_1_cond_X_min_x_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_and_not_x_time_LL)
-        spamwriter_log.writerow(["check_sufficient_cond pro_y_cond_X_min_x_and_not_x: ", pro_y_cond_X_min_x_and_not_x])
-        spamwriter_log.writerow(["check_sufficient_cond num_y_cond_X_min_x_and_not_x: ", num_y_cond_X_min_x_and_not_x])
-        spamwriter_log.writerow(["check_sufficient_cond num_y_1_cond_X_min_x_and_not_x: ", num_y_1_cond_X_min_x_and_not_x])
+        pro_y_cond_X_and_not_x, num_y_cond_X_and_not_x, num_y_1_cond_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_and_not_x_time_LL)
+        spamwriter_log.writerow(["check_sufficient_cond pro_y_cond_X_and_not_x: ", pro_y_cond_X_and_not_x])
+        spamwriter_log.writerow(["check_sufficient_cond num_y_cond_X_and_not_x: ", num_y_cond_X_and_not_x])
+        spamwriter_log.writerow(["check_sufficient_cond num_y_1_cond_X_and_not_x: ", num_y_1_cond_X_and_not_x])
         f_log.flush()
 
         # Initialize conditioned_Dic
@@ -676,7 +676,7 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
             conditioned_Dic[index] = []
 
         # If P(target | combination \ component and not component) is None
-        if pro_y_cond_X_min_x_and_not_x is None:
+        if pro_y_cond_X_and_not_x is None:
             # The component cannot vote
             vote_F = None
 
@@ -719,13 +719,13 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
 
             continue
 
-        numerator = pro_y_cond_X_min_x_and_not_x - pro_y_cond_not_X_and_not_x
+        numerator = pro_y_cond_X_and_not_x - pro_y_cond_not_X_and_not_x
         spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
         f_log.flush()
 
         # Get denominator
-        pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_X_and_not_x) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_X_and_not_x)
-        denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_X_and_not_x))
+        pro = (num_y_1_cond_X_and_not_x + num_y_1_cond_not_X_and_not_x) / (num_y_cond_X_and_not_x + num_y_cond_not_X_and_not_x)
+        denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_and_not_x + 1 / num_y_cond_not_X_and_not_x))
 
         # # If denominator is zero
         # if denominator == 0:
@@ -903,43 +903,6 @@ def get_pro_num_y_cond_X(y, time_LL):
     return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
 
 
-# # Get P(target | not combination), #(target | not combination), and #(target = 1 | not combination)
-# def get_pro_num_y_cond_not_X(y, time_LL):
-#     # Initialization
-#     pro_y_cond_not_X = None
-#     num_y_cond_not_X = 0
-#     num_y_1_cond_not_X = 0
-#
-#     # If time_LL is None or empty
-#     if time_LL is None or len(time_LL) == 0:
-#         return [pro_y_Dic[y], num_y_Dic[y], num_y_1_Dic[y]]
-#
-#     # Get time_y_cond_X_Dic
-#     # Initialization
-#     time_y_cond_X_Dic = {}
-#     # For each time_L
-#     for time_L in time_LL:
-#         for time in time_L:
-#             if time in val_Dic[y]:
-#                 time_y_cond_X_Dic[time] = 1
-#
-#     # Get pro_y_cond_not_X, num_y_cond_not_X, and num_y_1_cond_not_X
-#     # For each time
-#     for time in sorted(val_Dic[y].keys()):
-#         val = val_Dic[y][time]
-#
-#         # If val is not the removed value of the target
-#         if val != -1:
-#             # Update num_y_cond_not_X, num_y_1_cond_not_X, and denominator
-#             num_y_cond_not_X += 1
-#             num_y_1_cond_not_X += val
-#
-#     if num_y_cond_not_X != 0:
-#         pro_y_cond_not_X = num_y_1_cond_not_X / num_y_cond_not_X
-#
-#     return [pro_y_cond_not_X, num_y_cond_not_X, num_y_1_cond_not_X]
-
-
 # Get the minimum window length of components in the combination
 def get_min_win_len(X_L):
     # Initialization
@@ -1040,6 +1003,9 @@ def expand(y, X_L, y_cond_X_time_LL):
     # This is the minimum z value
     min_z_val = None
 
+    # The timepoints where the target cannot be changed by the combination
+    y_cond_not_X_time_LL = get_y_cond_not_X_time_LL(y, X_L)
+
     # For each component in x_LL
     for index in range(len(x_LL)):
         # If the component:
@@ -1081,7 +1047,6 @@ def expand(y, X_L, y_cond_X_time_LL):
                 continue
 
             # Get P(target | not combination and not component)
-            y_cond_not_X_time_LL = get_y_cond_not_X_time_LL(y, X_L)
             y_cond_not_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_not_X_time_LL, y_cond_x_time_LL)
             pro_y_cond_not_X_and_not_x, num_y_cond_not_X_and_not_x, num_y_1_cond_not_X_and_not_x = get_pro_num_y_cond_X(
                 y, y_cond_not_X_and_not_x_time_LL)
@@ -1119,9 +1084,17 @@ def expand(y, X_L, y_cond_X_time_LL):
             spamwriter_log.writerow('')
             f_log.flush()
 
-            if min_z_val is None or min_z_val > z_val:
-                min_component = index
-                min_z_val = z_val
+            # If combination is empty
+            if len(X_L) == 0:
+                # We will only use pro_y_cond_X_and_not_x
+                if min_z_val is None or min_z_val > pro_y_cond_X_and_not_x:
+                    min_component = index
+                    min_z_val = pro_y_cond_X_and_not_x
+            else:
+                # We will use z value
+                if min_z_val is None or min_z_val > z_val:
+                    min_component = index
+                    min_z_val = z_val
 
 
     # If the combination cannot be expanded anymore
