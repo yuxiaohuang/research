@@ -26,7 +26,7 @@ win_LL = []
 # The list of timepoints
 time_series_L = []
 
-# The list of components
+# The list of conditions
 x_LL = []
 
 # The dictionary of sources
@@ -74,49 +74,49 @@ num_y_Dic = {}
 # val: #(target = 1)
 num_y_1_Dic = {}
 
-# The dictionary of P(target | not component)
-# key: target->component
-# val: P(target | not component)
+# The dictionary of P(target | not condition)
+# key: target->condition
+# val: P(target | not condition)
 pro_y_cond_not_x_Dic = {}
 
-# The dictionary of 1 - P(target | not component)
-# key: target->component
-# val: 1 - P(target | not component)
+# The dictionary of 1 - P(target | not condition)
+# key: target->condition
+# val: 1 - P(target | not condition)
 not_pro_y_cond_not_x_Dic = {}
 
-# The dictionary of #(target and not component), that is the number of timepoints where the target is measured but cannot be changed by the component
-# key: target->component
-# val: #(target and not component)
+# The dictionary of #(target and not condition), that is the number of timepoints where the target is measured but cannot be changed by the condition
+# key: target->condition
+# val: #(target and not condition)
 num_y_cond_not_x_Dic = {}
 
-# The dictionary of #(target = 1 and not component), that is the number of timepoints where the target is 1 but cannot be changed by the component
-# key: target->component
-# val: #(target = 1 and not component)
+# The dictionary of #(target = 1 and not condition), that is the number of timepoints where the target is 1 but cannot be changed by the condition
+# key: target->condition
+# val: #(target = 1 and not condition)
 num_y_1_cond_not_x_Dic = {}
 
-# The dictionary of the timepoints where the target can be changed by the component
-# key: target->component
-# val: The timepoints where the target can be changed by the component
+# The dictionary of the timepoints where the target can be changed by the condition
+# key: target->condition
+# val: The timepoints where the target can be changed by the condition
 y_cond_x_time_LL_Dic = {}
 
-# The dictionary records the components of discovered interactions
-# key: component
+# The dictionary records the conditions of discovered interactions
+# key: condition
 # val: 1
 discovered_Dic = {}
 
-# The dictionary records the replaced component
-# key: component
+# The dictionary records the replaced condition
+# key: condition
 # val: 1
 replaced_Dic = {}
 
-# The dictionary records the list of combinations for which the component was conditioned to check the sufficient condition
-# key: component
-# val: list of combinations
+# The dictionary records the list of conjunctions for which the condition was conditioned to check the sufficient condition
+# key: condition
+# val: list of conjunctions
 conditioned_Dic = {}
 
-# The dictionary of combinations
+# The dictionary of conjunctions
 # key: target
-# val: list of combinations
+# val: list of conjunctions
 interaction_Dic = {}
 
 # The maximum time stamp
@@ -124,6 +124,9 @@ max_time_stamp = 0
 
 # The minimum size of the samples
 sample_size_cutoff = 30
+
+# The condition when checking the necessary condition
+condition_check_necessary_cond = 0
 
 
 # Initialization
@@ -145,7 +148,7 @@ def initialization(source_data_file, target_data_file):
     # Get windows
     get_win_LL(lag_L)
 
-    # Get components
+    # Get conditions
     get_x_LL()
 
     # Get time series
@@ -215,12 +218,12 @@ def get_win_LL(lag_L):
         win_LL.append(win_L)
 
 
-# Get components
+# Get conditions
 def get_x_LL():
     for x in sorted(x_Dic.keys()):
         for win_L in win_LL:
-            component_L = [x, win_L[0], win_L[1]]
-            x_LL.append(component_L)
+            condition_L = [x, win_L[0], win_L[1]]
+            x_LL.append(condition_L)
 
 
 # Get the time series
@@ -244,7 +247,7 @@ def get_y_statistics(y_L):
     for y in y_L:
         val_L = []
         for time in sorted(val_Dic[y].keys()):
-            # Remove the impact of the combination from the data
+            # Remove the impact of the conjunction from the data
             if val_Dic[y][time] != -1:
                 val_L.append(val_Dic[y][time])
 
@@ -267,9 +270,9 @@ def get_y_statistics(y_L):
             get_y_cond_x_statistics(y, index, y_cond_X_time_LL)
 
 
-# Get the statistics of the target conditioned on the component
+# Get the statistics of the target conditioned on the condition
 def get_y_cond_x_statistics(y, index, y_cond_X_time_LL):
-    # Get the timepoints where the target can be changed by the component
+    # Get the timepoints where the target can be changed by the condition
     y_cond_x_time_LL = get_y_cond_X_time_LL(y, [index])
 
     # Update
@@ -279,16 +282,16 @@ def get_y_cond_x_statistics(y, index, y_cond_X_time_LL):
     if y_cond_X_time_LL is None:
         y_cond_X_time_LL = get_y_cond_X_time_LL(y, [])
 
-    # Get the timepoints where the target can be changed by the combination but not the component
+    # Get the timepoints where the target can be changed by the conjunction but not the condition
     y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
 
     val_L = []
     for [time] in y_cond_X_min_x_and_not_x_time_LL:
-        # Remove the impact of the combination from the data
+        # Remove the impact of the conjunction from the data
         if val_Dic[y][time] != -1:
             val_L.append(val_Dic[y][time])
 
-    # If the component is not always present
+    # If the condition is not always present
     if len(val_L) > 0:
         # Update
         pro_y_cond_not_x_Dic[y][index] = np.mean(val_L)
@@ -309,8 +312,8 @@ def search_for_interactions():
         # Initialize interaction_Dic[y]
         interaction_Dic[y] = []
 
-        # The dictionary records the components in a discovered interaction
-        # key: component
+        # The dictionary records the conditions in a discovered interaction
+        # key: condition
         # val: 1
         global discovered_Dic
         discovered_Dic = {}
@@ -318,77 +321,80 @@ def search_for_interactions():
         # Helper: clear data structure
         [X_L, y_cond_X_time_LL] = helper_clear_data_structure(y)
 
-        # Do, while the combination is not empty after shrinking
+        # Do, while the conjunction is not empty after shrinking
         while True:
             # Check the sufficient condition (to produce the target)
             # Flag sample_size_cutoff_met_F, indicating whether there is enough sample
-            # Flag sufficient_F, indicating whether the combination is sufficient
-            # Flag add_F, indicating whether a component has been added to the combination when checking the sufficient condition
+            # Flag sufficient_F, indicating whether the conjunction is sufficient
+            # Flag add_F, indicating whether a condition has been added to the conjunction when checking the sufficient condition
             X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F = check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff_X, False)
 
-            # If 1) enough sample and 2) the combination is sufficient
+            # If 1) enough sample and 2) the conjunction is sufficient
             if sample_size_cutoff_met_F is False and sufficient_F is True:
-                # Check the necessary condition and remove unnecessary components
+                # Check the necessary condition and remove unnecessary conditions
                 X_L = check_necessary_cond(y, X_L)
+
+                # The timepoints where the target can be changed by the conjunction
+                # This step was missed in the previous version
+                y_cond_X_time_LL = get_y_cond_X_time_LL(y, X_L)
 
                 # Helper for interaction: update and output
                 [X_L, y_cond_X_time_LL] = helper_for_interaction(y, X_L, y_cond_X_time_LL)
-
                 continue
 
-            # Flag expand_F, indicating whether the combination can be expanded, False by default
+            # Flag expand_F, indicating whether the conjunction can be expanded, False by default
             expand_F = False
-            # If 1) enough sample and 2) no component has been added
+            # If 1) enough sample and 2) no condition has been added
             if sample_size_cutoff_met_F is False and add_F is False:
-                # Expand the combination
+                # Expand the conjunction
                 [X_L, y_cond_X_time_LL, expand_F] = expand(y, X_L, y_cond_X_time_LL)
 
-            # If 1) not enough sample or 2.1) no component has been added and 2.2) the combination cannot be expanded
+            # If 1) not enough sample or 2.1) no condition has been added and 2.2) the conjunction cannot be expanded
             if sample_size_cutoff_met_F is True or (add_F is False and expand_F is False):
-                # Shrink the combination
+                # Shrink the conjunction
                 [X_L, y_cond_X_time_LL] = shrink(y, X_L, False)
 
                 # Termination condition
-                # If the combination is empty
+                # If the conjunction is empty
                 if len(X_L) == 0:
                     break
 
 
 # Helper: clear data structure
 def helper_clear_data_structure(y):
-    # The dictionary records the replaced components
-    # key: component
+    # The dictionary records the replaced conditions
+    # key: condition
     # val: 1
     global replaced_Dic
     replaced_Dic = {}
 
-    # The dictionary records the list of combinations for which the component was conditioned to check the sufficient condition
-    # key: component
-    # val: list of combinations
+    # The dictionary records the list of conjunctions for which the condition was conditioned to check the sufficient condition
+    # key: condition
+    # val: list of conjunctions
     global conditioned_Dic
     conditioned_Dic = {}
 
-    # The combination, empty by default
+    # The conjunction, empty by default
     X_L = []
 
-    # The timepoints where the target can be changed by the combination
+    # The timepoints where the target can be changed by the conjunction
     y_cond_X_time_LL = get_y_cond_X_time_LL(y, X_L)
 
     return [X_L, y_cond_X_time_LL]
 
 
-# Get the timepoints where the target can be changed by the combination
+# Get the timepoints where the target can be changed by the conjunction
 def get_y_cond_X_time_LL(y, X_L):
     # Initialization
     y_cond_X_time_LL = []
 
-    # If the combination is None or empty, return the timepoints where the target is measured
+    # If the conjunction is None or empty, return the timepoints where the target is measured
     if X_L is None or len(X_L) == 0:
         for time in sorted(val_Dic[y].keys()):
             y_cond_X_time_LL.append([time])
         return y_cond_X_time_LL
 
-    # Get the minimum window length of components in the combination
+    # Get the minimum window length of conditions in the conjunction
     min_win_len = get_min_win_len(X_L)
 
     # Get the dictionary of start and end
@@ -399,7 +405,7 @@ def get_y_cond_X_time_LL(y, X_L):
     # val: number of times the var occurs
     X_time_Dic = {}
 
-    # Flag, indicating whether we have started recording the timepoints where all the components in the combination are present
+    # Flag, indicating whether we have started recording the timepoints where all the conditions in the conjunction are present
     # Default is False
     recorded_F = False
 
@@ -416,7 +422,7 @@ def get_y_cond_X_time_LL(y, X_L):
                     X_time_Dic[index] -= 1
                 if X_time_Dic[index] == 0:
                     del X_time_Dic[index]
-        # If all the components in the combination are present
+        # If all the conditions in the conjunction are present
         if len(X_time_Dic) == len(X_L):
             if recorded_F is False:
                 time_L = []
@@ -428,7 +434,7 @@ def get_y_cond_X_time_LL(y, X_L):
             if time == max_time_stamp or len(time_L) == min_win_len:
                 y_cond_X_time_LL.append(time_L)
                 recorded_F = False
-        # If some components are absent and we have been recording time
+        # If some conditions are absent and we have been recording time
         elif recorded_F:
             if len(time_L) > 0:
                 y_cond_X_time_LL.append(time_L)
@@ -437,12 +443,12 @@ def get_y_cond_X_time_LL(y, X_L):
     return y_cond_X_time_LL
 
 
-# Get the timepoints where the target cannot be changed by the combination
+# Get the timepoints where the target cannot be changed by the conjunction
 def get_y_cond_not_X_time_LL(y, X_L):
     # Initialization
     y_cond_not_X_time_LL = []
 
-    # If the combination is None or empty, return the timepoints where the target is measured
+    # If the conjunction is None or empty, return the timepoints where the target is measured
     if X_L is None or len(X_L) == 0:
         for time in sorted(val_Dic[y].keys()):
             y_cond_not_X_time_LL.append([time])
@@ -450,9 +456,9 @@ def get_y_cond_not_X_time_LL(y, X_L):
 
     # Get the timepoints where the target is measured
     y_time_LL = get_y_cond_X_time_LL(y, [])
-    # Get the timepoints where the target can be changed by the combination
+    # Get the timepoints where the target can be changed by the conjunction
     y_cond_X_time_LL = get_y_cond_X_time_LL(y, X_L)
-    # Get the timepoints where the target cannot be changed by the combination
+    # Get the timepoints where the target cannot be changed by the conjunction
     y_cond_not_X_time_LL = get_y_cond_X_and_not_x_time_LL(y_time_LL, y_cond_X_time_LL)
 
     return y_cond_not_X_time_LL
@@ -486,7 +492,7 @@ def get_start_end_Dic(X_L):
 
 # Check sufficient condition
 def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff_X_min_x_and_not_x, check_necessary_cond_F):
-    # Write the target and combination to the log file
+    # Write the target and conjunction to the log file
     spamwriter_log.writerow(["check_sufficient_cond target: ", y])
     spamwriter_log.writerow(["check_sufficient_cond X_L: ", decode(X_L)])
     spamwriter_log.writerow(["check_suf_p_val_cutoff_X: ", p_val_cutoff_X])
@@ -495,22 +501,20 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
 
     # Flag, indicating whether there is enough sample, False by default
     sample_size_cutoff_met_F = False
-    # Flag, indicating whether the combination is sufficient, False by default
+    # Flag, indicating whether the conjunction is sufficient, False by default
     sufficient_F = False
-    # Flag, indicating whether a component has been added to the combination when checking the sufficient condition, False by default
+    # Flag, indicating whether a condition has been added to the conjunction when checking the sufficient condition, False by default
     add_F = False
 
-    # If the combination is None or empty
+    # If the conjunction is None or empty
     if X_L is None or len(X_L) == 0:
         # Write empty line to the log file
         spamwriter_log.writerow('')
         f_log.flush()
-
         return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
-    # Get P(target | combination)
+    # Get P(target | conjunction)
     pro_y_cond_X, num_y_cond_X, num_y_1_cond_X = get_pro_num_y_cond_X(y, y_cond_X_time_LL)
-
     # Write to the log file
     spamwriter_log.writerow(["check_sufficient_cond pro_y_cond_X: ", pro_y_cond_X])
     spamwriter_log.writerow(["check_sufficient_cond num_y_cond_X: ", num_y_cond_X])
@@ -522,12 +526,11 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         # Update sample_size_cutoff_met_F, since there is no enough sample
         sample_size_cutoff_met_F = True
 
-    # If P(target | combination) is None
+    # If P(target | conjunction) is None
     if pro_y_cond_X is None:
         # Write empty line to the log file
         spamwriter_log.writerow('')
         f_log.flush()
-
         return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
     # Get numerator
@@ -548,61 +551,50 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         # Write empty line to the log file
         spamwriter_log.writerow('')
         f_log.flush()
-
         return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
     # Get z value
     z_val = numerator / denominator
     # Get p value
     p_val = stats.norm.sf(z_val)
-
     # Write z value and p value to the log file
     spamwriter_log.writerow(["check_sufficient_cond z_val: ", z_val])
     spamwriter_log.writerow(["check_sufficient_cond p_val: ", p_val])
     spamwriter_log.writerow('')
     f_log.flush()
 
-    # If the combination does not significantly increase the occurrence of the target
+    # If the conjunction does not significantly increase the occurrence of the target
     if p_val >= p_val_cutoff_X:
         return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
-    # Check the sufficient conditioned on combination \ component
+    # Check the sufficient conditioned on conjunction \ condition
     for index in range(len(x_LL)):
-        # Write the component to the log file
+        # Write the condition to the log file
         spamwriter_log.writerow(["check_sufficient_cond x_LL[index]: ", x_LL[index]])
         f_log.flush()
 
-        # If:
-        #     1) the component is in the combination
-        # or  2) the component is a superset of some component in the combination
-        # or  3) the component is always present
-        # or  4) the component is always absent
-        # or  5) not enough sample when the component is present
-        # or  6) the function is called when checking the necessary condition and the component is duplicate (we do this only when checking the necessary condition, since we want to find the intersection of windows when checking the sufficient condition)
-        # or  7) the component under consideration and any component in the interaction are not the same variable
-        # or  8) the component is the negation of a component in the interaction
-        if (index in X_L
-            or is_sup_set(index, X_L) is True
-            or not index in pro_y_cond_not_x_Dic[y]
+        # If the condition:
+        #     1) is always present
+        # or  2) is always absent
+        # or  3) is in the conjunction
+        # or  4) the condition is the negation of a condition in the interaction
+        if (not index in pro_y_cond_not_x_Dic[y]
             or y_cond_x_time_LL_Dic[y][index] is None
-            or len(y_cond_x_time_LL_Dic[y][index]) <= sample_size_cutoff
-            or (check_necessary_cond_F is True and duplicate(X_L, index) is True)
             or are_same_var(index, X_L) is True
             or (index in discovered_Dic and discovered_Dic[index] == 0)):
+
             # Write empty line to the log file
             spamwriter_log.writerow('')
             f_log.flush()
-
             continue
 
-        # Get X_vote_F_L
+        # Get X_vote_F_Lm
         X_vote_F_L = get_X_vote_F_L(X_L, index)
 
-        # If the component has been used
+        # If the condition has been used
         if X_vote_F_L is not None:
-            # Get the vote of the component
+            # Get the vote of the condition
             vote_F = X_vote_F_L[1]
-
             # Write the vote to the log file
             spamwriter_log.writerow(["vote_F: ", vote_F])
 
@@ -610,18 +602,15 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
                 # Write empty line to the log file
                 spamwriter_log.writerow('')
                 f_log.flush()
-
                 return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
-
             continue
 
-        # Get the timepoints where the target can be changed by the component
+        # Get the timepoints where the target can be changed by the condition
         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
-        # Get the timepoints where the target can be changed by the combination but not the component
+        # Get the timepoints where the target can be changed by the conjunction but not the condition
         y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
-        # Get P(target | combination and not component)
+        # Get P(target | conjunction and not condition)
         pro_y_cond_X_and_not_x, num_y_cond_X_and_not_x, num_y_1_cond_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_and_not_x_time_LL)
-
         spamwriter_log.writerow(["check_sufficient_cond pro_y_cond_X_and_not_x: ", pro_y_cond_X_and_not_x])
         spamwriter_log.writerow(["check_sufficient_cond num_y_cond_X_and_not_x: ", num_y_cond_X_and_not_x])
         spamwriter_log.writerow(["check_sufficient_cond num_y_1_cond_X_and_not_x: ", num_y_1_cond_X_and_not_x])
@@ -631,9 +620,11 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         if not index in conditioned_Dic:
             conditioned_Dic[index] = []
 
-        # If P(target | combination \ component and not component) is None
+        # # If not enough sample or P(target | conjunction and not condition) is None
+        # if num_y_cond_X_and_not_x <= sample_size_cutoff or pro_y_cond_X_and_not_x is None:
+        # If P(target | conjunction and not condition) is None
         if pro_y_cond_X_and_not_x is None:
-            # The component cannot vote
+            # The condition cannot vote
             vote_F = None
 
             # Update conditioned_Dic
@@ -642,10 +633,21 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
             # Write empty line to the log file
             spamwriter_log.writerow('')
             f_log.flush()
-
             continue
 
-        # Get numerator
+        # # Get numerator
+        # pro_y_cond_not_x = pro_y_cond_not_x_Dic[y][index]
+        # numerator = pro_y_cond_X_and_not_x - pro_y_cond_not_x
+        # spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
+        # f_log.flush()
+        #
+        # # Get denominator
+        # num_y_cond_not_x = num_y_cond_not_x_Dic[y][index]
+        # num_y_1_cond_not_x = num_y_1_cond_not_x_Dic[y][index]
+        # pro = (num_y_1_cond_X_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_and_not_x + num_y_cond_not_x)
+        # denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_and_not_x + 1 / num_y_cond_not_x))
+
+        # # Get numerator
         numerator = pro_y_cond_X_and_not_x - pro_y
         # Write to the log file
         spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
@@ -662,7 +664,7 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
             # Get p value
             p_val = 1.0
         elif pro == 1:
-            # The component cannot vote
+            # The condition cannot vote
             vote_F = None
 
             # Update conditioned_Dic
@@ -671,7 +673,6 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
             # Write empty line to the log file
             spamwriter_log.writerow('')
             f_log.flush()
-
             continue
         else:
             # Get z value
@@ -685,35 +686,33 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
         spamwriter_log.writerow('')
         f_log.flush()
 
-        # The component can vote
+        # The condition can vote
         vote_F = p_val
 
         # Update conditioned_Dic
         conditioned_Dic[index].append([list(X_L), vote_F])
 
-        # If the combination \ component does not significantly increase the occurrence of the target
+        # If the conjunction \ condition does not significantly increase the occurrence of the target
         if p_val >= p_val_cutoff_X_min_x_and_not_x:
-            # If the component has not been discovered
-            if not index in discovered_Dic:
-                # If    1) the function is called when checking the sufficient condition
-                # and 2.1) the component is duplicate or 2.2) not enough sample (so that expand will not be called)
+            # If the condition has not been discovered in an interaction
+            if not index in discovered_Dic or discovered_Dic[index] == 0:
+                # If  1) the function is called when checking the sufficient condition
+                # and 2) not enough sample (so that expand will not be called)
                 if (check_necessary_cond_F is False
-                    and (duplicate(X_L, index) is True or sample_size_cutoff_met_F is True)):
-                    # Add the component to the combination
+                    and sample_size_cutoff_met_F is True):
+                    # Add the condition to the conjunction
                     add(y, X_L, index)
-
                     # Update add_F
                     add_F = True
 
                     # Update y_cond_X_time_LL
                     y_cond_X_time_LL = get_y_cond_X_time_LL(y, X_L)
 
-                    # Write the combination to the log file
+                    # Write the conjunction to the log file
                     spamwriter_log.writerow(["add X_L: ", decode(X_L)])
                     spamwriter_log.writerow('')
                     f_log.flush()
-
-                    # Print the combination
+                    # Print the conjunction
                     print(["add X_L: ", decode(X_L)])
 
             return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
@@ -737,7 +736,7 @@ def get_X_vote_F_L(X_L, index):
     return None
 
 
-# Check whether the two combinations are the same
+# Check whether the two conjunctions are the same
 def X_equal(X_i_L, X_j_L):
     for index in X_i_L:
         if not index in X_j_L:
@@ -750,22 +749,22 @@ def X_equal(X_i_L, X_j_L):
     return True
 
 
-# Check whether the component is duplicate
+# Check whether the condition is duplicate
 def duplicate(X_L, index):
-    # For each component in the combination
+    # For each condition in the conjunction
     for index_X in X_L:
-        # If the name of the two components are the same
+        # If the name of the two conditions are the same
         if x_LL[index_X][0] == x_LL[index][0]:
             return True
 
     return False
 
 
-# Get the actual components in the combination
+# Get the actual conditions in the conjunction
 def decode(X_L):
     temp_L = []
 
-    # If the combination is None or empty
+    # If the conjunction is None or empty
     if X_L is None or len(X_L) == 0:
         return temp_L
 
@@ -775,7 +774,7 @@ def decode(X_L):
     return temp_L
 
 
-# Get P(target | combination), #(target | combination), and #(target = 1 | combination)
+# Get P(target | conjunction), #(target | conjunction), and #(target = 1 | conjunction)
 def get_pro_num_y_cond_X(y, time_LL):
     # Initialization
     pro_y_cond_X = None
@@ -811,16 +810,56 @@ def get_pro_num_y_cond_X(y, time_LL):
     return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
 
 
-# Get the minimum window length of components in the combination
+# # Get P(target | combination), #(target | combination), and #(target = 1 | combination)
+# def get_pro_num_y_cond_X(y, time_LL):
+#     # Initialization
+#     pro_y_cond_X = None
+#     num_y_cond_X = 0
+#     num_y_1_cond_X = 0
+#
+#     # If time_LL is None or empty
+#     if time_LL is None or len(time_LL) == 0:
+#         return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
+#
+#     # Get pro_y_cond_X, num_y_cond_X, and num_y_1_cond_X
+#     denominator = 0
+#
+#     # For each time_L
+#     for time_L in time_LL:
+#         # Get temp_L
+#         # Initialization
+#         temp_L = []
+#         for time in time_L:
+#             if time in val_Dic[y]:
+#                 temp_L.append(val_Dic[y][time])
+#
+#         if len(temp_L) == 0:
+#             continue
+#
+#         # If temp_L does not contain removed value of the target
+#         if min(temp_L) != -1:
+#             # Update num_y_cond_X, num_y_1_cond_X, and denominator
+#             num_y_cond_X += 1
+#             num_y_1_cond_X += max(temp_L)
+#             denominator += math.pow(not_pro_y_Dic[y], len(temp_L))
+#
+#     if denominator != 0:
+#         numerator = num_y_cond_X - num_y_1_cond_X
+#         pro_y_cond_X = 1 - numerator / denominator
+#
+#     return [pro_y_cond_X, num_y_cond_X, num_y_1_cond_X]
+
+
+# Get the minimum window length of conditions in the conjunction
 def get_min_win_len(X_L):
     # Initialization
     min_win_len = None
 
-    # If the combination is None or empty, return the minimum window length, 1
+    # If the conjunction is None or empty, return the minimum window length, 1
     if X_L is None or len(X_L) == 0:
         return 1
 
-    # For each component in the combination
+    # For each condition in the conjunction
     for index in X_L:
         # Get window start, window end, and the length
         win_start = x_LL[index][1]
@@ -833,7 +872,7 @@ def get_min_win_len(X_L):
     return min_win_len
 
 
-# Get the timepoints where the target can be changed by the combination but not the component
+# Get the timepoints where the target can be changed by the conjunction but not the condition
 def get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL):
     if y_cond_x_time_LL is None or len(y_cond_x_time_LL) == 0:
         return y_cond_X_time_LL
@@ -860,34 +899,34 @@ def get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL):
 # Helper for interaction: update and output
 def helper_for_interaction(y, X_L, y_cond_X_time_LL):
     # Update interaction_Dic
-    # Get the interaction where the time window of each component is the intersection of time windows of components with the same name
+    # Get the interaction where the time window of each condition is the intersection of time windows of conditions with the same name
     X_int_L = get_X_int_L(X_L)
     # Add the interaction to interaction_Dic
     interaction_Dic[y].append(X_int_L)
 
     # Update discovered_Dic
-    # Mark each component in the interaction and the duplicated ones as discovered (i.e, adding the key to the dict)
+    # Mark each condition in the interaction and the duplicated ones as discovered (i.e, adding the key to the dict)
     for index in range(len(x_LL)):
         if duplicate(X_L, index) is True:
             discovered_Dic[index] = 1
 
     # Update discovered_Dic
     for index in range(len(x_LL)):
-        # If the component under consideration and a component in the interaction are the same variable
-        if are_same_var(index, X_L) is True:
+        # If the condition under consideration and a condition in the interaction are the same variable and index is not in discovered_Dic
+        if are_same_var(index, X_L) is True and not index in discovered_Dic:
             discovered_Dic[index] = 0
 
-    # Remove the impact of the combination from the data
+    # Remove the impact of the conjunction from the data
     remove_impact(y, y_cond_X_time_LL)
 
     # Update the statistics (pro_y_Dic, not_pro_y_Dic, num_y_Dic, and num_y_1_Dic) of the targets
     get_y_statistics([y])
 
-    # Write the combination to spamwriter_interaction
+    # Write the conjunction to spamwriter_interaction
     spamwriter_interaction.writerow(['interaction for ' + y + ': ', X_int_L])
     f_interaction.flush()
 
-    # Print the combination
+    # Print the conjunction
     print(['interaction for ' + y + ': ', X_int_L])
 
     # Helper: clear data structure
@@ -896,48 +935,131 @@ def helper_for_interaction(y, X_L, y_cond_X_time_LL):
     return [X_L, y_cond_X_time_LL]
 
 
-# Expand the combination by adding the component that yields the minimum P(target | combination and not component)
+# # Expand the conjunction by adding the condition that yields the minimum P(target | conjunction and not condition)
+# def expand(y, X_L, y_cond_X_time_LL):
+#     # Write the target and conjunction to the log file
+#     spamwriter_log.writerow(["expand target: ", y])
+#     spamwriter_log.writerow(["expand X_L: ", decode(X_L)])
+#     f_log.flush()
+#
+#     # Flag, indicating whether the conjunction can be expanded, False by default
+#     expand_F = False
+#
+#     # This is the condition that yields the minimum P(target | conjunction and not condition)
+#     min_condition = None
+#     # This is the minimum P(target | conjunction and not condition)
+#     min_pro = None
+#
+#     # For each condition in x_LL
+#     for index in range(len(x_LL)):
+#         # If the condition:
+#         #     1) is not in the conjunction
+#         # and 2) has not been discovered in an interaction
+#         # and 3) has not been replaced when shrinking the conjunction
+#         # and 4) is not always present
+#         # and 5) the condition is not always absent
+#         # and 6) enough sample when the condition is present
+#         # and 7) the condition under consideration and any condition in the interaction are not the same variable
+#         if (not index in X_L
+#             and (not index in discovered_Dic or discovered_Dic[index] == 0)
+#             and not index in replaced_Dic
+#             and index in pro_y_cond_not_x_Dic[y]
+#             and y_cond_x_time_LL_Dic[y][index] is not None
+#             and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff
+#             and are_same_var(index, X_L) is False):
+#             spamwriter_log.writerow(["expand x_LL[index]: ", x_LL[index]])
+#             f_log.flush()
+#
+#             # Get the target's value that can be changed by the condition
+#             y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
+#             # Get the timepoints where the target can be changed by the conjunction but not the condition
+#             y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
+#             # Get P(target | conjunction and not condition)
+#             pro_y_cond_X_and_not_x, num_y_cond_X_and_not_x, num_y_1_cond_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_and_not_x_time_LL)
+#
+#             # Write the log file
+#             spamwriter_log.writerow(["expand pro_y_cond_X_and_not_x: ", pro_y_cond_X_and_not_x])
+#             spamwriter_log.writerow(["expand num_y_cond_X_and_not_x: ", num_y_cond_X_and_not_x])
+#             spamwriter_log.writerow(["expand num_y_1_cond_X_and_not_x: ", num_y_1_cond_X_and_not_x])
+#             f_log.flush()
+#
+#             # If:
+#             #    1) P(target | conjunction and not condition) is None
+#             # or 2) the condition is the absence of the conditions in the discovered interactions
+#             # or 3) not enough sample
+#             if (pro_y_cond_X_and_not_x is None
+#                 or (pro_y_cond_X_and_not_x == 0 and index in discovered_Dic and discovered_Dic[index] == 0)
+#                 or num_y_cond_X_and_not_x <= sample_size_cutoff):
+#                 continue
+#
+#             # Update min_condition and min_pro
+#             if min_pro is None or min_pro > pro_y_cond_X_and_not_x:
+#                 min_condition = index
+#                 min_pro = pro_y_cond_X_and_not_x
+#
+#     # If the conjunction cannot be expanded anymore
+#     if min_condition is None:
+#         return [X_L, y_cond_X_time_LL, expand_F]
+#
+#     # Update expand_F
+#     expand_F = True
+#
+#     # Update y_cond_X_time_LL
+#     y_cond_X_time_LL = get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, min_condition)
+#
+#     # Add min_condition to the conjunction
+#     add(y, X_L, min_condition)
+#
+#     # Write X_L to the log file
+#     spamwriter_log.writerow(['expand X_L' + ': ', decode(X_L)])
+#     f_log.flush()
+#
+#     # Print the conjunction
+#     print(['expand X_L: ', decode(X_L)])
+#
+#     return [X_L, y_cond_X_time_LL, expand_F]
+
+
+# Expand the conjunction by adding the condition that yields the minimum value of P(target | conjunction and not condition) - P(target | not condition)
 def expand(y, X_L, y_cond_X_time_LL):
-    # Write the target and combination to the log file
+    # Write the target and conjunction to the log file
     spamwriter_log.writerow(["expand target: ", y])
     spamwriter_log.writerow(["expand X_L: ", decode(X_L)])
     f_log.flush()
 
-    # Flag, indicating whether the combination can be expanded, False by default
+    # Flag, indicating whether the conjunction can be expanded, False by default
     expand_F = False
 
-    # This is the component that yields the minimum P(target | combination and not component)
-    min_component = None
-    # This is the minimum P(target | combination and not component)
+    # This is the condition that yields the minimum z value
+    min_condition = None
+    # This is the minimum probability
     min_pro = None
 
-    # For each component in x_LL
+    # For each condition in x_LL
     for index in range(len(x_LL)):
-        # If the component:
-        #     1) is not in the combination
-        # and 2) has not been discovered in an interaction
-        # and 3) has not been replaced when shrinking the combination
-        # and 4) is not always present
-        # and 5) the component is not always absent
-        # and 6) enough sample when the component is present
-        # and 7) the component under consideration and any component in the interaction are not the same variable
-        if (not index in X_L
-            and not index in discovered_Dic
+        # If the condition:
+        #     1) has not been discovered in an interaction
+        # and 2) has not been replaced when shrinking the conjunction
+        # and 3, 4)  is not always present
+        # and 5, 6) the condition is not always absent
+        # and 7) the condition under consideration and any condition in the interaction are not the same variable
+        if ((not index in discovered_Dic or discovered_Dic[index] == 0)
             and not index in replaced_Dic
-            and index in pro_y_cond_not_x_Dic[y]
+            and index in num_y_cond_not_x_Dic[y]
+            and num_y_cond_not_x_Dic[y][index] > sample_size_cutoff
             and y_cond_x_time_LL_Dic[y][index] is not None
             and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff
             and are_same_var(index, X_L) is False):
+
             spamwriter_log.writerow(["expand x_LL[index]: ", x_LL[index]])
             f_log.flush()
 
-            # Get the target's value that can be changed by the component
+            # Get the target's value that can be changed by the condition
             y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
-            # Get the timepoints where the target can be changed by the combination but not the component
+            # Get the timepoints where the target can be changed by the conjunction but not the condition
             y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
-            # Get P(target | combination and not component)
+            # Get P(target | conjunction and not condition)
             pro_y_cond_X_and_not_x, num_y_cond_X_and_not_x, num_y_1_cond_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_and_not_x_time_LL)
-
             # Write the log file
             spamwriter_log.writerow(["expand pro_y_cond_X_and_not_x: ", pro_y_cond_X_and_not_x])
             spamwriter_log.writerow(["expand num_y_cond_X_and_not_x: ", num_y_cond_X_and_not_x])
@@ -945,51 +1067,166 @@ def expand(y, X_L, y_cond_X_time_LL):
             f_log.flush()
 
             # If:
-            #    1) P(target | combination and not component) is None
+            #    1) P(target | conjunction and not condition) is None
             # or 2) not enough sample
             if (pro_y_cond_X_and_not_x is None
                 or num_y_cond_X_and_not_x <= sample_size_cutoff):
                 continue
 
-            # Update min_component and min_pro
+            # Update min_condition and min_pro
             if min_pro is None or min_pro > pro_y_cond_X_and_not_x:
-                min_component = index
+                min_condition = index
                 min_pro = pro_y_cond_X_and_not_x
 
-    # If the combination cannot be expanded anymore
-    if min_component is None:
+    # If the conjunction cannot be expanded anymore
+    if min_condition is None:
         return [X_L, y_cond_X_time_LL, expand_F]
 
     # Update expand_F
     expand_F = True
 
     # Update y_cond_X_time_LL
-    y_cond_X_time_LL = get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, min_component)
+    y_cond_X_time_LL = get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, min_condition)
 
-    # Add min_component to the combination
-    add(y, X_L, min_component)
+    # Add min_condition to the conjunction
+    add(y, X_L, min_condition)
 
     # Write X_L to the log file
     spamwriter_log.writerow(['expand X_L' + ': ', decode(X_L)])
     f_log.flush()
-
-    # Print the combination
+    # Print the conjunction
     print(['expand X_L: ', decode(X_L)])
-
     return [X_L, y_cond_X_time_LL, expand_F]
 
 
-# Get the timepoints where the target can be changed by the combination and the component
+# # Expand the combination by adding the component that yields the minimum z value of P(target | combination and not component) - P(target | not component)
+# def expand(y, X_L, y_cond_X_time_LL):
+#     # Write the target and combination to the log file
+#     spamwriter_log.writerow(["expand target: ", y])
+#     spamwriter_log.writerow(["expand X_L: ", decode(X_L)])
+#     f_log.flush()
+#
+#     # Flag, indicating whether the combination can be expanded, False by default
+#     expand_F = False
+#
+#     # This is the component that yields the minimum z value
+#     min_component = None
+#     # This is the minimum z value
+#     min_z_val = None
+#
+#     # For each condition in x_LL
+#     for index in range(len(x_LL)):
+#         # If the condition:
+#         #     1) has not been discovered in an interaction
+#         # and 2) has not been replaced when shrinking the conjunction
+#         # and 3, 4)  is not always present
+#         # and 5, 6) the condition is not always absent
+#         # and 7) the condition under consideration and any condition in the interaction are not the same variable
+#         if (not index in discovered_Dic
+#             # not index in discovered_Dic or discovered_Dic[index] == 0
+#             and not index in replaced_Dic
+#             and index in num_y_cond_not_x_Dic[y]
+#             and num_y_cond_not_x_Dic[y][index] > sample_size_cutoff
+#             and y_cond_x_time_LL_Dic[y][index] is not None
+#             and len(y_cond_x_time_LL_Dic[y][index]) > sample_size_cutoff
+#             and are_same_var(index, X_L) is False):
+#
+#             spamwriter_log.writerow(["expand x_LL[index]: ", x_LL[index]])
+#             f_log.flush()
+#
+#             # Get the target's value that can be changed by the component
+#             y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
+#
+#             # Get the timepoints where the target can be changed by the combination but not the component
+#             y_cond_X_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
+#             # Get P(target | combination and not component)
+#             pro_y_cond_X_and_not_x, num_y_cond_X_and_not_x, num_y_1_cond_X_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_and_not_x_time_LL)
+#             # Get P(target | not component)
+#             pro_y_cond_not_x = pro_y_cond_not_x_Dic[y][index]
+#
+#             # Write the log file
+#             spamwriter_log.writerow(["expand pro_y_cond_X_and_not_x: ", pro_y_cond_X_and_not_x])
+#             spamwriter_log.writerow(["expand num_y_cond_X_and_not_x: ", num_y_cond_X_and_not_x])
+#             spamwriter_log.writerow(["expand num_y_1_cond_X_and_not_x: ", num_y_1_cond_X_and_not_x])
+#             spamwriter_log.writerow(["expand pro_y_cond_not_x: ", pro_y_cond_not_x])
+#             f_log.flush()
+#
+#             # If:
+#             #    1) P(target | combination and not component) is None
+#             # or 2) not enough sample
+#             if (pro_y_cond_X_and_not_x is None
+#                 or num_y_cond_X_and_not_x <= sample_size_cutoff):
+#                 continue
+#
+#             # Get numerator
+#             numerator = pro_y_cond_X_and_not_x - pro_y_cond_not_x
+#             spamwriter_log.writerow(["check_sufficient_cond numerator: ", numerator])
+#             f_log.flush()
+#
+#             # Get denominator
+#             num_y_cond_not_x = num_y_cond_not_x_Dic[y][index]
+#             num_y_1_cond_not_x = num_y_1_cond_not_x_Dic[y][index]
+#             spamwriter_log.writerow(["expand num_y_1_cond_not_x: ", num_y_1_cond_not_x])
+#             pro = (num_y_1_cond_X_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_and_not_x + num_y_cond_not_x)
+#             denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_and_not_x + 1 / num_y_cond_not_x))
+#
+#             # # If denominator is zero
+#             # if denominator == 0:
+#             #     continue
+#
+#             # Update based on Ballons dataset
+#             if pro == 0:
+#                 min_component = index
+#                 break
+#             elif pro == 1:
+#                 continue
+#
+#             # Get z value
+#             z_val = numerator / denominator
+#
+#             # Write z value to the log file
+#             spamwriter_log.writerow(["expand z_val: ", z_val])
+#             spamwriter_log.writerow('')
+#             f_log.flush()
+#
+#             if min_z_val is None or min_z_val > z_val:
+#                 min_component = index
+#                 min_z_val = z_val
+#
+#     # If the combination cannot be expanded anymore
+#     if min_component is None:
+#         return [X_L, y_cond_X_time_LL, expand_F]
+#
+#     # Update expand_F
+#     expand_F = True
+#
+#     # Update y_cond_X_time_LL
+#     y_cond_X_time_LL = get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, min_component)
+#
+#     # Add min_component to the combination
+#     add(y, X_L, min_component)
+#
+#     # Write X_L to the log file
+#     spamwriter_log.writerow(['expand X_L' + ': ', decode(X_L)])
+#     f_log.flush()
+#
+#     # Print the combination
+#     print(['expand X_L: ', decode(X_L)])
+#
+#     return [X_L, y_cond_X_time_LL, expand_F]
+
+
+# Get the timepoints where the target can be changed by the conjunction and the condition
 def get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, index):
     # Initialization
     y_cond_X_x_time_LL = []
 
-    # If the combination is None or empty
+    # If the conjunction is None or empty
     if X_L is None or len(X_L) == 0:
-        # Get the timepoints where the target can be changed by the component
+        # Get the timepoints where the target can be changed by the condition
         y_cond_X_x_time_LL = get_y_cond_X_time_LL(y, [index])
     else:
-        # Get the timepoints where the target can be changed by the component
+        # Get the timepoints where the target can be changed by the condition
         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
 
         # Get x_time_Dic
@@ -1012,9 +1249,9 @@ def get_y_cond_X_x_time_LL(y, X_L, y_cond_X_time_LL, index):
     return y_cond_X_x_time_LL
 
 
-# Check the necessary condition and remove unnecessary components
+# Check the necessary condition and remove unnecessary conditions
 def check_necessary_cond(y, X_L):
-    # Write the target and combination to the log file
+    # Write the target and conjunction to the log file
     spamwriter_log.writerow(["check_necessary_cond target: ", y])
     spamwriter_log.writerow(["check_necessary_cond X_L: ", decode(X_L)])
     spamwriter_log.writerow('')
@@ -1025,31 +1262,34 @@ def check_necessary_cond(y, X_L):
         global replaced_Dic
         replaced_Dic = {}
 
-        # Flag, indicating the existence of unnecessary component, False by default
+        # Flag, indicating the existence of unnecessary condition, False by default
         unnecessary_F = False
 
         for i in range(len(X_L)):
             # Initialize
             temp_L = list(X_L)
 
-            # Get combination \ component by shrinking
+            # Get conjunction \ condition by shrinking
             temp_L, y_cond_temp_time_LL = shrink(y, temp_L, True)
+
+            global condition_check_necessary_cond
+            condition_check_necessary_cond = list(set(X_L) - set(temp_L))[0]
 
             # Check the sufficient condition (to produce the target)
             # Flag sample_size_cutoff_met_F, indicating whether there is enough sample
-            # Flag sufficient_F, indicating whether the combination is sufficient
-            # Flag add_F, indicating whether a component has been added to the combination when checking the sufficient condition
+            # Flag sufficient_F, indicating whether the conjunction is sufficient
+            # Flag add_F, indicating whether a condition has been added to the conjunction when checking the sufficient condition
             temp_L, y_cond_temp_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F = check_sufficient_cond(y, temp_L, y_cond_temp_time_LL, p_val_cutoff_X, p_val_cutoff_X_min_x_and_not_x, True)
 
-            # If the combination \ component still significantly increases the occurrence of the target
+            # If the conjunction \ condition still significantly increases the occurrence of the target
             if sufficient_F is True:
                 # Update unnecessary_F
                 unnecessary_F = True
                 break
 
-        # If there is unnecessary component
+        # If there is unnecessary condition
         if unnecessary_F is True:
-            # Remove the component (since it is not necessary)
+            # Remove the condition (since it is not necessary)
             X_L = list(temp_L)
         else:
             break
@@ -1057,205 +1297,380 @@ def check_necessary_cond(y, X_L):
     return X_L
 
 
-# Add index to the combination
+# Add index to the conjunction
 def add(y, X_L, index):
-    # Add the index to the combination
+    # Add the index to the conjunction
     X_L.append(index)
 
-    # Get the combination where the time window of each component is the intersection of time windows of components with the same name
+    # Get the conjunction where the time window of each condition is the intersection of time windows of conditions with the same name
     X_int_L = get_X_int_L(X_L)
 
     # get X_L
-    # For each component in X_int_L
-    for component_L in X_int_L:
-        # If the component is not in the combination
-        if not component_L in decode(X_L):
-            # Get the index of the component in x_LL, None by default
+    # For each condition in X_int_L
+    for condition_L in X_int_L:
+        # If the condition is not in the conjunction
+        if not condition_L in decode(X_L):
+            # Get the index of the condition in x_LL, None by default
             index = None
             for i in range(len(x_LL)):
-                if x_LL[i] == component_L:
+                if x_LL[i] == condition_L:
                     index = i
                     break
 
             if index is None:
-                # Add the component to x_LL
-                x_LL.append(component_L)
+                # Add the condition to x_LL
+                x_LL.append(condition_L)
 
                 # Get the index
                 index = len(x_LL) - 1
 
-                # Get the statistics of the target conditioned on the component
+                # Get the statistics of the target conditioned on the condition
                 get_y_cond_x_statistics(y, index, None)
 
             # Add the idnex to X_L
             X_L.append(index)
 
 
-# Remove the impact of the combination from the data
+# Remove the impact of the conjunction from the data
 def remove_impact(y, y_cond_X_time_LL):
-    # Remove the impact of the combination from the data
+    # Remove the impact of the conjunction from the data
     for y_cond_X_time_L in y_cond_X_time_LL:
         for time in y_cond_X_time_L:
-            # If the target was changed by the combination at the current time
-            if time in val_Dic[y] and val_Dic[y][time] == 1:
+            # If the target was changed by the conjunction at the current time
+            # if time in val_Dic[y] and val_Dic[y][time] == 1:
+            if time in val_Dic[y]:
                 val_Dic[y][time] = -1
 
 
-# Shrink the combination by removing the component that yields,
-#    1) the maximum P(target | combination \ component and not component)
-# or 2) the maximum P(target | combination \ component)
+# Shrink the conjunction by removing the condition that yields,
+#    1) the maximum P(target | conjunction \ condition and not condition)
+# or 2) the maximum P(target | conjunction \ condition)
 def shrink(y, X_L, check_necessary_cond_F):
-    # Write the target and combination to the log file
+    # Write the target and conjunction to the log file
     spamwriter_log.writerow(["shrink target: ", y])
     spamwriter_log.writerow(["before shrink X_L: ", decode(X_L)])
     f_log.flush()
 
-    # If the combination is None or empty
+    # If the conjunction is None or empty
     if X_L is None or len(X_L) == 0:
         return [X_L, []]
 
-    # This is the component that yields the maximum probability
-    max_component = None
+    # This is the condition that yields the maximum probability
+    max_condition = None
     # This is the maximum probability
     max_pro = None
-    # This is the timepoints where the target can be changed by the remaining combination but not max_component
+    # This is the timepoints where the target can be changed by the remaining conjunction but not max_condition
     max_y_cond_X_min_x_time_LL = []
 
-    # For each component in the combination
+    # For each condition in the conjunction
     for index in X_L:
         # If:
-        #     1) the component is a superset of some component in the combination
-        # or  2) the component is always present
-        # or  3.1) the function is called when checking the necessary condition and 3.2) the component has been replaced and put back when checking the condition
-        if (is_sup_set(index, X_L) is True
-            or not index in pro_y_cond_not_x_Dic[y]
+        #     1) the condition is always present
+        # or  2.1) the function is called when checking the necessary condition and 2.2) the condition has been replaced and put back when checking the condition
+        if (not index in pro_y_cond_not_x_Dic[y]
             or (check_necessary_cond_F is True and index in replaced_Dic)):
             continue
 
-        # Write the component to the log file
+        # Write the condition to the log file
         spamwriter_log.writerow(["shrink x_LL[index]: ", x_LL[index]])
         f_log.flush()
 
-        # Get combination \ component
+        # Get conjunction \ condition
         temp_L = list(X_L)
         temp_L.remove(index)
 
-        # Get the timepoints where the target can be changed by temp_L (i.e., combination \ component)
+        # Get the timepoints where the target can be changed by temp_L (i.e., conjunction \ condition)
         y_cond_X_min_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
-        # Get the target's value that can be changed by the component
+        # Get the target's value that can be changed by the condition
         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
-        # Get the timepoints where the target can be changed by the combination but not the component
+        # Get the timepoints where the target can be changed by the conjunction but not the condition
         y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_min_x_time_LL, y_cond_x_time_LL)
-        # Get P(target | combination \ component and not component)
+        # Get P(target | conjunction \ condition and not condition)
         pro_y_cond_X_min_x_and_not_x, num_y_cond_X_min_x_and_not_x, num_y_1_cond_X_min_x_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_and_not_x_time_LL)
-
         # Write the log file
         spamwriter_log.writerow(["shrink pro_y_cond_X_min_x_and_not_x: ", pro_y_cond_X_min_x_and_not_x])
         spamwriter_log.writerow(["shrink num_y_cond_X_min_x_and_not_x: ", num_y_cond_X_min_x_and_not_x])
         spamwriter_log.writerow(["shrink num_y_1_cond_X_min_x_and_not_x: ", num_y_1_cond_X_min_x_and_not_x])
         f_log.flush()
 
-        # If P(target | combination \ component and not component) is None
+        # If P(target | conjunction \ condition and not condition) is None
         if pro_y_cond_X_min_x_and_not_x is None:
-            max_component = None
-
+            max_condition = None
             # Write empty line to the log file
             spamwriter_log.writerow('')
             f_log.flush()
-
             break
 
-        # Update max_component and max_pro
+        # Update max_condition and max_pro
         if max_pro is None or max_pro < pro_y_cond_X_min_x_and_not_x:
-            max_component = index
+            max_condition = index
             max_pro = pro_y_cond_X_min_x_and_not_x
             max_y_cond_X_min_x_time_LL = y_cond_X_min_x_time_LL
 
-    # If  P(target | combination \ component and not component) is not None for any component
-    if max_component is not None:
-        # Remove max_component from the combination
-        X_L.remove(max_component)
-
+    # If  P(target | conjunction \ condition and not condition) is not None for any condition
+    if max_condition is not None:
+        # Remove max_condition from the conjunction
+        X_L.remove(max_condition)
         # Write X_L to the log file
         spamwriter_log.writerow(['after shrink X_L' + ': ', decode(X_L)])
         spamwriter_log.writerow('')
         f_log.flush()
-
-        # Print the combination
+        # Print the conjunction
         print(['shrink X_L: ', decode(X_L)])
 
         # Update replaced_Dic
-        replaced_Dic[max_component] = 1
-
+        replaced_Dic[max_condition] = 1
         return [X_L, max_y_cond_X_min_x_time_LL]
 
-    # This is the component that yields the maximum probability
-    max_component = None
+    # This is the condition that yields the maximum probability
+    max_condition = None
     # This is the maximum probability
     max_pro = None
-    # This is the timepoints where the target can be changed by the remaining combination but not max_component
+    # This is the timepoints where the target can be changed by the remaining conjunction but not max_condition
     max_y_cond_X_time_LL = []
 
-    # For each component in the combination
+    # For each condition in the conjunction
     for index in X_L:
-        # If 1) the function is called when checking the necessary condition and 2) the component has been replaced and put back when checking the necessary condition
+        # If 1) the function is called when checking the necessary condition and 2) the condition has been replaced and put back when checking the necessary condition
         if check_necessary_cond_F is True and index in replaced_Dic:
             continue
 
         spamwriter_log.writerow(["shrink x_LL[index]: ", x_LL[index]])
         f_log.flush()
 
-        # Get combination \ component
+        # Get conjunction \ condition
         temp_L = list(X_L)
         temp_L.remove(index)
 
-        # Get the timepoints where the target can be changed by temp_L (i.e., combination \ component)
+        # Get the timepoints where the target can be changed by temp_L (i.e., conjunction \ condition)
         y_cond_X_min_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
-        # Get P(target | combination \ component)
+        # Get P(target | conjunction \ condition)
         pro_y_cond_X_min_x, num_y_cond_X_min_x, num_y_1_cond_X_min_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_time_LL)
-
         # Write the log file
         spamwriter_log.writerow(["shrink pro_y_cond_X_min_x: ", pro_y_cond_X_min_x])
         spamwriter_log.writerow(["shrink num_y_cond_X_min_x: ", num_y_cond_X_min_x])
         spamwriter_log.writerow(["shrink num_y_1_cond_X_min_x: ", num_y_1_cond_X_min_x])
         f_log.flush()
 
-        # If P(target | combination \ component) is None
+        # If P(target | conjunction \ condition) is None
         if pro_y_cond_X_min_x is None:
             continue
 
-        # Update max_component and max_pro
+        # Update max_condition and max_pro
         if max_pro is None or max_pro < pro_y_cond_X_min_x:
-            max_component = index
+            max_condition = index
             max_pro = pro_y_cond_X_min_x
             max_y_cond_X_time_LL = y_cond_X_min_x_time_LL
 
-    # If P(target | combination \ component) is None for some component
-    if max_component is None:
-        # Use the last component in the combination (which was added the most recently) as max_component
-        max_component = X_L[len(X_L) - 1]
+    # If P(target | conjunction \ condition) is None for some condition
+    if max_condition is None:
+        # Use the last condition in the conjunction (which was added the most recently) as max_condition
+        max_condition = X_L[len(X_L) - 1]
 
-    # Remove max_component from the combination
-    X_L.remove(max_component)
+    # Remove max_condition from the conjunction
+    X_L.remove(max_condition)
     # Write X_L to the log file
     spamwriter_log.writerow(['shrink X_L' + ': ', decode(X_L)])
     f_log.flush()
-
-    # Print the combination
+    # Print the conjunction
     print(['shrink X_L: ', decode(X_L)])
 
     # Update replaced_Dic
-    replaced_Dic[max_component] = 1
-
+    replaced_Dic[max_condition] = 1
     return [X_L, max_y_cond_X_time_LL]
 
 
-# Check if idx_sup is a superset of some component in the combination
+# # Shrink the conjunction by removing the condition that yields,
+# #    1) the maximum z value of P(target | conjunction \ condition and not condition) - P(target | not condition)
+# # or 2) the maximum P(target | conjunction \ condition)
+# def shrink(y, X_L, check_necessary_cond_F):
+#     # Write the target and conjunction to the log file
+#     spamwriter_log.writerow(["shrink target: ", y])
+#     spamwriter_log.writerow(["before shrink X_L: ", decode(X_L)])
+#     f_log.flush()
+#
+#     # If the conjunction is None or empty
+#     if X_L is None or len(X_L) == 0:
+#         return [X_L, []]
+#
+#     # This is the condition that yields the maximum z value
+#     max_condition = None
+#     # This is the maximum z value
+#     max_z_val = None
+#     # This is the timepoints where the target can be changed by the remaining conjunction but not max_condition
+#     max_y_cond_X_time_LL = []
+#
+#     # For each condition in the conjunction
+#     for index in X_L:
+#         # If:
+#         #     1) the condition is always present
+#         # or  2.1) the function is called when checking the necessary condition and 2.2) the condition has been replaced and put back when checking the condition
+#         if (not index in pro_y_cond_not_x_Dic[y]
+#             or (check_necessary_cond_F is True and index in replaced_Dic)):
+#             continue
+#
+#         # Write the condition to the log file
+#         spamwriter_log.writerow(["shrink x_LL[index]: ", x_LL[index]])
+#         f_log.flush()
+#
+#         # Get conjunction \ condition
+#         temp_L = list(X_L)
+#         temp_L.remove(index)
+#
+#         # Get the timepoints where the target can be changed by temp_L (i.e., conjunction \ condition)
+#         y_cond_X_time_LL = get_y_cond_X_time_LL(y, temp_L)
+#         # Get the target's value that can be changed by the condition
+#         y_cond_x_time_LL = y_cond_x_time_LL_Dic[y][index]
+#         # Get the timepoints where the target can be changed by the conjunction but not the condition
+#         y_cond_X_min_x_and_not_x_time_LL = get_y_cond_X_and_not_x_time_LL(y_cond_X_time_LL, y_cond_x_time_LL)
+#         # Get P(target | conjunction \ condition and not condition)
+#         pro_y_cond_X_min_x_and_not_x, num_y_cond_X_min_x_and_not_x, num_y_1_cond_X_min_x_and_not_x = get_pro_num_y_cond_X(y, y_cond_X_min_x_and_not_x_time_LL)
+#         # Get P(target | not condition)
+#         pro_y_cond_not_x = pro_y_cond_not_x_Dic[y][index]
+#         # Write the log file
+#         spamwriter_log.writerow(["shrink pro_y_cond_X_min_x_and_not_x: ", pro_y_cond_X_min_x_and_not_x])
+#         spamwriter_log.writerow(["shrink num_y_cond_X_min_x_and_not_x: ", num_y_cond_X_min_x_and_not_x])
+#         spamwriter_log.writerow(["shrink num_y_1_cond_X_min_x_and_not_x: ", num_y_1_cond_X_min_x_and_not_x])
+#         spamwriter_log.writerow(["shrink pro_y_cond_not_x: ", pro_y_cond_not_x])
+#         f_log.flush()
+#
+#         # If P(target | conjunction \ condition and not condition) is None or P(target | not condition) is None
+#         if pro_y_cond_X_min_x_and_not_x is None or pro_y_cond_not_x is None:
+#             max_condition = None
+#             # Write empty line to the log file
+#             spamwriter_log.writerow('')
+#             f_log.flush()
+#             break
+#
+#         # Get numerator
+#         numerator = pro_y_cond_X_min_x_and_not_x - pro_y_cond_not_x
+#         spamwriter_log.writerow(["shrink numerator: ", numerator])
+#         f_log.flush()
+#
+#         # Get denominator
+#         num_y_cond_not_x = num_y_cond_not_x_Dic[y][index]
+#         num_y_1_cond_not_x = num_y_1_cond_not_x_Dic[y][index]
+#         pro = (num_y_1_cond_X_min_x_and_not_x + num_y_1_cond_not_x) / (num_y_cond_X_min_x_and_not_x + num_y_cond_not_x)
+#         denominator = math.sqrt(pro * (1 - pro) * (1 / num_y_cond_X_min_x_and_not_x + 1 / num_y_cond_not_x))
+#
+#         # # If denominator is zero
+#         # if denominator == 0:
+#         #     max_condition = None
+#         #
+#         #     # Write empty line to the log file
+#         #     spamwriter_log.writerow('')
+#         #     f_log.flush()
+#         #
+#         #     break
+#
+#         # Update based on Balloons dataset
+#         if pro == 0:
+#             # Write empty line to the log file
+#             spamwriter_log.writerow('')
+#             f_log.flush()
+#
+#             continue
+#         elif pro == 1:
+#             max_condition = None
+#             # Write empty line to the log file
+#             spamwriter_log.writerow('')
+#             f_log.flush()
+#             break
+#
+#         # Get z value
+#         z_val = numerator / denominator
+#         # Write z value to the log file
+#         spamwriter_log.writerow(["shrink z_val: ", z_val])
+#         spamwriter_log.writerow('')
+#         f_log.flush()
+#
+#         # Update max_condition and max_z_val
+#         if max_z_val is None or max_z_val < z_val:
+#             max_condition = index
+#             max_z_val = z_val
+#             max_y_cond_X_time_LL = y_cond_X_time_LL
+#
+#     # If neither P(target | conjunction \ condition and not condition) nor P(target | not condition) is None for any condition
+#     if max_condition is not None:
+#         # Remove max_condition from the conjunction
+#         X_L.remove(max_condition)
+#         # Write X_L to the log file
+#         spamwriter_log.writerow(['after shrink X_L' + ': ', decode(X_L)])
+#         spamwriter_log.writerow('')
+#         f_log.flush()
+#         # Print the conjunction
+#         print(['shrink X_L: ', decode(X_L)])
+#
+#         # Update replaced_Dic
+#         replaced_Dic[max_condition] = 1
+#         return [X_L, max_y_cond_X_time_LL]
+#
+#     # This is the condition that yields the maximum probability
+#     max_condition = None
+#     # This is the maximum probability
+#     max_pro = None
+#     # This is the timepoints where the target can be changed by the remaining conjunction but not max_condition
+#     max_y_cond_X_time_LL = []
+#
+#     # For each condition in the conjunction
+#     for index in X_L:
+#         # If 1) the function is called when checking the necessary condition and 2) the condition has been replaced and put back when checking the necessary condition
+#         if check_necessary_cond_F is True and index in replaced_Dic:
+#             continue
+#
+#         spamwriter_log.writerow(["shrink x_LL[index]: ", x_LL[index]])
+#         f_log.flush()
+#
+#         # Get conjunction \ condition
+#         temp_L = list(X_L)
+#         temp_L.remove(index)
+#
+#         # Get the timepoints where the target can be changed by temp_L (i.e., conjunction \ condition)
+#         y_cond_X_not_x_time_LL = get_y_cond_X_time_LL(y, temp_L)
+#         # Get P(target | conjunction \ condition)
+#         pro_y_cond_X_not_x, num_y_cond_X_not_x, num_y_1_cond_X_not_x = get_pro_num_y_cond_X(y, y_cond_X_not_x_time_LL)
+#         # Write the log file
+#         spamwriter_log.writerow(["shrink pro_y_cond_X_not_x: ", pro_y_cond_X_not_x])
+#         spamwriter_log.writerow(["shrink num_y_cond_X_not_x: ", num_y_cond_X_not_x])
+#         spamwriter_log.writerow(["shrink num_y_1_cond_X_not_x: ", num_y_1_cond_X_not_x])
+#         f_log.flush()
+#
+#         # If P(target | conjunction \ condition) is None
+#         if pro_y_cond_X_not_x is None:
+#             continue
+#
+#         # Update max_condition and max_pro
+#         if max_pro is None or max_pro < pro_y_cond_X_not_x:
+#             max_condition = index
+#             max_pro = pro_y_cond_X_not_x
+#             max_y_cond_X_time_LL = y_cond_X_not_x_time_LL
+#
+#     # If P(target | conjunction \ condition) is None for some condition
+#     if max_condition is None:
+#         # Use the last condition in the conjunction (which was added the most recently) as max_condition
+#         max_condition = X_L[len(X_L) - 1]
+#
+#     # Remove max_condition from the conjunction
+#     X_L.remove(max_condition)
+#     # Write X_L to the log file
+#     spamwriter_log.writerow(['shrink X_L' + ': ', decode(X_L)])
+#     f_log.flush()
+#
+#     # Print the conjunction
+#     print(['shrink X_L: ', decode(X_L)])
+#
+#     # Update replaced_Dic
+#     replaced_Dic[max_condition] = 1
+#
+#     return [X_L, max_y_cond_X_time_LL]
+
+
+# Check if idx_sup is a superset of some condition in the conjunction
 def is_sup_set(idx_sup, X_L):
     var_sup, win_start_sup, win_end_sup = x_LL[idx_sup]
 
     for idx_sub in X_L:
-        # If the two components are the same
+        # If the two conditions are the same
         if idx_sub == idx_sup:
             continue
 
@@ -1268,12 +1683,12 @@ def is_sup_set(idx_sup, X_L):
 
     return False
 
-# Are the component under consideration and a component in the interaction the same variable
+# Are the condition under consideration and a condition in the interaction the same variable
 def are_same_var(idx_i, X_L):
     var_i, win_start_i, win_end_i = x_LL[idx_i]
 
     for idx_j in X_L:
-        # If the two components are the same
+        # If the two conditions are the same
         if idx_j == idx_i:
             continue
 
@@ -1291,12 +1706,12 @@ def get_var_name(var_val):
     return var_val[:idx]
 
 
-# Get the combination where the time window of each component is the intersection of time windows of components with the same name
+# Get the conjunction where the time window of each condition is the intersection of time windows of conditions with the same name
 def get_X_int_L(X_L):
     # The dictionary of the intersection of time windows
     int_win_Dic = {}
 
-    # Get the name of the components
+    # Get the name of the conditions
     for index in X_L:
         var, win_start, win_end = x_LL[index]
         if not var in int_win_Dic:
@@ -1306,11 +1721,11 @@ def get_X_int_L(X_L):
     for var in sorted(int_win_Dic.keys()):
         win_LL = []
 
-        # For each component in the combination
+        # For each condition in the conjunction
         for index in X_L:
             var_ind, win_start_ind, win_end_ind = x_LL[index]
 
-            # If the two components have the same name
+            # If the two conditions have the same name
             if var_ind == var:
                 # Flag, indicating whehter the current window intersects with a window in win_L, False by default
                 int_F = False
@@ -1346,7 +1761,7 @@ def get_X_int_L(X_L):
 
     # For each var
     for var in sorted(int_win_Dic.keys()):
-        # Add each component
+        # Add each condition
         for [win_start, win_end] in int_win_Dic[var]:
             X_int_L.append([var, win_start, win_end])
 
@@ -1376,7 +1791,7 @@ if __name__ == "__main__":
         # Write the log file
         spamwriter_log = csv.writer(f_log, delimiter=' ')
         with open(interaction_file, 'w') as f_interaction:
-            # Write the causal combination file
+            # Write the causal conjunction file
             spamwriter_interaction = csv.writer(f_interaction, delimiter=' ')
 
             # Search for the interactions
