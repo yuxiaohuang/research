@@ -219,4 +219,3 @@ if __name__=="__main__":
     helper(statistics_raw_file)
     helper(statistics_raw_std_file)
     helper(statistics_raw_mms_file)
-
