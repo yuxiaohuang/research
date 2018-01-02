@@ -21,21 +21,13 @@ import numpy as np
 def generate_statistics():
     # Initialize prob_interaction_ground_truth_L_Dic and interaction_result_Dic
     prob_interaction_ground_truth_L_Dic = {}
-    target_ground_truth = 'tar_T'
+    target_ground_truth = 'tar_Iris-virginica'
     prob_interaction_ground_truth_L_Dic[target_ground_truth] = []
     interaction_result_Dic = {}
 
     # Get prob_interaction_ground_truth_L_Dic
-    if os.path.basename(interaction_result_file).startswith('interaction_adult-stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0]]])
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_3_ADULT', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_adult+stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small+adult-stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
+    prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_2', 0, 0]]])
+    prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_3_2', 0, 0]]])
 
     # Load the interaction_result file
     with open(interaction_result_file, 'r') as f:

@@ -19,23 +19,38 @@ import numpy as np
 
 # Generate statistics
 def generate_statistics():
-    # Initialize prob_interaction_ground_truth_L_Dic and interaction_result_Dic
+    # Initialize prob_interaction_ground_truth_L_Dic, interaction_result_Dic, and positive number
     prob_interaction_ground_truth_L_Dic = {}
-    target_ground_truth = 'tar_T'
-    prob_interaction_ground_truth_L_Dic[target_ground_truth] = []
     interaction_result_Dic = {}
+    positive_num = 0
 
-    # Get prob_interaction_ground_truth_L_Dic
-    if os.path.basename(interaction_result_file).startswith('interaction_adult-stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0]]])
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_3_ADULT', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_adult+stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
-    elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small+adult-stretch.data'):
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
-        prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
+    # Load the interaction_ground_truth file
+    with open(interaction_ground_truth_file, 'r') as f:
+        spamreader = list(csv.reader(f, delimiter = ','))
+        # Get the target, probability and interaction_ground_truth
+        # From the second line to the last (since the first line is the header)
+        for i in range(1, len(spamreader)):
+            # Target lies in the first column in each row
+            target = spamreader[i][0].strip()
+            # Probability lies in the second column in each row
+            prob = float(spamreader[i][1].strip())
+            # interaction_ground_truth lies in the remaining columns, with the form component_i, win_start_i, win_end_i
+            interaction_ground_truth_LL = []
+            component_num = (len(spamreader[i]) - 2) // 3
+            for j in range(component_num):
+                component_L = []
+                # Name
+                component_L.append(spamreader[i][j * 3 + 2].strip())
+                # Window start
+                component_L.append(int(spamreader[i][j * 3 + 3].strip()))
+                # Window end
+                component_L.append(int(spamreader[i][j * 3 + 4].strip()))
+                interaction_ground_truth_LL.append(component_L)
+            if not target in prob_interaction_ground_truth_L_Dic:
+                prob_interaction_ground_truth_L_Dic[target] = []
+            prob_interaction_ground_truth_L_Dic[target].append([prob, interaction_ground_truth_LL])
+            # Update positive number
+            positive_num += 1
 
     # Load the interaction_result file
     with open(interaction_result_file, 'r') as f:
@@ -70,8 +85,7 @@ def generate_statistics():
             elif 'run time' in spamreader[i][0]:
                 run_time = float(spamreader[i][0].replace('run time: ', '').strip())
 
-    # Get true positive and false positive for the current dataset
-    tp = 0
+    # Get false positive for the current dataset
     fp = 0
 
     # Get the absolute difference in the window start / end
@@ -88,33 +102,11 @@ def generate_statistics():
                 # For each interaction_ground_truth and the probability
                 for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
                     # If the interaction_result is a interaction_ground_truth
-                    if equal(interaction_ground_truth_LL, interaction_result_LL):
+                    if belong(interaction_ground_truth_LL, interaction_result_LL):
                         equal_F = True
-
-                        # Sort the two interaction_results based on the component name
-                        interaction_ground_truth_sor_LL = sorted(interaction_ground_truth_LL, key = lambda x: x[0])
-                        interaction_result_sor_LL = sorted(interaction_result_LL, key = lambda x: x[0])
-
-                        # If the sizes are different
-                        if len(interaction_ground_truth_sor_LL) != len(interaction_result_sor_LL):
-                            print('interaction_result size different!')
-                            exit(1)
-
-                        for i in range(len(interaction_ground_truth_sor_LL)):
-                            var_interaction_ground_truth, win_start_interaction_ground_truth, win_end_interaction_ground_truth = interaction_ground_truth_sor_LL[i]
-                            var_interaction_result, win_start_interaction_result, win_end_interaction_result = interaction_result_sor_LL[i]
-
-                            # If the component names are different
-                            if var_interaction_ground_truth != var_interaction_result:
-                                print('component name different!')
-                                exit(1)
-
                         break
-            # If the interaction_result is a interaction_ground_truth
-            if equal_F is True:
-                # Increase true positive
-                tp += 1
-            else:
+            # If the interaction_result is not a interaction_ground_truth
+            if equal_F is False:
                 # Increase false positive
                 fp += 1
 
@@ -130,13 +122,16 @@ def generate_statistics():
                 # For each interaction_result
                 for interaction_result_LL in interaction_result_Dic[target]:
                     # If the interaction_ground_truth has been discovered
-                    if equal(interaction_result_LL, interaction_ground_truth_LL):
+                    if belong(interaction_ground_truth_LL, interaction_result_LL):
                         equal_F = True
                         break
             # If the interaction_ground_truth has not been discovered
             if equal_F is False:
                 # Increase false negative
                 fn += 1
+
+    # Get true positive
+    tp = positive_num - fn
 
     return [tp, fp, fn, run_time]
 
@@ -181,8 +176,9 @@ def belong(interaction_result_i_LL, interaction_result_j_LL):
 if __name__=="__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    interaction_result_dir = sys.argv[1]
-    statistics_file = sys.argv[2]
+    interaction_ground_truth_dir = sys.argv[1]
+    interaction_result_dir = sys.argv[2]
+    statistics_file = sys.argv[3]
 
     # Make directory
     directory = os.path.dirname(statistics_file)
@@ -195,19 +191,29 @@ if __name__=="__main__":
     fn_all = 0
     run_time_all = 0
 
+    # Initialize the list of absolute difference in the window start / end
+    win_start_abs_dif_L = []
+    win_end_abs_dif_L = []
+
     # Write statistics file
     with open(statistics_file, 'w') as f:
-        for interaction_result_file in os.listdir(interaction_result_dir):
-            if not interaction_result_file.startswith('.') and interaction_result_file.endswith(".txt"):
-                # Get interaction_result_file
-                interaction_result_file = interaction_result_dir + interaction_result_file
+        for interaction_ground_truth_file in os.listdir(interaction_ground_truth_dir):
+            if not interaction_ground_truth_file.startswith('.') and interaction_ground_truth_file.endswith(".txt"):
+                # Get src setting file number
+                num = interaction_ground_truth_file
+                num = num.replace('interaction_', '')
+                num = num.replace('.txt', '')
+                # Get interaction_ground_truth_file
+                interaction_ground_truth_file = interaction_ground_truth_dir + interaction_ground_truth_file
+                # Get interaction_result file
+                interaction_result_file = interaction_result_dir + 'interaction_data_' + num + '_0.txt'
 
                 # Generate statistics
                 [tp, fp, fn, run_time] = generate_statistics()
 
                 # Write statistics file
                 # Write the name of the dataset
-                f.write('dataset_' + os.path.basename(interaction_result_file) + '\n')
+                f.write('dataset_' + num + '\n')
                 # Write true positive, false positive and false negative for the current dataset
                 f.write('tp: ' + str(tp) + '\n')
                 f.write('fp: ' + str(fp) + '\n')
@@ -245,3 +251,14 @@ if __name__=="__main__":
         f.write('recall: ' + str(recall) + '\n')
         f.write('f1 score: ' + str(f1_score) + '\n\n')
 
+        # # Get the mean and std of absolute difference in the window start / end
+        # mean_win_start_abs_dif = np.mean(win_start_abs_dif_L)
+        # std_win_start_abs_dif = np.std(win_start_abs_dif_L)
+        # mean_win_end_abs_dif = np.mean(win_end_abs_dif_L)
+        # std_win_end_abs_dif = np.std(win_end_abs_dif_L)
+        #
+        # # Write the list of absolute difference in the window start / end
+        # f.write('mean_win_start_abs_dif: ' + str(mean_win_start_abs_dif) + '\n')
+        # f.write('std_win_start_abs_dif: ' + str(std_win_start_abs_dif) + '\n\n')
+        # f.write('mean_win_end_abs_dif: ' + str(mean_win_end_abs_dif) + '\n')
+        # f.write('std_win_end_abs_dif: ' + str(std_win_end_abs_dif) + '\n')

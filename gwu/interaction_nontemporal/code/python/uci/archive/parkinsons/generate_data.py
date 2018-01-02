@@ -41,7 +41,7 @@ col_num = 0
 class_col = 17
 
 # The list of class values we are interested in
-class_val_L = ['1']
+class_val_L = ['0']
 
 # The columns of continuous features
 con_feature_col_L = list(range(17)) + list(range(18, 24))
@@ -50,7 +50,7 @@ con_feature_col_L = list(range(17)) + list(range(18, 24))
 bins_num_L = []
 
 # The number of bins
-bin_num_all_con_var = 3
+bin_num_all_con_var = 2
 
 # The columns of features that should be excluded
 exclude_feature_col_L = [0]

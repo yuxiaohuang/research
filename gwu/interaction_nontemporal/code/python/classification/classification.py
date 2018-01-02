@@ -11,7 +11,7 @@ import csv
 import math
 import time
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -219,8 +219,11 @@ def decision_tree(src_data_training_file):
 
         # Create file
         directory = os.path.dirname(decision_tree_file)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        except FileExistsError:
+            print('FileExistsError!')
 
         # Write decision tree file
         decision_tree_file = open(decision_tree_file, 'w')
@@ -241,8 +244,11 @@ def decision_tree(src_data_training_file):
 
         # Create file
         directory = os.path.dirname(Interaction_file)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        except FileExistsError:
+            print('FileExistsError!')
 
         # Write interaction file
         with open(Interaction_file, 'w') as f_interaction:
@@ -285,8 +291,10 @@ def helper(tree_, node, interaction_L, y):
         if '_' in feature_val.replace('src_', ''):
             if feature_val[-1:] == '0':
                 feature_val_left = feature_val[:-1] + '1'
-            else:
+            elif feature_val[-1:] == '1':
                 feature_val_left = feature_val[:-1] + '0'
+            else:
+                feature_val_left = feature_val + '_0'
         else:
             feature_val_left = feature_val + '_0'
         temp_left.append([feature_val_left, 0, 0])
@@ -297,7 +305,10 @@ def helper(tree_, node, interaction_L, y):
         feature_val = feature_val_L[tree_.feature[node]]
         # If one-hot encoding
         if '_' in feature_val.replace('src_', ''):
-            feature_val_right = feature_val
+            if feature_val[-1:] == '0' or feature_val[-1:] == '1':
+                feature_val_right = feature_val
+            else:
+                feature_val_right = feature_val + '_1'
         else:
             feature_val_right = feature_val + '_1'
         temp_right.append([feature_val_right, 0, 0])
@@ -351,8 +362,11 @@ def random_forest(src_data_training_file):
 
         # Create file
         directory = os.path.dirname(importance_txt_file)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        except FileExistsError:
+            print('FileExistsError!')
 
         # Write file
         with open(importance_txt_file, 'w') as f_importance_txt:
@@ -368,8 +382,11 @@ def random_forest(src_data_training_file):
 
         # Create figure
         directory = os.path.dirname(importance_hist_fig)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        except FileExistsError:
+            print('FileExistsError!')
 
         # Draw figure
         plt.title('Feature Importances')

@@ -22,49 +22,51 @@ from sklearn.preprocessing import StandardScaler
 
 
 # File type
-file_type = ".txt"
+file_type = ".csv"
 
 # Delimiter type
-delimiter_type = ','
+delimiter_type = ';'
 
 # Flag, indicating whether there is a header (1, yes; 0, no)
-header = 0
+header = 1
 
-# The row number in the training set
-training_row_num = 80
-
-# The row number in the testing set
-testing_row_num = 187
+# The row number
+row_num = 0
 
 # The column number
-col_num = 23
+col_num = 0
 
 # Global variables
 # The column of class
 class_col = 0
 
-class_val_L = ['1']
+# The list of class values we are interested in
+class_val_L = ['yes']
 
 # The columns of continuous features
-con_feature_col_L = []
+# con_feature_col_L = range(13)
+con_feature_col_L = [0, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+
+# The list of number of bins
+bins_num_L = []
 
 # The number of bins
-bins_num = 2
+bin_num_all_con_var = 2
 
 # The columns of features that should be excluded
-exclude_feature_col_L = []
+exclude_feature_col_L = [10]
 
 # The character for missing values
 missing_char = '?'
 
 # The percentage of the training set
-training_percentage = 1.0
+training_percentage = 0.8
 
 # The number of repetition of training set
-training_iteration = 100
+training_iteration = 1
 
 # The number of repetition of experiments
-interation_num = 100
+interation_num = 1
 
 # The dictionary of value of each var at each time
 # key: time->var
@@ -101,6 +103,16 @@ val_dis_rand_Dic = {}
 # val: continuous value of each var at each time
 val_raw_rand_Dic = {}
 
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: continuous value of each var at each time
+val_raw_std_rand_Dic = {}
+
+# The dictionary of continuous value of each var at each time
+# key: time->var
+# val: continuous value of each var at each time
+val_raw_mms_rand_Dic = {}
+
 # The dictionary of discretized values of continuous features
 # key: var
 # val: discretized value of continuous features
@@ -109,16 +121,14 @@ con_feature_val_L_Dic = {}
 
 # Generate source and target data
 def generate_data():
-    if raw_file.endswith("train.txt"):
-        row_num = training_row_num
-    else:
-        row_num = testing_row_num
-
     # Get con_feature_val_L_Dic
     global con_feature_val_L_Dic
     con_feature_val_L_Dic = {}
     for col in con_feature_col_L:
-        con_feature_val_L_Dic[col] = range(bins_num)
+        if len(bins_num_L) == 0:
+            con_feature_val_L_Dic[col] = range(bin_num_all_con_var)
+        else:
+            con_feature_val_L_Dic[col] = range(bins_num_L[col])
 
     global val_Dic, val_dis_Dic, val_raw_Dic, val_raw_std_Dic, val_raw_mms_Dic, val_dis_rand_Dic, val_raw_rand_Dic, val_raw_std_rand_Dic, val_raw_mms_rand_Dic
     val_Dic = {}
@@ -135,6 +145,20 @@ def generate_data():
     with open(raw_file, 'r') as f:
         try:
             spamreader = list(csv.reader(f, delimiter=delimiter_type, skipinitialspace=True))
+
+            # The row number
+            global row_num
+            row_num = len(spamreader)
+
+            # The column number
+            global col_num
+            col_num = len(spamreader[0])
+
+            # Global variables
+            # The column of class
+            global class_col
+            class_col = col_num - 1
+
             # The number of rows containing missing values
             missing_row_num = 0
 
@@ -195,7 +219,7 @@ def generate_data():
                     # If continuous feature
                     if j in con_feature_col_L:
                         # Get name_val_raw
-                        name_val_raw = 'feature_' + str(j)
+                        name_val_raw = 'src_' + str(j)
 
                         # Update val_raw_Dic
                         val_raw_Dic[i][name_val_raw] = val_Dic[i][j]
@@ -203,7 +227,7 @@ def generate_data():
                         val_dis = val_dis_L[i]
                         for val in con_feature_val_L_Dic[j]:
                             # Get name_val_dis (one-hot encoding)
-                            name_val_dis = 'feature_' + str(j) + '_' + str(val)
+                            name_val_dis = 'src_' + str(j) + '_' + str(val)
 
                             # Update val_dis_Dic
                             if val == val_dis:
@@ -218,10 +242,10 @@ def generate_data():
                             for k in range(len(distinct_val_L)):
                                 val = distinct_val_L[k]
                                 # Get name_val_raw
-                                name_val_raw = 'feature_' + str(j)
+                                name_val_raw = 'src_' + str(j)
 
                                 # Get name_val_dis (one-hot encoding)
-                                name_val_dis = 'feature_' + str(j) + '_' + str(val)
+                                name_val_dis = 'src_' + str(j) + '_' + str(val)
 
                                 # Update val_raw_Dic and val_dis_Dic
                                 if val == val_dis:
@@ -232,12 +256,11 @@ def generate_data():
                         else:
                             for k in range(len(class_val_L)):
                                 val = class_val_L[k]
-
                                 # Get name_val_raw
-                                name_val_raw = 'class'
+                                name_val_raw = 'tar'
 
                                 # Get name_val_dis (one-hot encoding)
-                                name_val_dis = 'class_' + val
+                                name_val_dis = 'tar_' + val
 
                                 # Update val_raw_Dic and val_dis_Dic
                                 if val == val_dis:
@@ -259,14 +282,14 @@ def generate_data():
                     if not i in val_raw_mms_Dic:
                         val_raw_mms_Dic[i] = {}
 
-                    if not 'class' in name_val_raw:
+                    if not 'tar' in name_val_raw:
                         # Update val_raw_L
                         val_raw_L.append(float(val_raw_Dic[i][name_val_raw]))
                     else:
                         # Update val_raw_L
                         val_raw_L.append(val_raw_Dic[i][name_val_raw])
 
-                if not 'class' in name_val_raw:
+                if not 'tar' in name_val_raw:
                     # Standardization and min - max normalization
                     stdsc = StandardScaler()
                     mms = MinMaxScaler()
@@ -283,26 +306,27 @@ def generate_data():
                         val_raw_std_Dic[i][name_val_raw] = val_raw_L[i]
                         val_raw_mms_Dic[i][name_val_raw] = val_raw_L[i]
 
-            if raw_file.endswith("train" + file_type):
-                write_file(src_data_training_file, 'src', 'training', val_dis_Dic)
-                write_file(tar_data_training_file, 'tar', 'training', val_dis_Dic)
-                write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
-                write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
-                write_file(src_data_training_raw_std_file, 'src', 'training', val_raw_std_Dic)
-                write_file(tar_data_training_raw_std_file, 'tar', 'training', val_raw_std_Dic)
-                write_file(src_data_training_raw_mms_file, 'src', 'training', val_raw_mms_Dic)
-                write_file(tar_data_training_raw_mms_file, 'tar', 'training', val_raw_mms_Dic)
-            else:
-                write_file(src_data_testing_file, 'src', 'testing', val_dis_Dic)
-                write_file(tar_data_testing_file, 'tar', 'testing', val_dis_Dic)
-                write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
-                write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
-                write_file(src_data_testing_raw_std_file, 'src', 'testing', val_raw_std_Dic)
-                write_file(tar_data_testing_raw_std_file, 'tar', 'testing', val_raw_std_Dic)
-                write_file(src_data_testing_raw_mms_file, 'src', 'testing', val_raw_mms_Dic)
-                write_file(tar_data_testing_raw_mms_file, 'tar', 'testing', val_raw_mms_Dic)
+            write_file(src_data_training_file, 'src', 'training', val_dis_Dic)
+            write_file(src_data_testing_file, 'src', 'testing', val_dis_Dic)
+            write_file(tar_data_training_file, 'tar', 'training', val_dis_Dic)
+            write_file(tar_data_testing_file, 'tar', 'testing', val_dis_Dic)
 
-            # Get val_dis_rand_Dic and val_raw_rand_Dic
+            write_file(src_data_training_raw_file, 'src', 'training', val_raw_Dic)
+            write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_Dic)
+            write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_Dic)
+            write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_Dic)
+
+            write_file(src_data_training_raw_std_file, 'src', 'training', val_raw_std_Dic)
+            write_file(src_data_testing_raw_std_file, 'src', 'testing', val_raw_std_Dic)
+            write_file(tar_data_training_raw_std_file, 'tar', 'training', val_raw_std_Dic)
+            write_file(tar_data_testing_raw_std_file, 'tar', 'testing', val_raw_std_Dic)
+
+            write_file(src_data_training_raw_mms_file, 'src', 'training', val_raw_mms_Dic)
+            write_file(src_data_testing_raw_mms_file, 'src', 'testing', val_raw_mms_Dic)
+            write_file(tar_data_training_raw_mms_file, 'tar', 'training', val_raw_mms_Dic)
+            write_file(tar_data_testing_raw_mms_file, 'tar', 'testing', val_raw_mms_Dic)
+
+            # # Get val_dis_rand_Dic and val_raw_rand_Dic
             # time_L = random.sample(list(sorted(val_Dic.keys())), len(val_Dic.keys()))
             # for i in sorted(val_Dic.keys()):
             #     time = time_L[i]
@@ -322,25 +346,26 @@ def generate_data():
             #         val_raw_std_rand_Dic[i][name_val] = val_raw_std_Dic[time][name_val]
             #     for name_val in sorted(val_raw_mms_Dic[time].keys()):
             #         val_raw_mms_rand_Dic[i][name_val] = val_raw_mms_Dic[time][name_val]
-
-            # if raw_file.endswith("training" + file_type):
-            #     write_file(src_data_training_file, 'src', 'training', val_dis_rand_Dic)
-            #     write_file(tar_data_training_file, 'tar', 'training', val_dis_rand_Dic)
-            #     write_file(src_data_training_raw_file, 'src', 'training', val_raw_rand_Dic)
-            #     write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_rand_Dic)
-            #     write_file(src_data_training_raw_std_file, 'src', 'training', val_raw_std_rand_Dic)
-            #     write_file(tar_data_training_raw_std_file, 'tar', 'training', val_raw_std_rand_Dic)
-            #     write_file(src_data_training_raw_mms_file, 'src', 'training', val_raw_mms_rand_Dic)
-            #     write_file(tar_data_training_raw_mms_file, 'tar', 'training', val_raw_mms_rand_Dic)
-            # else:
-            #     write_file(src_data_testing_file, 'src', 'testing', val_dis_rand_Dic)
-            #     write_file(tar_data_testing_file, 'tar', 'testing', val_dis_rand_Dic)
-            #     write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_rand_Dic)
-            #     write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_rand_Dic)
-            #     write_file(src_data_testing_raw_std_file, 'src', 'testing', val_raw_std_rand_Dic)
-            #     write_file(tar_data_testing_raw_std_file, 'tar', 'testing', val_raw_std_rand_Dic)
-            #     write_file(src_data_testing_raw_mms_file, 'src', 'testing', val_raw_mms_rand_Dic)
-            #     write_file(tar_data_testing_raw_mms_file, 'tar', 'testing', val_raw_mms_rand_Dic)
+            #
+            # write_file(src_data_training_file, 'src', 'training', val_dis_rand_Dic)
+            # write_file(src_data_testing_file, 'src', 'testing', val_dis_rand_Dic)
+            # write_file(tar_data_training_file, 'tar', 'training', val_dis_rand_Dic)
+            # write_file(tar_data_testing_file, 'tar', 'testing', val_dis_rand_Dic)
+            #
+            # write_file(src_data_training_raw_file, 'src', 'training', val_raw_rand_Dic)
+            # write_file(src_data_testing_raw_file, 'src', 'testing', val_raw_rand_Dic)
+            # write_file(tar_data_training_raw_file, 'tar', 'training', val_raw_rand_Dic)
+            # write_file(tar_data_testing_raw_file, 'tar', 'testing', val_raw_rand_Dic)
+            #
+            # write_file(src_data_training_raw_std_file, 'src', 'training', val_raw_std_rand_Dic)
+            # write_file(src_data_testing_raw_std_file, 'src', 'testing', val_raw_std_rand_Dic)
+            # write_file(tar_data_training_raw_std_file, 'tar', 'training', val_raw_std_rand_Dic)
+            # write_file(tar_data_testing_raw_std_file, 'tar', 'testing', val_raw_std_rand_Dic)
+            #
+            # write_file(src_data_training_raw_mms_file, 'src', 'training', val_raw_mms_rand_Dic)
+            # write_file(src_data_testing_raw_mms_file, 'src', 'testing', val_raw_mms_rand_Dic)
+            # write_file(tar_data_training_raw_mms_file, 'tar', 'training', val_raw_mms_rand_Dic)
+            # write_file(tar_data_testing_raw_mms_file, 'tar', 'testing', val_raw_mms_rand_Dic)
 
         except UnicodeDecodeError:
             print("UnicodeDecodeError when reading the following file!")
@@ -365,8 +390,8 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
         # Get the header
         header_L = []
         for name_val in sorted(val_Dic[0].keys()):
-            if ((src_tar_F == 'src' and not 'class' in name_val)
-                or (src_tar_F == 'tar' and 'class' in name_val)):
+            if ((src_tar_F == 'src' and not 'tar' in name_val)
+                or (src_tar_F == 'tar' and 'tar' in name_val)):
                 header_L.append(name_val)
 
         # Write the header
@@ -374,8 +399,12 @@ def write_file(file, src_tar_F, training_testing_F, val_Dic):
 
         # Write the value
         # Get start and end
-        start = 0
-        end = int(training_percentage * len(val_Dic.keys()))
+        if training_testing_F == 'training':
+            start = 0
+            end = int(training_percentage * len(val_Dic.keys()))
+        else:
+            start = int(training_percentage * len(val_Dic.keys()))
+            end = len(val_Dic.keys())
 
         # Get iteration
         if training_testing_F == 'training':
@@ -436,53 +465,44 @@ if __name__ == "__main__":
     directory = os.path.dirname(tar_data_dir + '/testing/raw/mms/')
     if not os.path.exists(directory):
         os.makedirs(directory)
-
+        
     for i in range(interation_num):
         for raw_file in os.listdir(raw_file_dir):
-            if raw_file.endswith("train" + file_type):
+            if not raw_file.startswith('.') and raw_file.endswith(".csv"):
                 # Get src data training file
                 src_data_training_file = src_data_dir + '/training/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
                 # Get tar data training file
                 tar_data_training_file = tar_data_dir + '/training/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+
+                # Get src data testing file
+                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data testing file
+                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
                 # Get src data training file
                 src_data_training_raw_file = src_data_dir + '/training/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
                 # Get tar data training file
                 tar_data_training_raw_file = tar_data_dir + '/training/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
-                # Get src data training file
-                src_data_training_raw_std_file = src_data_dir + '/training/raw/std/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-                # Get tar data training file
-                tar_data_training_raw_std_file = tar_data_dir + '/training/raw/std/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-
-                # Get src data training file
-                src_data_training_raw_mms_file = src_data_dir + '/training/raw/mms/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-                # Get tar data training file
-                tar_data_training_raw_mms_file = tar_data_dir + '/training/raw/mms/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-
-                # Update raw_file
-                raw_file = raw_file_dir + raw_file
-
-                # Generate data
-                generate_data()
-
-    for i in range(interation_num):
-        for raw_file in os.listdir(raw_file_dir):
-            if raw_file.endswith("test" + file_type):
-                # Get src data testing file
-                src_data_testing_file = src_data_dir + '/testing/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-                # Get tar data testing file
-                tar_data_testing_file = tar_data_dir + '/testing/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
-
                 # Get src data testing file
                 src_data_testing_raw_file = src_data_dir + '/testing/raw/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
                 # Get tar data testing file
                 tar_data_testing_raw_file = tar_data_dir + '/testing/raw/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
+                # Get src data training file
+                src_data_training_raw_std_file = src_data_dir + '/training/raw/std/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_std_file = tar_data_dir + '/training/raw/std/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+
                 # Get src data testing file
                 src_data_testing_raw_std_file = src_data_dir + '/testing/raw/std/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
                 # Get tar data testing file
                 tar_data_testing_raw_std_file = tar_data_dir + '/testing/raw/std/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+
+                # Get src data training file
+                src_data_training_raw_mms_file = src_data_dir + '/training/raw/mms/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
+                # Get tar data training file
+                tar_data_training_raw_mms_file = tar_data_dir + '/training/raw/mms/tar_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
 
                 # Get src data testing file
                 src_data_testing_raw_mms_file = src_data_dir + '/testing/raw/mms/src_data_' + raw_file.replace(file_type, '_' + str(i) + '.txt')
@@ -494,3 +514,4 @@ if __name__ == "__main__":
 
                 # Generate data
                 generate_data()
+

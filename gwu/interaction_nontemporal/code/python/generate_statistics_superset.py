@@ -19,23 +19,32 @@ import numpy as np
 
 # Generate statistics
 def generate_statistics():
-    # Initialize prob_interaction_ground_truth_L_Dic and interaction_result_Dic
+    # Initialize prob_interaction_ground_truth_L_Dic, interaction_result_Dic, and positive number
     prob_interaction_ground_truth_L_Dic = {}
     target_ground_truth = 'tar_T'
     prob_interaction_ground_truth_L_Dic[target_ground_truth] = []
     interaction_result_Dic = {}
+    positive_num = 0
 
     # Get prob_interaction_ground_truth_L_Dic
     if os.path.basename(interaction_result_file).startswith('interaction_adult-stretch.data'):
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0]]])
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_3_ADULT', 0, 0]]])
+        # Update positive number
+        positive_num += 2
     elif os.path.basename(interaction_result_file).startswith('interaction_adult+stretch.data'):
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
+        # Update positive number
+        positive_num += 1
     elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small.data'):
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
+        # Update positive number
+        positive_num += 1
     elif os.path.basename(interaction_result_file).startswith('interaction_yellow-small+adult-stretch.data'):
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2_STRETCH', 0, 0], ['src_3_ADULT', 0, 0]]])
         prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0_YELLOW', 0, 0], ['src_1_SMALL', 0, 0]]])
+        # Update positive number
+        positive_num += 2
 
     # Load the interaction_result file
     with open(interaction_result_file, 'r') as f:
@@ -70,13 +79,8 @@ def generate_statistics():
             elif 'run time' in spamreader[i][0]:
                 run_time = float(spamreader[i][0].replace('run time: ', '').strip())
 
-    # Get true positive and false positive for the current dataset
-    tp = 0
+    # Get false positive for the current dataset
     fp = 0
-
-    # Get the absolute difference in the window start / end
-    global win_start_abs_dif_L
-    global win_end_abs_dif_L
 
     # For each target
     for target in interaction_result_Dic:
@@ -88,33 +92,11 @@ def generate_statistics():
                 # For each interaction_ground_truth and the probability
                 for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
                     # If the interaction_result is a interaction_ground_truth
-                    if equal(interaction_ground_truth_LL, interaction_result_LL):
+                    if belong(interaction_ground_truth_LL, interaction_result_LL):
                         equal_F = True
-
-                        # Sort the two interaction_results based on the component name
-                        interaction_ground_truth_sor_LL = sorted(interaction_ground_truth_LL, key = lambda x: x[0])
-                        interaction_result_sor_LL = sorted(interaction_result_LL, key = lambda x: x[0])
-
-                        # If the sizes are different
-                        if len(interaction_ground_truth_sor_LL) != len(interaction_result_sor_LL):
-                            print('interaction_result size different!')
-                            exit(1)
-
-                        for i in range(len(interaction_ground_truth_sor_LL)):
-                            var_interaction_ground_truth, win_start_interaction_ground_truth, win_end_interaction_ground_truth = interaction_ground_truth_sor_LL[i]
-                            var_interaction_result, win_start_interaction_result, win_end_interaction_result = interaction_result_sor_LL[i]
-
-                            # If the component names are different
-                            if var_interaction_ground_truth != var_interaction_result:
-                                print('component name different!')
-                                exit(1)
-
                         break
-            # If the interaction_result is a interaction_ground_truth
-            if equal_F is True:
-                # Increase true positive
-                tp += 1
-            else:
+            # If the interaction_result is not a interaction_ground_truth
+            if equal_F is False:
                 # Increase false positive
                 fp += 1
 
@@ -130,7 +112,7 @@ def generate_statistics():
                 # For each interaction_result
                 for interaction_result_LL in interaction_result_Dic[target]:
                     # If the interaction_ground_truth has been discovered
-                    if equal(interaction_result_LL, interaction_ground_truth_LL):
+                    if belong(interaction_ground_truth_LL, interaction_result_LL):
                         equal_F = True
                         break
             # If the interaction_ground_truth has not been discovered
@@ -138,17 +120,19 @@ def generate_statistics():
                 # Increase false negative
                 fn += 1
 
-    return [tp, fp, fn, run_time]
+    # Get true positive
+    tp = positive_num - fn
 
+    return [tp, fp, fn, run_time]
 
 # Check whether the two interaction_results are equal
 def equal(interaction_result_i_LL, interaction_result_j_LL):
     # The two interaction_results are equal if one belongs to another, and vice versa
-    if belong(interaction_result_i_LL, interaction_result_j_LL) is True and belong(interaction_result_j_LL, interaction_result_i_LL) is True:
+    if belong(interaction_result_i_LL, interaction_result_j_LL) is True and belong(interaction_result_j_LL,
+                                                                                   interaction_result_i_LL) is True:
         return True
     else:
         return False
-
 
 # Check whether interaction_result_i belongs to interaction_result_j
 def belong(interaction_result_i_LL, interaction_result_j_LL):

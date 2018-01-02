@@ -41,14 +41,16 @@ col_num = 0
 class_col = -1
 
 # The list of class values we are interested in
-class_val_L = ['T']
+class_val_L = ['Iris-virginica']
 
 # The columns of continuous features
-# con_feature_col_L = range(13)
-con_feature_col_L = []
+con_feature_col_L = range(4)
 
 # The list of number of bins
 bins_num_L = []
+
+# The number of bins
+bins_num = 3
 
 # The columns of features that should be excluded
 exclude_feature_col_L = []
@@ -61,7 +63,7 @@ training_percentage = 0.8
 
 # The number of repetition of training set
 # training_iteration = 100
-training_iteration = 1
+training_iteration = 100
 
 # The number of repetition of experiments
 interation_num = 100
@@ -123,7 +125,10 @@ def generate_data():
     global con_feature_val_L_Dic
     con_feature_val_L_Dic = {}
     for col in con_feature_col_L:
-        con_feature_val_L_Dic[col] = range(bins_num_L[col])
+        if len(bins_num_L) != 0:
+            con_feature_val_L_Dic[col] = range(bins_num_L[col])
+        else:
+            con_feature_val_L_Dic[col] = range(bins_num)
 
     global val_Dic, val_dis_Dic, val_raw_Dic, val_raw_std_Dic, val_raw_mms_Dic, val_dis_rand_Dic, val_raw_rand_Dic, val_raw_std_rand_Dic, val_raw_mms_rand_Dic
     val_Dic = {}
@@ -143,7 +148,7 @@ def generate_data():
 
             # The row number
             global row_num
-            row_num = len(spamreader)
+            row_num = 150
 
             # The column number
             global col_num
