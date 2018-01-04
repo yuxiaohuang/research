@@ -42,25 +42,33 @@ def helper(statistics_file):
                     num = num.replace(suffix, '')
                     num = num.replace('.txt', '')
                     importance_file = importance_dir + 'importance_txt_data_adult-stretch.data_' + num + suffix
+                    # Get interaction_result_file
+                    interaction_result_file = interaction_result_dir + 'interaction_adult-stretch.data_' + num + '.txt'
                 elif importance_file.startswith('importance_txt_data_adult+stretch.data'):
                     num = importance_file.replace('importance_txt_data_adult+stretch.data_', '')
                     num = num.replace(suffix, '')
                     num = num.replace('.txt', '')
                     importance_file = importance_dir + 'importance_txt_data_adult+stretch.data_' + num + suffix
+                    # Get interaction_result_file
+                    interaction_result_file = interaction_result_dir + 'interaction_adult+stretch.data_' + num + '.txt'
                 elif importance_file.startswith('importance_txt_data_yellow-small.data'):
                     num = importance_file.replace('importance_txt_data_yellow-small.data_', '')
                     num = num.replace(suffix, '')
                     num = num.replace('.txt', '')
                     importance_file = importance_dir + 'importance_txt_data_yellow-small.data_' + num + suffix
+                    # Get interaction_result_file
+                    interaction_result_file = interaction_result_dir + 'interaction_yellow-small.data_' + num + '.txt'
                 elif importance_file.startswith('importance_txt_data_yellow-small+adult-stretch.data'):
                     num = importance_file.replace(
                         'importance_txt_data_yellow-small+adult-stretch.data_', '')
                     num = num.replace(suffix, '')
                     num = num.replace('.txt', '')
                     importance_file = importance_dir + 'importance_txt_data_yellow-small+adult-stretch.data_' + num + suffix
+                    # Get interaction_result_file
+                    interaction_result_file = interaction_result_dir + 'interaction_yellow-small+adult-stretch.data_' + num + '.txt'
 
                 # Generate statistics
-                [tp, fp, fn] = generate_statistics(importance_file)
+                [tp, fp, fn] = generate_statistics(importance_file, interaction_result_file)
 
                 # Write statistics file
                 # Write the name of the dataset
@@ -102,33 +110,21 @@ def helper(statistics_file):
 
 
 # Generate statistics
-def generate_statistics(importance_file):
+def generate_statistics(importance_file, interaction_result_file):
     # Initialize prob_interaction_ground_truth_L_Dic and importance_Dic
     prob_interaction_ground_truth_L_Dic = {}
     target_ground_truth = 'tar_T'
     prob_interaction_ground_truth_L_Dic[target_ground_truth] = []
+
     # The number of ground truth components
     component_ground_truth_num = 0
-    # The list of components with number component_ground_truth_num
-    component_LL = []
-    # The list of components with number component_cutoff_num
-    component_cutoff_LL = []
+    # The number of result components
+    component_result_num = 0
 
-    # # Get prob_interaction_ground_truth_L_Dic
-    # if os.path.basename(importance_file).startswith('importance_txt_data_adult-stretch.data'):
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2', 0, 0]]])
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_3', 0, 0]]])
-    #     component_ground_truth_num = 2
-    # elif os.path.basename(importance_file).startswith('importance_txt_data_adult+stretch.data'):
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2', 0, 0], ['src_3', 0, 0]]])
-    #     component_ground_truth_num = 2
-    # elif os.path.basename(importance_file).startswith('importance_txt_data_yellow-small.data'):
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0', 0, 0], ['src_1', 0, 0]]])
-    #     component_ground_truth_num = 2
-    # elif os.path.basename(importance_file).startswith('importance_txt_data_yellow-small+adult-stretch.data'):
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_2', 0, 0], ['src_3', 0, 0]]])
-    #     prob_interaction_ground_truth_L_Dic[target_ground_truth].append([1.0, [['src_0', 0, 0], ['src_1', 0, 0]]])
-    #     component_ground_truth_num = 4
+    # The list of components with number max(component_ground_truth_num, component_result_num)
+    component_max_LL = []
+    # The list of components with number min(component_ground_truth_num, component_result_num)
+    component_min_LL = []
 
     # Get prob_interaction_ground_truth_L_Dic
     if os.path.basename(importance_file).startswith('importance_txt_data_adult-stretch.data'):
@@ -150,35 +146,43 @@ def generate_statistics(importance_file):
         # Update positive number
         component_ground_truth_num = 4
 
+    # Load the interaction_result file
+    with open(interaction_result_file, 'r') as f:
+        spamreader = list(csv.reader(f, delimiter=' '))
+        # Get the target and interaction_ground_truth
+        for i in range(len(spamreader)):
+            if 'interaction for' in spamreader[i][0]:
+                # Target lies in the end of the first column in each row
+                target = spamreader[i][0].strip()
+                target = target.replace('interaction for ', '')
+                target = target.replace(':', '')
+                # interaction_result lies in the second column in each row
+                interaction_result = spamreader[i][1].strip()
+                interaction_result = interaction_result.replace('[', '')
+                interaction_result = interaction_result.replace(']', '')
+                interaction_result = interaction_result.replace('\'', '')
+                interaction_result = interaction_result.split(',')
+                component_num = len(interaction_result) // 3
+                # Update component_result_num
+                component_result_num += component_num
+            elif 'run time' in spamreader[i][0]:
+                run_time = float(spamreader[i][0].replace('run time: ', '').strip())
+
     # Load the importance file
     with open(importance_file, 'r') as f:
-        spamreader = list(csv.reader(f, delimiter = ','))
+        spamreader = list(csv.reader(f, delimiter=','))
 
-        # Get component_LL
-        for i in range(component_ground_truth_num):
-            component = spamreader[i][0].strip()
-            # if 'src_0' in component:
-            #     component = 'src_0'
-            # elif 'src_1' in component:
-            #     component = 'src_1'
-            # elif 'src_2' in component:
-            #     component = 'src_2'
-            # elif 'src_3' in component:
-            #     component = 'src_3'
-            component_LL.append([component, '0', '0'])
+        # Get component_max_LL
+        for i in range(max(component_ground_truth_num, component_result_num)):
+            if i < len(spamreader):
+                component = spamreader[i][0].strip()
+                component_max_LL.append([component, '0', '0'])
 
-        # Get component_cutoff_LL
-        for i in range(min(component_cutoff_num, len(spamreader))):
-            component = spamreader[i][0].strip()
-            # if 'src_0' in component:
-            #     component = 'src_0'
-            # elif 'src_1' in component:
-            #     component = 'src_1'
-            # elif 'src_2' in component:
-            #     component = 'src_2'
-            # elif 'src_3' in component:
-            #     component = 'src_3'
-            component_cutoff_LL.append([component, '0', '0'])
+        # Get component_min_LL
+        for i in range(min(component_ground_truth_num, component_result_num)):
+            if i < len(spamreader):
+                component = spamreader[i][0].strip()
+                component_min_LL.append([component, '0', '0'])
 
     # Get true positive and false negative for the current dataset
     tp = 0
@@ -186,10 +190,10 @@ def generate_statistics(importance_file):
 
     # For each target
     for target in prob_interaction_ground_truth_L_Dic:
-        # For each importance
+        # For each interaction_result
         for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
             # If the interaction_ground_truth has been discovered
-            if belong(interaction_ground_truth_LL, component_cutoff_LL):
+            if belong(interaction_ground_truth_LL, component_max_LL):
                 # Increase true positive
                 tp += 1
             else:
@@ -198,15 +202,15 @@ def generate_statistics(importance_file):
 
     # Get false positive for the current dataset
     fp = 0
-    for component_L in component_LL:
+    for component_L in component_min_LL:
         equal_F = False
         # For each interaction_ground_truth and the probability
         for prob, interaction_ground_truth_LL in prob_interaction_ground_truth_L_Dic[target]:
-            # If the importance is a interaction_ground_truth
+            # If the interaction_result is a interaction_ground_truth
             if component_L in interaction_ground_truth_LL:
                 equal_F = True
                 break
-        # If the importance is not a interaction_ground_truth
+        # If the interaction_result is not a interaction_ground_truth
         if equal_F is False:
             # Increase false positive
             fp = 1
@@ -250,11 +254,11 @@ if __name__=="__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
     importance_dir = sys.argv[1]
-    statistics_file = sys.argv[2]
-    statistics_raw_file = sys.argv[3]
-    statistics_raw_std_file = sys.argv[4]
-    statistics_raw_mms_file = sys.argv[5]
-    component_cutoff_num = int(sys.argv[6])
+    interaction_result_dir = sys.argv[2]
+    statistics_file = sys.argv[3]
+    statistics_raw_file = sys.argv[4]
+    statistics_raw_std_file = sys.argv[5]
+    statistics_raw_mms_file = sys.argv[6]
 
     helper(statistics_file)
     helper(statistics_raw_file)

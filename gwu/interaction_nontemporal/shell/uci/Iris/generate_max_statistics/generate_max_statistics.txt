@@ -1,0 +1,13 @@
+
+# Here is the command for generating the max statistics for classification
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/decision_tree/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/decision_tree/max_statistics.txt
+
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/random_forest/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/random_forest/max_statistics.txt
+
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/svm/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/svm/max_statistics.txt
+
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/mlp/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/mlp/max_statistics.txt
+
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/knn/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/knn/max_statistics.txt
+
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_max_statistics.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/gnb/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/gnb/max_statistics.txt
