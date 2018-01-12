@@ -133,10 +133,13 @@ interaction_ground_truth_count_3_LL = [['src_10_1', 0, 0], ['src_52_1', 0, 0], [
 interaction_ground_truth_count_4_LL = [['src_4_0', 0, 0], ['src_69_1', 0, 0], ['src_42_0', 0, 0], ['src_58_1', 0, 0], ['src_37_0', 0, 0]]
 
 # The list of precision
-precision_L = [0]
+precision_L = []
 
 # The list of recall
-recall_L = [0]
+recall_L = []
+
+# The list of the size of conjunctions
+X_len_L = []
 
 # counter
 count = 0
@@ -362,8 +365,8 @@ def search_for_interactions():
                 f_interaction.flush()
 
                 # Clear the list of precision and recall
-                precision_L = [0]
-                recall_L = [0]
+                precision_L = []
+                recall_L = []
 
                 # Update counter
                 global count
@@ -547,13 +550,6 @@ def get_start_end_Dic(X_L):
 
 # Check sufficient condition
 def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff_X_min_x_and_not_x, check_necessary_cond_F):
-    # Get precision and recall when
-    #     1) we are not checking the necessary condition
-    # and 2) and the conjunction is not empty
-    # and 3) count is 3 or 4
-    if check_necessary_cond_F is False and len(X_L) > 0 and (count == 3 or count == 4):
-        get_precision_recall(X_L)
-
     # Write the target and conjunction to the log file
     spamwriter_log.writerow(["check_sufficient_cond target: ", y])
     spamwriter_log.writerow(["check_sufficient_cond X_L: ", decode(X_L)])
@@ -776,6 +772,11 @@ def check_sufficient_cond(y, X_L, y_cond_X_time_LL, p_val_cutoff_X, p_val_cutoff
                     f_log.flush()
                     # Print the conjunction
                     print(["add X_L: ", decode(X_L)])
+
+                    if count == 3 or count == 4:
+                        get_precision_recall(X_L)
+                    elif count == 5:
+                        X_len_L.append(len(X_L))
 
             return [X_L, y_cond_X_time_LL, sample_size_cutoff_met_F, sufficient_F, add_F]
 
@@ -1158,6 +1159,12 @@ def expand(y, X_L, y_cond_X_time_LL):
     f_log.flush()
     # Print the conjunction
     print(['expand X_L: ', decode(X_L)])
+
+    if count == 3 or count == 4:
+        get_precision_recall(X_L)
+    elif count == 5:
+        X_len_L.append(len(X_L))
+
     return [X_L, y_cond_X_time_LL, expand_F]
 
 
@@ -1353,9 +1360,11 @@ def check_necessary_cond(y, X_L):
         if unnecessary_F is True:
             # Remove the condition (since it is not necessary)
             X_L = list(temp_L)
-            # Get the precision and recall when the conjunction is not empty and count is 3 or 4
-            if len(X_L) > 0 and (count == 3 or count == 4):
+
+            if count == 3 or count == 4:
                 get_precision_recall(X_L)
+            elif count == 5:
+                X_len_L.append(len(X_L))
         else:
             break
 
@@ -1485,6 +1494,13 @@ def shrink(y, X_L, check_necessary_cond_F):
 
         # Update replaced_Dic
         replaced_Dic[max_condition] = 1
+
+        if check_necessary_cond_F is False:
+            if count == 3 or count == 4:
+                get_precision_recall(X_L)
+            elif count == 5:
+                X_len_L.append(len(X_L))
+
         return [X_L, max_y_cond_X_min_x_time_LL]
 
     # This is the condition that yields the maximum probability
@@ -1542,6 +1558,13 @@ def shrink(y, X_L, check_necessary_cond_F):
 
     # Update replaced_Dic
     replaced_Dic[max_condition] = 1
+
+    if check_necessary_cond_F is False:
+        if count == 3 or count == 4:
+            get_precision_recall(X_L)
+        elif count == 5:
+            X_len_L.append(len(X_L))
+
     return [X_L, max_y_cond_X_time_LL]
 
 
@@ -1867,3 +1890,6 @@ if __name__ == "__main__":
 
             # Write run time
             spamwriter_interaction.writerow(['run time: ' + str(run_time)])
+
+            spamwriter_interaction.writerow(['X_len_L: ', X_len_L])
+            f_interaction.flush()

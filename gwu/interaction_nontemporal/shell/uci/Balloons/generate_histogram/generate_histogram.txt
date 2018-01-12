@@ -1,0 +1,3 @@
+
+# Here is the command for generating the histogram
+python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_histogram.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/importance_txt_data_yellow-small+adult-stretch.data_36.txt /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/histogram.pdf

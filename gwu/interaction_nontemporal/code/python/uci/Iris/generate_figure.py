@@ -198,10 +198,10 @@ def plot_decision_regions():
     # plt.contourf(xx1, xx2, zz, alpha = 0.4, cmap = cmap)
     plt.xlim(x1_min, x1_max)
     plt.ylim(x2_min, x2_max)
-    plt.xlabel('Petal length (cm)', fontsize = 15)
-    plt.ylabel('Petal width (cm)', fontsize = 15)
-    plt.yticks([0, 0.5, 1.0, 1.6, 2.0, 2.5])
-    plt.xticks([1, 2, 3, 4, 4.9, 6, 7])
+    plt.xlabel('Petal length (cm)', fontsize = 25)
+    plt.ylabel('Petal width (cm)', fontsize = 25)
+    plt.yticks([0, 0.5, 1.0, 1.6, 2.0, 2.5], fontsize = 25)
+    plt.xticks([1, 2, 3, 4, 4.9, 6, 7], fontsize = 25)
 
     x1_setosa_L = []
     x2_setosa_L = []
@@ -230,30 +230,43 @@ def plot_decision_regions():
                 c = 'blue',
                 edgecolor = 'blue',
                 marker = 's',
-                label = 'Iris-setosa')
+                label = 'Setosa',
+                s=[200 for i in range(len(x1_setosa_L) + len(x2_setosa_L))])
 
     plt.scatter(x = x1_versicolor_L,
                 y = x2_versicolor_L,
                 alpha = 0.6,
-                c = 'green',
-                edgecolor = 'green',
+                c = 'blue',
+                edgecolor = 'blue',
                 marker = '*',
-                label = 'Iris-versicolor')
+                label = 'Versicolor',
+                s=[200 for i in range(len(x1_versicolor_L) + len(x2_versicolor_L))])
 
     plt.scatter(x = x1_virginica_L,
                 y = x2_virginica_L,
                 alpha = 0.6,
-                c = 'red',
-                edgecolor = 'red',
+                c = 'green',
+                edgecolor = 'green',
                 marker = 'o',
-                label = 'Iris-virginica')
+                label = 'Virginica',
+                s = [200 for i in range(len(x1_virginica_L) + len(x2_virginica_L))])
 
     print(cutoff_L_Dic[2][1])
     print(cutoff_L_Dic[3][1])
 
-    plt.plot((cutoff_L_Dic[2][1], cutoff_L_Dic[2][1]), (x2_min, cutoff_L_Dic[3][1]), color = 'black', linestyle = '--')
-    plt.plot((x1_min, cutoff_L_Dic[2][1]), (cutoff_L_Dic[3][1], cutoff_L_Dic[3][1]), color = 'black', linestyle = '--')
-    plt.legend(loc="upper left")
+    plt.plot((cutoff_L_Dic[2][1], cutoff_L_Dic[2][1]), (x2_min, cutoff_L_Dic[3][1]), color = 'red', linestyle = '--', linewidth=5.0)
+    plt.plot((x1_min, cutoff_L_Dic[2][1]), (cutoff_L_Dic[3][1], cutoff_L_Dic[3][1]), color = 'red', linestyle = '--', linewidth=5.0)
+    plt.legend(loc="upper left", fontsize=25)
+
+    plt.tick_params(
+        axis='x',  # changes apply to the x-axis
+        top='off')  # ticks along the top edge are off
+
+    plt.tick_params(
+        axis='y',  # changes apply to the x-axis
+        right='off')  # ticks along the top edge are off
+
+    plt.tight_layout()
     plt.savefig(figure_file)
 
 

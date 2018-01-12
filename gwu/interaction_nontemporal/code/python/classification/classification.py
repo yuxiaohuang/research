@@ -390,6 +390,8 @@ def random_forest(src_data_training_file):
 
         # Draw figure
         plt.title('Feature Importances')
+        # plt.xlabel('Condition')
+        # plt.ylabel('Importance')
         bar_L = []
         for i in range(min(len(indices), 25)):
             idx = indices[i]
