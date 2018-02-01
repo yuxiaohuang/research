@@ -198,8 +198,8 @@ def plot_decision_regions():
     # plt.contourf(xx1, xx2, zz, alpha = 0.4, cmap = cmap)
     plt.xlim(x1_min, x1_max)
     plt.ylim(x2_min, x2_max)
-    plt.xlabel('Petal length (cm)', fontsize = 25)
-    plt.ylabel('Petal width (cm)', fontsize = 25)
+    plt.xlabel('$\it{petal\ length}$ (cm)', fontsize = 25)
+    plt.ylabel('$\it{petal\ width}$ (cm)', fontsize = 25)
     plt.yticks([0, 0.5, 1.0, 1.6, 2.0, 2.5], fontsize = 25)
     plt.xticks([1, 2, 3, 4, 4.9, 6, 7], fontsize = 25)
 
@@ -230,7 +230,7 @@ def plot_decision_regions():
                 c = 'blue',
                 edgecolor = 'blue',
                 marker = 's',
-                label = 'Setosa',
+                label = 'setosa',
                 s=[200 for i in range(len(x1_setosa_L) + len(x2_setosa_L))])
 
     plt.scatter(x = x1_versicolor_L,
@@ -239,7 +239,7 @@ def plot_decision_regions():
                 c = 'blue',
                 edgecolor = 'blue',
                 marker = '*',
-                label = 'Versicolor',
+                label = 'versicolor',
                 s=[200 for i in range(len(x1_versicolor_L) + len(x2_versicolor_L))])
 
     plt.scatter(x = x1_virginica_L,
@@ -248,7 +248,7 @@ def plot_decision_regions():
                 c = 'green',
                 edgecolor = 'green',
                 marker = 'o',
-                label = 'Virginica',
+                label = 'virginica',
                 s = [200 for i in range(len(x1_virginica_L) + len(x2_virginica_L))])
 
     print(cutoff_L_Dic[2][1])

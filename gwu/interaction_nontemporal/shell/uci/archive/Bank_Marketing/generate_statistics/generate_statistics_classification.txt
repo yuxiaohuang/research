@@ -1,4 +1,0 @@
-
-# Here is the command for generating the statistics 
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_statistics_classification.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Bank_Marketing/source/testing/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Bank_Marketing/target/testing/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/interaction/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/statistics_classification.txt
-
