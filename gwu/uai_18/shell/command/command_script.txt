@@ -1,0 +1,6 @@
+
+module load python
+
+for myfile in /home/yuxiaohuang/research/gwu/uai_18/shell/generate_script/*.txt;         
+do (sh $myfile)  
+done
