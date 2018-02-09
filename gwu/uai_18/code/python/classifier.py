@@ -10,6 +10,7 @@ import csv
 import math
 import time
 from operator import itemgetter
+import random
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -37,10 +38,20 @@ x_time_val_Dic = {}
 # val: the value of the class_label pair at the time
 y_time_val_Dic = {}
 
+# The dictionary of value
+# key: class_label pair->time
+# val: the predicted value of the class_label pair at the time
+y_time_val_predicted_Dic = {}
+
 # The dictionary of list of time where class_label pair is measured and attribute_value pair is true
 # key: class_label pair->attribute_value pair
 # val: the list of time where class_label pair is measured and attribute_value pair is true
 y_cond_x_time_L_Dic = {}
+
+# The dictionary of list of (x, importance) pairs sorted in descending order of the importance
+# key: class_label pair
+# val: the list
+sorted_x_importance_pair_LL_Dic = {}
 
 # The dictionary of list of (x, importance) pairs sorted in descending order of the importance
 # Here, only the pairs whose importance is significant are included in the list
@@ -51,6 +62,10 @@ significant_sorted_x_importance_pair_LL_Dic = {}
 
 # Initialization
 def initialization(attribute_data_file, class_data_file):
+    # Initialize time_var_val_Dic, x_time_val_Dic, and y_time_val_Dic
+    global time_var_val_Dic, x_time_val_Dic, y_time_val_Dic
+    time_var_val_Dic, x_time_val_Dic, y_time_val_Dic = {}, {}, {}
+
     # Load attribute data file
     load_data(attribute_data_file, True)
 
@@ -106,50 +121,47 @@ def load_data(data_file, x_F):
                         y_time_val_Dic[var][time] = val
 
 
-# Knowledge Discovery
-def knowledge_discovery():
+# The fit function
+def fit():
     # For each class_label pair
-    for y in sorted(y_time_val_Dic):
+    for y in sorted(y_time_val_Dic.keys()):
         # Write log file
-        spamwriter_log.writerow(["knowledge_discovery for class_label pair: ", y])
+        spamwriter_log.writerow(["fitting for class_label pair: ", y])
+        spamwriter_log.writerow([])
         f_log.flush()
 
         # Initialize iteration number and old_sorted_x_importance_pair_LL
         iteration = 0
         old_sorted_x_importance_pair_LL = []
 
-        # Termination condition 1: when the iteration number exceeds the max iteration number cutoff
+        # Termination condition: when the iteration number exceeds the max iteration number cutoff
         while iteration <= max_iteration_cutoff:
+            # print("iteration: " + str(iteration))
             # Get the new list of (x, importance) pairs sorted in descending order of the importance
             new_sorted_x_importance_pair_LL = get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y)
 
             # Write log file
             spamwriter_log.writerow(["old_sorted_x_importance_pair_LL: ", old_sorted_x_importance_pair_LL])
+            spamwriter_log.writerow([])
             spamwriter_log.writerow(["new_sorted_x_importance_pair_LL: ", new_sorted_x_importance_pair_LL])
+            spamwriter_log.writerow([])
             f_log.flush()
 
-            # Get the old and new list of (x, importance) pairs sorted in descending order of the importance
+            # Get the list of (x, importance) pairs sorted in descending order of the importance
             # Here, only the pairs whose importance is significant are included
             old_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
                 old_sorted_x_importance_pair_LL)
             new_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
                 new_sorted_x_importance_pair_LL)
 
-            # Update significant_sorted_x_importance_pair_LL
-            significant_sorted_x_importance_pair_LL_Dic[y] = list(new_significant_sorted_x_importance_pair_LL)
-
             # Write log file
             spamwriter_log.writerow(
-                ["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
+                ["old_significant_sorted_x_importance_pair_LL: ", old_significant_sorted_x_importance_pair_LL])
+            spamwriter_log.writerow([])
+            spamwriter_log.writerow(
+                ["new_significant_sorted_x_importance_pair_LL: ", new_significant_sorted_x_importance_pair_LL])
+            spamwriter_log.writerow([])
             f_log.flush()
-
-            # Termination condition 2: when the above two lists are equal
-            if (old_significant_sorted_x_importance_pair_LL is not None
-                and new_significant_sorted_x_importance_pair_LL is not None
-                and len(old_significant_sorted_x_importance_pair_LL) > 0
-                and len(new_significant_sorted_x_importance_pair_LL) > 0
-                and are_lists_equal(old_significant_sorted_x_importance_pair_LL, new_significant_sorted_x_importance_pair_LL) is True):
-                break
 
             # Update old_sorted_x_importance_pair_LL
             old_sorted_x_importance_pair_LL = list(new_sorted_x_importance_pair_LL)
@@ -157,11 +169,25 @@ def knowledge_discovery():
             # Update iteration
             iteration += 1
 
-        # Write knowledge file
-        spamwriter_knowledge.writerow(["new_sorted_x_importance_pair_LL: ", new_sorted_x_importance_pair_LL])
-        spamwriter_knowledge.writerow([])
-        spamwriter_knowledge.writerow(["new_significant_sorted_x_importance_pair_LL: ", new_significant_sorted_x_importance_pair_LL])
-        f_knowledge.flush()
+        # Update sorted_x_importance_pair_LL_Dic
+        sorted_x_importance_pair_LL_Dic[y] = list(new_sorted_x_importance_pair_LL)
+
+        # Update significant_sorted_x_importance_pair_LL_Dic
+        significant_sorted_x_importance_pair_LL_Dic[y] = list(new_significant_sorted_x_importance_pair_LL)
+
+        # Write fit file
+        spamwriter_fit.writerow(["fitting for class_label pair: ", y])
+        spamwriter_fit.writerow([])
+
+        spamwriter_fit.writerow(
+            ["sorted_x_importance_pair_LL_Dic[y]: ", sorted_x_importance_pair_LL_Dic[y]])
+        spamwriter_fit.writerow([])
+
+        spamwriter_fit.writerow(
+            ["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
+        spamwriter_fit.writerow([])
+
+        f_fit.flush()
 
 
 # Get the list of (x, importance) pairs sorted in descending order of the importance
@@ -181,8 +207,6 @@ def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
         # Sort old_sorted_x_importance_pair_LL in descending order of the importance (i.e., p(y | x))
         old_sorted_x_importance_pair_LL = sorted(old_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
 
-    print(old_sorted_x_importance_pair_LL)
-
     # Initialize new_sorted_x_importance_pair_LL
     new_sorted_x_importance_pair_LL = []
 
@@ -199,8 +223,6 @@ def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
 
     # Sort new_sorted_x_importance_pair_LL in descending order of the importance (i.e, p(y | xi and not xjs))
     new_sorted_x_importance_pair_LL = sorted(new_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
-
-    print(new_sorted_x_importance_pair_LL)
 
     return new_sorted_x_importance_pair_LL
 
@@ -330,8 +352,6 @@ def get_significant_sorted_x_importance_pair_LL(sorted_x_importance_pair_LL):
     # Get the p-value
     p_val_L = stats.norm.sf(z_val_L)
 
-    print(p_val_L)
-
     # Get significant_sorted_x_importance_pair_LL
     # For each index in p_val_L
     for idx in range(len(p_val_L)):
@@ -373,41 +393,186 @@ def belong(pair_i_LL, pair_j_LL):
     return True
 
 
+# The predict function
+def predict():
+    # Initialize the overall true positive (tp_all), true negative (tn_all), false positive (fp_all), and false negative (fn_all)
+    tp_all, tn_all, fp_all, fn_all = 0, 0, 0, 0
+
+    # For each class_label pair
+    for y in sorted(y_time_val_Dic.keys()):
+        # Initialize true positive (tp), true negative (tn), false positive (fp), and false negative (fn)
+        tp, tn, fp, fn = 0, 0, 0, 0
+        # Initialize y_time_val_predicted_Dic
+        if not y in y_time_val_predicted_Dic:
+            y_time_val_predicted_Dic[y] = {}
+
+        # For each time
+        for time in sorted(time_var_val_Dic.keys()):
+            # Initialize p_y_cond_xis_and_not_xjs_L
+            p_y_cond_xis_and_not_xjs_L = [1]
+
+            # For each (x, importance) pair in sorted_x_importance_pair_LL_Dic[y] sorted in descending order of the importance
+            for x, importance in sorted_x_importance_pair_LL_Dic[y]:
+                # If x is true at the time
+                if x in time_var_val_Dic[time] and time_var_val_Dic[time][x] == 1:
+                    # Get the last probability in p_y_cond_xis_and_not_xjs_L
+                    last_prob = p_y_cond_xis_and_not_xjs_L[len(p_y_cond_xis_and_not_xjs_L) - 1]
+
+                    # Update the last probability to last_prob * p(y | x)
+                    p_y_cond_xis_and_not_xjs_L[len(p_y_cond_xis_and_not_xjs_L) - 1] = last_prob * importance
+
+                    # Add last_prob * (1 - p(y | x)) to p_y_cond_xis_and_not_xjs_L
+                    p_y_cond_xis_and_not_xjs_L.append(last_prob * (1 - importance))
+
+            # Get p(y | xis and not xjs)
+            p_y_cond_xis_and_not_xjs = sum(p_y_cond_xis_and_not_xjs_L[:-1])
+
+            # Generate y_hat
+            if random.uniform(0, 1) <= p_y_cond_xis_and_not_xjs:
+                val_predicted = 1
+            else:
+                val_predicted = 0
+
+            # Update y_time_val_predicted_Dic
+            y_time_val_predicted_Dic[y][time] = val_predicted
+
+            # Get the ground truth value at the time
+            val = y_time_val_Dic[y][time]
+
+            # Update true positive (tp), true negative (tn), false positive (fp), and false negative (fn)
+            if val == 1 and val_predicted == 1:
+                # Update true positive
+                tp += 1
+            elif val == 1 and val_predicted == 0:
+                # Update false negative
+                fn += 1
+            elif val == 0 and val_predicted == 1:
+                # Update false positive
+                fp += 1
+                print(time)
+            elif val == 0 and val_predicted == 0:
+                # Update true negative
+                tn += 1
+
+        # Write statistics file
+        write_statistics_file(tp, tn, fp, fn, y)
+
+        # Update the overall true positive (tp_all), true negative (tn_all), false positive (fp_all), and false negative (fn_all)
+        tp_all += tp
+        tn_all += tn
+        fp_all += fp
+        fn_all += fn
+
+    # Write statistics file
+    write_statistics_file(tp_all, tn_all, fp_all, fn_all, None)
+
+    # Write predict file
+    write_predict_file()
+
+
+# Write statistics file
+def write_statistics_file(tp, tn, fp, fn, y):
+    # Get precision, recall, f1_score, and accuracy
+    if tp + fp != 0:
+        precision = float(tp) / (tp + fp)
+    else:
+        precision = 'undefined'
+    if tp + fn != 0:
+        recall = float(tp) / (tp + fn)
+    else:
+        recall = 'undefined'
+    if precision != 'undefined' and recall != 'undefined' and (precision != 0 or recall != 0):
+        f1_score = 2 * precision * recall / (precision + recall)
+    else:
+        f1_score = 'undefined'
+    if tp + fp + tn + fn != 0:
+        accuracy = float(tp + tn) / (tp + fp + tn + fn)
+    else:
+        accuracy = 'undefined'
+
+    # If for a class_value pair
+    if not y is None:
+        f_statistics.write('statistics for class_value pair: ' + y + '\n')
+    else:
+        f_statistics.write('statistics for all class_value pairs' + '\n')
+
+    f_statistics.write('tp: ' + str(tp) + '\n')
+    f_statistics.write('tn: ' + str(tn) + '\n')
+    f_statistics.write('fp: ' + str(fp) + '\n')
+    f_statistics.write('fn: ' + str(fn) + '\n')
+
+    f_statistics.write('precision: ' + str(precision) + '\n')
+    f_statistics.write('recall: ' + str(recall) + '\n')
+    f_statistics.write('f1_score: ' + str(f1_score) + '\n')
+    f_statistics.write('accuracy: ' + str(accuracy) + '\n\n')
+
+
+# Write predict file
+def write_predict_file():
+    # Get the header
+    header_L = [y for y in sorted(y_time_val_predicted_Dic.keys())]
+
+    # Write the header
+    spamwriter_predict.writerow(header_L)
+
+    # For each time
+    for time in sorted(time_var_val_Dic.keys()):
+        # Get the list of value at the time
+        val_L = [y_time_val_predicted_Dic[y][time] for y in sorted(y_time_val_predicted_Dic.keys())]
+
+        # Write the list of value
+        spamwriter_predict.writerow(val_L)
+
+
 # Main function
 if __name__ == "__main__":
     # Get parameters from command line
     # Please see details of the parameters in the readme file
-    attribute_data_file = sys.argv[1]
-    class_data_file = sys.argv[2]
-    knowledge_file = sys.argv[3]
-    log_file = sys.argv[4]
-    max_iteration_cutoff = int(sys.argv[5])
-    min_number_of_times_cutoff = int(sys.argv[6])
-    min_number_of_times_ratio_cutoff = float(sys.argv[7])
-    p_val_cutoff = float(sys.argv[8])
-    header = int(sys.argv[9])
+    attribute_training_data_file = sys.argv[1]
+    class_training_data_file = sys.argv[2]
+    attribute_testing_data_file = sys.argv[3]
+    class_testing_data_file = sys.argv[4]
+    fit_file = sys.argv[5]
+    predict_file = sys.argv[6]
+    statistics_file = sys.argv[7]
+    log_file = sys.argv[8]
+    max_iteration_cutoff = int(sys.argv[9])
+    min_number_of_times_cutoff = int(sys.argv[10])
+    min_number_of_times_ratio_cutoff = float(sys.argv[11])
+    p_val_cutoff = float(sys.argv[12])
+    header = int(sys.argv[13])
 
-    # Start time
-    start_time = time.clock()
+    # Set random seed, so that the results are reproducible
+    random.seed(0)
 
     # Initialization
-    initialization(attribute_data_file, class_data_file)
+    initialization(attribute_training_data_file, class_training_data_file)
 
-    with open(log_file, 'w') as f_log:
-        # Write the log file
-        spamwriter_log = csv.writer(f_log, delimiter=' ')
+    # Initialize spamwriter_fit
+    with open(fit_file, 'w') as f_fit:
+        # Write the fit file
+        spamwriter_fit = csv.writer(f_fit, delimiter=' ')
 
-        with open(knowledge_file, 'w') as f_knowledge:
-            # Write the knowledge file
-            spamwriter_knowledge = csv.writer(f_knowledge, delimiter=' ')
+        # Initialize spamwriter_log
+        with open(log_file, 'w') as f_log:
+            # Write the log file
+            spamwriter_log = csv.writer(f_log, delimiter=' ')
 
-            # Knowledge discovery
-            knowledge_discovery()
+            # The fit function
+            fit()
 
-            # End time
-            end_time = time.clock()
-            # Run time
-            run_time = end_time - start_time
+    # Initialization
+    initialization(attribute_testing_data_file, class_testing_data_file)
 
-            # Write run time
-            spamwriter_knowledge.writerow(['run time: ' + str(run_time)])
+    # Initialize spamwriter_predict
+    with open(predict_file, 'w') as f_predict:
+        # Write the predict file
+        spamwriter_predict = csv.writer(f_predict, delimiter=' ')
+
+        # Initialize spamwriter_statistics
+        with open(statistics_file, 'w') as f_statistics:
+            # Write the statistics file
+            spamwriter_statistics = csv.writer(f_statistics, delimiter=' ')
+
+            # The predict function
+            predict()
