@@ -17,7 +17,7 @@ from operator import itemgetter
 # _Dic    : indicates the data structure is a dictionary
 # _L_Dic  : indicates the data structure is a dictionary, where the value is a list
 # _LL_Dic : indicates the data structure is a dictionary, where the value is a list of list
-#_F       : indicates the variable is a flag
+# _F       : indicates the variable is a flag
 
 
 # Global variables
@@ -66,7 +66,7 @@ def initialization(attribute_data_file, class_data_file):
 # Load data, get time_var_val_Dic, x_time_val_Dic, and y_time_val_Dic
 def load_data(data_file, x_F):
     with open(data_file, 'r') as f:
-        spamreader = list(csv.reader(f, delimiter = ','))
+        spamreader = list(csv.reader(f, delimiter=','))
 
         # Get time_var_val_Dic, x_time_val_Dic, and y_time_val_Dic
         # For each time
@@ -120,9 +120,6 @@ def knowledge_discovery():
 
         # Termination condition 1: when the iteration number exceeds the max iteration number cutoff
         while iteration <= max_iteration_cutoff:
-            # Update iteration
-            iteration += 1
-
             # Get the new list of (x, importance) pairs sorted in descending order of the importance
             new_sorted_x_importance_pair_LL = get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y)
 
@@ -133,22 +130,38 @@ def knowledge_discovery():
 
             # Get the old and new list of (x, importance) pairs sorted in descending order of the importance
             # Here, only the pairs whose importance is significant are included
-            old_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL)
-            new_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(new_sorted_x_importance_pair_LL)
+            old_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
+                old_sorted_x_importance_pair_LL)
+            new_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
+                new_sorted_x_importance_pair_LL)
 
             # Update significant_sorted_x_importance_pair_LL
             significant_sorted_x_importance_pair_LL_Dic[y] = list(new_significant_sorted_x_importance_pair_LL)
 
+            # Write log file
+            spamwriter_log.writerow(
+                ["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
+            f_log.flush()
+
+            # Termination condition 2: when the above two lists are equal
+            if (old_significant_sorted_x_importance_pair_LL is not None
+                and new_significant_sorted_x_importance_pair_LL is not None
+                and len(old_significant_sorted_x_importance_pair_LL) > 0
+                and len(new_significant_sorted_x_importance_pair_LL) > 0
+                and are_lists_equal(old_significant_sorted_x_importance_pair_LL, new_significant_sorted_x_importance_pair_LL) is True):
+                break
+
             # Update old_sorted_x_importance_pair_LL
             old_sorted_x_importance_pair_LL = list(new_sorted_x_importance_pair_LL)
 
-            # Write log file
-            spamwriter_log.writerow(["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
-            f_log.flush()
+            # Update iteration
+            iteration += 1
 
-            # # Termination condition 2: when the above two lists are equal
-            # if are_lists_equal(old_significant_sorted_x_importance_pair_LL, new_significant_sorted_x_importance_pair_LL) is True:
-            #     break
+        # Write knowledge file
+        spamwriter_knowledge.writerow(["new_sorted_x_importance_pair_LL: ", new_sorted_x_importance_pair_LL])
+        spamwriter_knowledge.writerow([])
+        spamwriter_knowledge.writerow(["new_significant_sorted_x_importance_pair_LL: ", new_significant_sorted_x_importance_pair_LL])
+        f_knowledge.flush()
 
 
 # Get the list of (x, importance) pairs sorted in descending order of the importance
@@ -166,7 +179,7 @@ def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
                 old_sorted_x_importance_pair_LL.append([x, p_y_cond_x])
 
         # Sort old_sorted_x_importance_pair_LL in descending order of the importance (i.e., p(y | x))
-        old_sorted_x_importance_pair_LL = sorted(old_sorted_x_importance_pair_LL, key = itemgetter(1), reverse = True)
+        old_sorted_x_importance_pair_LL = sorted(old_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
 
     print(old_sorted_x_importance_pair_LL)
 
@@ -185,7 +198,7 @@ def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
         new_sorted_x_importance_pair_LL.append([xi, p_y_cond_xi_and_not_xjs])
 
     # Sort new_sorted_x_importance_pair_LL in descending order of the importance (i.e, p(y | xi and not xjs))
-    new_sorted_x_importance_pair_LL = sorted(new_sorted_x_importance_pair_LL, key = itemgetter(1), reverse = True)
+    new_sorted_x_importance_pair_LL = sorted(new_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
 
     print(new_sorted_x_importance_pair_LL)
 
@@ -317,6 +330,8 @@ def get_significant_sorted_x_importance_pair_LL(sorted_x_importance_pair_LL):
     # Get the p-value
     p_val_L = stats.norm.sf(z_val_L)
 
+    print(p_val_L)
+
     # Get significant_sorted_x_importance_pair_LL
     # For each index in p_val_L
     for idx in range(len(p_val_L)):
@@ -380,11 +395,11 @@ if __name__ == "__main__":
 
     with open(log_file, 'w') as f_log:
         # Write the log file
-        spamwriter_log = csv.writer(f_log, delimiter = ' ')
-        
+        spamwriter_log = csv.writer(f_log, delimiter=' ')
+
         with open(knowledge_file, 'w') as f_knowledge:
             # Write the knowledge file
-            spamwriter_knowledge = csv.writer(f_knowledge, delimiter = ' ')
+            spamwriter_knowledge = csv.writer(f_knowledge, delimiter=' ')
 
             # Knowledge discovery
             knowledge_discovery()
