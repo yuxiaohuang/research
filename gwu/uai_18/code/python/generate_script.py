@@ -24,7 +24,7 @@ import random
 def generate_script():
     # Write the script file
     with open(script_file, 'w') as f:
-        script = 'python' + ' ' + py_file + ' ' + attribute_training_data_file + ' ' + class_training_data_file + ' ' + attribute_testing_data_file + ' ' + class_testing_data_file + ' ' + fit_file + ' ' + predict_file + ' ' + statistics_file + ' ' + log_file + ' ' + max_iteration_cutoff + ' ' + min_number_of_times_cutoff + ' ' + min_number_of_times_ratio_cutoff + ' ' + p_val_cutoff + ' ' + header
+        script = 'python' + ' ' + py_file + ' ' + attribute_training_data_file + ' ' + class_training_data_file + ' ' + attribute_testing_data_file + ' ' + class_testing_data_file + ' ' + fit_file + ' ' + predict_file + ' ' + ' ' + log_file + ' ' + max_iteration_cutoff + ' ' + min_number_of_times_cutoff + ' ' + min_number_of_times_ratio_cutoff + ' ' + p_val_cutoff + ' ' + header
         # Write the file
         f.write(script + '\n')
 
@@ -41,13 +41,12 @@ if __name__=="__main__":
     class_testing_data_dir = sys.argv[6]
     fit_dir = sys.argv[7]
     predict_dir = sys.argv[8]
-    statistics_dir = sys.argv[9]
-    log_dir = sys.argv[10]
-    max_iteration_cutoff = sys.argv[11]
-    min_number_of_times_cutoff = sys.argv[12]
-    min_number_of_times_ratio_cutoff = sys.argv[13]
-    p_val_cutoff = sys.argv[14]
-    header = sys.argv[15]
+    log_dir = sys.argv[9]
+    max_iteration_cutoff = sys.argv[10]
+    min_number_of_times_cutoff = sys.argv[11]
+    min_number_of_times_ratio_cutoff = sys.argv[12]
+    p_val_cutoff = sys.argv[13]
+    header = sys.argv[14]
 
     # Make directory
     directory = os.path.dirname(script_dir)
@@ -57,9 +56,6 @@ if __name__=="__main__":
     if not os.path.exists(directory):
         os.makedirs(directory)
     directory = os.path.dirname(predict_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    directory = os.path.dirname(statistics_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
     directory = os.path.dirname(log_dir)
@@ -93,9 +89,6 @@ if __name__=="__main__":
 
             # Get predict file
             predict_file = predict_dir + 'predict_' + num + '.txt'
-
-            # Get statistics file
-            statistics_file = statistics_dir + 'statistics_' + num + '.txt'
 
             # Get log file
             log_file = log_dir + 'log_' + num + '.txt'

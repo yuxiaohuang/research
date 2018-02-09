@@ -136,7 +136,6 @@ def fit():
 
         # Termination condition: when the iteration number exceeds the max iteration number cutoff
         while iteration <= max_iteration_cutoff:
-            # print("iteration: " + str(iteration))
             # Get the new list of (x, importance) pairs sorted in descending order of the importance
             new_sorted_x_importance_pair_LL = get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y)
 
@@ -395,13 +394,8 @@ def belong(pair_i_LL, pair_j_LL):
 
 # The predict function
 def predict():
-    # Initialize the overall true positive (tp_all), true negative (tn_all), false positive (fp_all), and false negative (fn_all)
-    tp_all, tn_all, fp_all, fn_all = 0, 0, 0, 0
-
     # For each class_label pair
     for y in sorted(y_time_val_Dic.keys()):
-        # Initialize true positive (tp), true negative (tn), false positive (fp), and false negative (fn)
-        tp, tn, fp, fn = 0, 0, 0, 0
         # Initialize y_time_val_predicted_Dic
         if not y in y_time_val_predicted_Dic:
             y_time_val_predicted_Dic[y] = {}
@@ -416,10 +410,10 @@ def predict():
                 # If x is true at the time
                 if x in time_var_val_Dic[time] and time_var_val_Dic[time][x] == 1:
                     # Get the last probability in p_y_cond_xis_and_not_xjs_L
-                    last_prob = p_y_cond_xis_and_not_xjs_L[len(p_y_cond_xis_and_not_xjs_L) - 1]
+                    last_prob = p_y_cond_xis_and_not_xjs_L[-1]
 
                     # Update the last probability to last_prob * p(y | x)
-                    p_y_cond_xis_and_not_xjs_L[len(p_y_cond_xis_and_not_xjs_L) - 1] = last_prob * importance
+                    p_y_cond_xis_and_not_xjs_L[-1] = last_prob * importance
 
                     # Add last_prob * (1 - p(y | x)) to p_y_cond_xis_and_not_xjs_L
                     p_y_cond_xis_and_not_xjs_L.append(last_prob * (1 - importance))
@@ -427,7 +421,7 @@ def predict():
             # Get p(y | xis and not xjs)
             p_y_cond_xis_and_not_xjs = sum(p_y_cond_xis_and_not_xjs_L[:-1])
 
-            # Generate y_hat
+            # Predict value
             if random.uniform(0, 1) <= p_y_cond_xis_and_not_xjs:
                 val_predicted = 1
             else:
@@ -436,82 +430,10 @@ def predict():
             # Update y_time_val_predicted_Dic
             y_time_val_predicted_Dic[y][time] = val_predicted
 
-            # Get the ground truth value at the time
-            val = y_time_val_Dic[y][time]
-
-            # Update true positive (tp), true negative (tn), false positive (fp), and false negative (fn)
-            if val == 1 and val_predicted == 1:
-                # Update true positive
-                tp += 1
-            elif val == 1 and val_predicted == 0:
-                # Update false negative
-                fn += 1
-            elif val == 0 and val_predicted == 1:
-                # Update false positive
-                fp += 1
-                print(time)
-            elif val == 0 and val_predicted == 0:
-                # Update true negative
-                tn += 1
-
-        # Write statistics file
-        write_statistics_file(tp, tn, fp, fn, y)
-
-        # Update the overall true positive (tp_all), true negative (tn_all), false positive (fp_all), and false negative (fn_all)
-        tp_all += tp
-        tn_all += tn
-        fp_all += fp
-        fn_all += fn
-
-    # Write statistics file
-    write_statistics_file(tp_all, tn_all, fp_all, fn_all, None)
-
     # Write predict file
-    write_predict_file()
 
-
-# Write statistics file
-def write_statistics_file(tp, tn, fp, fn, y):
-    # Get precision, recall, f1_score, and accuracy
-    if tp + fp != 0:
-        precision = float(tp) / (tp + fp)
-    else:
-        precision = 'undefined'
-    if tp + fn != 0:
-        recall = float(tp) / (tp + fn)
-    else:
-        recall = 'undefined'
-    if precision != 'undefined' and recall != 'undefined' and (precision != 0 or recall != 0):
-        f1_score = 2 * precision * recall / (precision + recall)
-    else:
-        f1_score = 'undefined'
-    if tp + fp + tn + fn != 0:
-        accuracy = float(tp + tn) / (tp + fp + tn + fn)
-    else:
-        accuracy = 'undefined'
-
-    # If for a class_value pair
-    if not y is None:
-        f_statistics.write('statistics for class_value pair: ' + y + '\n')
-    else:
-        f_statistics.write('statistics for all class_value pairs' + '\n')
-
-    f_statistics.write('tp: ' + str(tp) + '\n')
-    f_statistics.write('tn: ' + str(tn) + '\n')
-    f_statistics.write('fp: ' + str(fp) + '\n')
-    f_statistics.write('fn: ' + str(fn) + '\n')
-
-    f_statistics.write('precision: ' + str(precision) + '\n')
-    f_statistics.write('recall: ' + str(recall) + '\n')
-    f_statistics.write('f1_score: ' + str(f1_score) + '\n')
-    f_statistics.write('accuracy: ' + str(accuracy) + '\n\n')
-
-
-# Write predict file
-def write_predict_file():
     # Get the header
     header_L = [y for y in sorted(y_time_val_predicted_Dic.keys())]
-
     # Write the header
     spamwriter_predict.writerow(header_L)
 
@@ -519,8 +441,7 @@ def write_predict_file():
     for time in sorted(time_var_val_Dic.keys()):
         # Get the list of value at the time
         val_L = [y_time_val_predicted_Dic[y][time] for y in sorted(y_time_val_predicted_Dic.keys())]
-
-        # Write the list of value
+        # Write the list of value at the time
         spamwriter_predict.writerow(val_L)
 
 
@@ -534,13 +455,12 @@ if __name__ == "__main__":
     class_testing_data_file = sys.argv[4]
     fit_file = sys.argv[5]
     predict_file = sys.argv[6]
-    statistics_file = sys.argv[7]
-    log_file = sys.argv[8]
-    max_iteration_cutoff = int(sys.argv[9])
-    min_number_of_times_cutoff = int(sys.argv[10])
-    min_number_of_times_ratio_cutoff = float(sys.argv[11])
-    p_val_cutoff = float(sys.argv[12])
-    header = int(sys.argv[13])
+    log_file = sys.argv[7]
+    max_iteration_cutoff = int(sys.argv[8])
+    min_number_of_times_cutoff = int(sys.argv[9])
+    min_number_of_times_ratio_cutoff = float(sys.argv[10])
+    p_val_cutoff = float(sys.argv[11])
+    header = int(sys.argv[12])
 
     # Set random seed, so that the results are reproducible
     random.seed(0)
@@ -569,10 +489,5 @@ if __name__ == "__main__":
         # Write the predict file
         spamwriter_predict = csv.writer(f_predict, delimiter=' ')
 
-        # Initialize spamwriter_statistics
-        with open(statistics_file, 'w') as f_statistics:
-            # Write the statistics file
-            spamwriter_statistics = csv.writer(f_statistics, delimiter=' ')
-
-            # The predict function
-            predict()
+        # The predict function
+        predict()
