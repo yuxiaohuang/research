@@ -11,6 +11,7 @@ import math
 import time
 from operator import itemgetter
 import random
+from numpy import prod
 
 # Notations
 # _L      : indicates the data structure is a list
@@ -22,6 +23,11 @@ import random
 
 
 # Global variables
+
+# The latent attribute_value pair
+latent_x = 'x_-1'
+
+eta = 0.01
 
 # The dictionary of value
 # key: time->var (attribute_value pair or class_label pair)
@@ -48,6 +54,11 @@ y_time_val_predicted_Dic = {}
 # val: the list of time where class_label pair is measured and attribute_value pair is true
 y_cond_x_time_L_Dic = {}
 
+# The dictionary of the mean of each class_label pair
+# key: class_label pair
+# val: the mean of each class_label pair
+p_y_Dic = {}
+
 # The dictionary of list of (x, importance) pairs sorted in descending order of the importance
 # key: class_label pair
 # val: the list
@@ -59,18 +70,33 @@ sorted_x_importance_pair_LL_Dic = {}
 # val: the list
 significant_sorted_x_importance_pair_LL_Dic = {}
 
+# The dictionary of list of w
+# key: attribute_value pair
+# val: the list
+w_L_Dic = {}
+
+# The dictionary of list of delta_w
+# key: attribute_value pair
+# val: the list
+delta_w_L_Dic = {}
+
 
 # Initialization
 def initialization(attribute_data_file, class_data_file):
-    # Initialize time_var_val_Dic, x_time_val_Dic, and y_time_val_Dic
-    global time_var_val_Dic, x_time_val_Dic, y_time_val_Dic
-    time_var_val_Dic, x_time_val_Dic, y_time_val_Dic = {}, {}, {}
+    # Initialize time_var_val_Dic, x_time_val_Dic, y_time_val_Dic, and p_y_Dic
+    global time_var_val_Dic, x_time_val_Dic, y_time_val_Dic, p_y_Dic
+    time_var_val_Dic, x_time_val_Dic, y_time_val_Dic, p_y_Dic = {}, {}, {}, {}
 
     # Load attribute data file
     load_data(attribute_data_file, True)
 
     # Load class data file
     load_data(class_data_file, False)
+
+    # Get p_y_Dic
+    # For each class_label pair
+    for y in sorted(y_time_val_Dic.keys()):
+        p_y_Dic[y] = np.mean([y_time_val_Dic[y][time] for time in y_time_val_Dic[y]])
 
     # Update min_number_of_times_cutoff
     global min_number_of_times_cutoff
@@ -114,6 +140,10 @@ def load_data(data_file, x_F):
                         if not var in x_time_val_Dic:
                             x_time_val_Dic[var] = {}
                         x_time_val_Dic[var][time] = val
+                        # Add the latent variable
+                        if not latent_x in x_time_val_Dic:
+                            x_time_val_Dic[latent_x] = {}
+                        x_time_val_Dic[latent_x][time] = 1
                     # If class data file
                     else:
                         if not var in y_time_val_Dic:
@@ -130,63 +160,176 @@ def fit():
         spamwriter_log.writerow([])
         f_log.flush()
 
-        # Initialize iteration number and old_sorted_x_importance_pair_LL
-        iteration = 0
-        old_sorted_x_importance_pair_LL = []
+        gradient_descent(y)
 
-        # Termination condition: when the iteration number exceeds the max iteration number cutoff
-        while iteration <= max_iteration_cutoff:
-            # Get the new list of (x, importance) pairs sorted in descending order of the importance
-            new_sorted_x_importance_pair_LL = get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y)
+        # # Initialize iteration number and old_sorted_x_importance_pair_LL
+        # iteration = 0
+        # old_sorted_x_importance_pair_LL = []
+        #
+        # # Termination condition: when the iteration number exceeds the max iteration number cutoff
+        # while iteration <= max_iteration_cutoff:
+        #     # Get the new list of (x, importance) pairs sorted in descending order of the importance
+        #     new_sorted_x_importance_pair_LL = get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y)
+        #
+        #     # Write log file
+        #     spamwriter_log.writerow(["old_sorted_x_importance_pair_LL: ", old_sorted_x_importance_pair_LL])
+        #     spamwriter_log.writerow([])
+        #     spamwriter_log.writerow(["new_sorted_x_importance_pair_LL: ", new_sorted_x_importance_pair_LL])
+        #     spamwriter_log.writerow([])
+        #     f_log.flush()
+        #
+        #     # Get the list of (x, importance) pairs sorted in descending order of the importance
+        #     # Here, only the pairs whose importance is significant are included
+        #     old_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
+        #         old_sorted_x_importance_pair_LL, y)
+        #     new_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
+        #         new_sorted_x_importance_pair_LL, y)
+        #
+        #     # Write log file
+        #     spamwriter_log.writerow(
+        #         ["old_significant_sorted_x_importance_pair_LL: ", old_significant_sorted_x_importance_pair_LL])
+        #     spamwriter_log.writerow([])
+        #     spamwriter_log.writerow(
+        #         ["new_significant_sorted_x_importance_pair_LL: ", new_significant_sorted_x_importance_pair_LL])
+        #     spamwriter_log.writerow([])
+        #     f_log.flush()
+        #
+        #     # Update old_sorted_x_importance_pair_LL
+        #     old_sorted_x_importance_pair_LL = list(new_sorted_x_importance_pair_LL)
+        #
+        #     # Update iteration
+        #     iteration += 1
+        #
+        # # Update sorted_x_importance_pair_LL_Dic
+        # sorted_x_importance_pair_LL_Dic[y] = list(new_sorted_x_importance_pair_LL)
+        #
+        # # Update significant_sorted_x_importance_pair_LL_Dic
+        # significant_sorted_x_importance_pair_LL_Dic[y] = list(new_significant_sorted_x_importance_pair_LL)
+        #
+        # # Write fit file
+        # spamwriter_fit.writerow(["fitting for class_label pair: ", y])
+        # spamwriter_fit.writerow([])
+        #
+        # spamwriter_fit.writerow(
+        #     ["sorted_x_importance_pair_LL_Dic[y]: ", sorted_x_importance_pair_LL_Dic[y]])
+        # spamwriter_fit.writerow([])
+        #
+        # spamwriter_fit.writerow(
+        #     ["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
+        # spamwriter_fit.writerow([])
+        #
+        # f_fit.flush()
 
-            # Write log file
-            spamwriter_log.writerow(["old_sorted_x_importance_pair_LL: ", old_sorted_x_importance_pair_LL])
-            spamwriter_log.writerow([])
-            spamwriter_log.writerow(["new_sorted_x_importance_pair_LL: ", new_sorted_x_importance_pair_LL])
-            spamwriter_log.writerow([])
-            f_log.flush()
 
-            # Get the list of (x, importance) pairs sorted in descending order of the importance
-            # Here, only the pairs whose importance is significant are included
-            old_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
-                old_sorted_x_importance_pair_LL)
-            new_significant_sorted_x_importance_pair_LL = get_significant_sorted_x_importance_pair_LL(
-                new_sorted_x_importance_pair_LL)
+def gradient_descent(y):
+    # Initialize the list of w for latent variable
+    w_L_Dic[latent_x] = [0, 0]
 
-            # Write log file
-            spamwriter_log.writerow(
-                ["old_significant_sorted_x_importance_pair_LL: ", old_significant_sorted_x_importance_pair_LL])
-            spamwriter_log.writerow([])
-            spamwriter_log.writerow(
-                ["new_significant_sorted_x_importance_pair_LL: ", new_significant_sorted_x_importance_pair_LL])
-            spamwriter_log.writerow([])
-            f_log.flush()
+    # Initialize the list of w for x
+    for x in sorted(x_time_val_Dic.keys()):
+        w_L_Dic[x] = [0, 0]
 
-            # Update old_sorted_x_importance_pair_LL
-            old_sorted_x_importance_pair_LL = list(new_sorted_x_importance_pair_LL)
+    # For each iteration
+    for counter in range(max_iteration_cutoff):
+        # For each x
+        for xj in sorted(w_L_Dic.keys()):
+            # Update delta_wj0 and delta_wj1
+            update_delta_w(y, xj)
 
-            # Update iteration
-            iteration += 1
+        # Update w_L_Dic
+        for xj in sorted(w_L_Dic.keys()):
+            w_L_Dic[xj][0] += delta_w_L_Dic[xj][0]
+            w_L_Dic[xj][1] += delta_w_L_Dic[xj][1]
 
-        # Update sorted_x_importance_pair_LL_Dic
-        sorted_x_importance_pair_LL_Dic[y] = list(new_sorted_x_importance_pair_LL)
+        sorted_x_p_y_x_LL = get_sorted_x_p_y_x_LL()
 
-        # Update significant_sorted_x_importance_pair_LL_Dic
-        significant_sorted_x_importance_pair_LL_Dic[y] = list(new_significant_sorted_x_importance_pair_LL)
+        print(sorted_x_p_y_x_LL)
 
-        # Write fit file
-        spamwriter_fit.writerow(["fitting for class_label pair: ", y])
-        spamwriter_fit.writerow([])
+        print("\n")
 
-        spamwriter_fit.writerow(
-            ["sorted_x_importance_pair_LL_Dic[y]: ", sorted_x_importance_pair_LL_Dic[y]])
-        spamwriter_fit.writerow([])
 
-        spamwriter_fit.writerow(
-            ["significant_sorted_x_importance_pair_LL_Dic[y]: ", significant_sorted_x_importance_pair_LL_Dic[y]])
-        spamwriter_fit.writerow([])
+# Update delta_wj0 and delta_wj1
+def update_delta_w(y, xj):
+    delta_wj0, delta_wj1 = 0, 0
 
-        f_fit.flush()
+    # For each time
+    for i in sorted(x_time_val_Dic[xj].keys()):
+        # Get the value of y at time i
+        yi = y_time_val_Dic[y][i]
+
+        # Initialize uki_L
+        uki_L = []
+
+        # Initialize the dictionary for xki, zki, pki, and uki
+        xki_Dic, zki_Dic, pki_Dic, uki_Dic = {}, {}, {}, {}
+
+        # For each xk
+        for xk in sorted(w_L_Dic.keys()):
+            # Get wk0 and wk1
+            wk0 = w_L_Dic[xk][0]
+            wk1 = w_L_Dic[xk][1]
+
+            # Get the value of xk at time i
+            xki_Dic[xk] = x_time_val_Dic[xk][i]
+
+            # Get the value of zk at time i
+            zki_Dic[xk] = wk0 + wk1 * xki_Dic[xk]
+
+            # Get the value of pk at time i
+            pki_Dic[xk] = sigmoid(zki_Dic[xk])
+
+            # get the value of uk at time i
+            uki_Dic[xk] = 1 - pki_Dic[xk]
+
+            # update
+            uki_L.append(uki_Dic[xk])
+
+            if uki_Dic[xk] == 0:
+                print(xk)
+                exit(1)
+
+        # Get the left and right part of delta_wj0i
+        delta_wj0i_left = (prod(uki_L) / uki_Dic[xj]) * (pki_Dic[xj] - (pki_Dic[xj] ** 2)) * -1
+        delta_wj0i_right = yi / (1 - prod(uki_L)) - (1 - yi) / prod(uki_L)
+        # Get delta_w0i
+        delta_wj0i = delta_wj0i_left * delta_wj0i_right
+        # Update delta_w0
+        delta_wj0 += delta_wj0i
+
+        # Get the left and right part of delta_wj1i
+        delta_wj1i_left = (prod(uki_L) / uki_Dic[xj]) * (pki_Dic[xj] - (pki_Dic[xj] ** 2)) * -xki_Dic[xj]
+        delta_wj1i_right = yi / (1 - prod(uki_L)) - (1 - yi) / prod(uki_L)
+        # Get delta_w1i
+        delta_wj1i = delta_wj1i_left * delta_wj1i_right
+        # Update delta_wj1
+        delta_wj1 += delta_wj1i
+
+    # Update delta_wj0 and delta_wj1
+    delta_wj0 *= -eta
+    delta_wj1 *= -eta
+
+    # Update delta_w_L_Dic
+    delta_w_L_Dic[xj] = list([delta_wj0, delta_wj1])
+
+
+def get_sorted_x_p_y_x_LL():
+    sorted_x_p_y_x_LL = []
+
+    for x in w_L_Dic:
+        w0 = w_L_Dic[x][0]
+        w1 = w_L_Dic[x][1]
+        p_y_x = sigmoid(w0 + w1)
+
+        sorted_x_p_y_x_LL.append([x, p_y_x])
+    sorted_x_p_y_x_LL = sorted(sorted_x_p_y_x_LL, key=itemgetter(1), reverse=True)
+
+    return sorted_x_p_y_x_LL
+
+
+def sigmoid(gamma):
+    if gamma < 0:
+        return 1 - 1 / (1 + math.exp(gamma))
+    return 1 / (1 + math.exp(-gamma))
 
 
 # Get the list of (x, importance) pairs sorted in descending order of the importance
@@ -206,24 +349,48 @@ def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
         # Sort old_sorted_x_importance_pair_LL in descending order of the importance (i.e., p(y | x))
         old_sorted_x_importance_pair_LL = sorted(old_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
 
-    # Initialize new_sorted_x_importance_pair_LL
-    new_sorted_x_importance_pair_LL = []
+    return old_sorted_x_importance_pair_LL
 
-    # For each index in old_sorted_x_importance_pair_LL
-    for i in range(len(old_sorted_x_importance_pair_LL)):
-        # Get p(y | xi and not xjs)
-        p_y_cond_xi_and_not_xjs = get_p_y_cond_xi_and_not_xjs(old_sorted_x_importance_pair_LL, y, i)
 
-        # Get xi
-        xi = old_sorted_x_importance_pair_LL[i][0]
-
-        # Update new_sorted_x_importance_pair_LL
-        new_sorted_x_importance_pair_LL.append([xi, p_y_cond_xi_and_not_xjs])
-
-    # Sort new_sorted_x_importance_pair_LL in descending order of the importance (i.e, p(y | xi and not xjs))
-    new_sorted_x_importance_pair_LL = sorted(new_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
-
-    return new_sorted_x_importance_pair_LL
+# # Get the list of (x, importance) pairs sorted in descending order of the importance
+# def get_sorted_x_importance_pair_LL(old_sorted_x_importance_pair_LL, y):
+#     # If old_sorted_x_importance_pair_LL is None or empty
+#     if old_sorted_x_importance_pair_LL is None or len(old_sorted_x_importance_pair_LL) == 0:
+#         # Initialize old_sorted_x_importance_pair_LL
+#         for x in sorted(x_time_val_Dic.keys()):
+#             # Get p(y | x)
+#             p_y_cond_x = get_p_y_cond_x(y, x)
+#
+#             # If p(y | x) is not None
+#             if not p_y_cond_x is None:
+#                 # Update old_sorted_x_importance_pair_LL
+#                 old_sorted_x_importance_pair_LL.append([x, p_y_cond_x])
+#
+#         # Sort old_sorted_x_importance_pair_LL in descending order of the importance (i.e., p(y | x))
+#         old_sorted_x_importance_pair_LL = sorted(old_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
+#
+#     # Initialize new_sorted_x_importance_pair_LL
+#     new_sorted_x_importance_pair_LL = []
+#
+#     # For each index in old_sorted_x_importance_pair_LL
+#     for i in range(len(old_sorted_x_importance_pair_LL)):
+#         # Get p(y | xi and not xjs)
+#         p_y_cond_xi_and_not_xjs = get_p_y_cond_xi_and_not_xjs(old_sorted_x_importance_pair_LL, y, i)
+#
+#         # Ignore xi whose importance is None
+#         if p_y_cond_xi_and_not_xjs is None:
+#             continue
+#
+#         # Get xi
+#         xi = old_sorted_x_importance_pair_LL[i][0]
+#
+#         # Update new_sorted_x_importance_pair_LL
+#         new_sorted_x_importance_pair_LL.append([xi, p_y_cond_xi_and_not_xjs])
+#
+#     # Sort new_sorted_x_importance_pair_LL in descending order of the importance (i.e, p(y | xi and not xjs))
+#     new_sorted_x_importance_pair_LL = sorted(new_sorted_x_importance_pair_LL, key=itemgetter(1), reverse=True)
+#
+#     return new_sorted_x_importance_pair_LL
 
 
 # Get p(y | x)
@@ -282,6 +449,14 @@ def get_p_y_cond_xi_and_not_xjs(sorted_x_importance_pair_LL, y, i):
     # Initialize y_cond_xi_and_not_xjs_time_L
     y_cond_xi_and_not_xjs_time_L = get_y_cond_x_time_L(y, xi)
 
+    # # Write log file
+    # spamwriter_log.writerow(["sorted_x_importance_pair_LL for: ", sorted_x_importance_pair_LL])
+    # spamwriter_log.writerow([])
+    # spamwriter_log.writerow(["get_p_y_cond_xi_and_not_xjs for: ", xi])
+    # spamwriter_log.writerow(["y_cond_xi_and_not_xjs_time_L: ", y_cond_xi_and_not_xjs_time_L])
+    # spamwriter_log.writerow([])
+    # f_log.flush()
+
     # If y_cond_xi_and_not_xjs_time_L is None or the number of times in y_cond_xi_and_not_xjs_time_L is smaller than min_number_of_times_cutoff
     if y_cond_xi_and_not_xjs_time_L is None or len(y_cond_xi_and_not_xjs_time_L) < min_number_of_times_cutoff:
         # Ignore xi, since p(y | xi and not xjs) is not reliable
@@ -293,11 +468,24 @@ def get_p_y_cond_xi_and_not_xjs(sorted_x_importance_pair_LL, y, i):
         if j == i:
             continue
 
+        # # Get importance
+        # importance = sorted_x_importance_pair_LL[j][1]
+        #
+        # # Ignore xj whose importance is not larger than p(y)
+        # if importance <= p_y_Dic[y]:
+        #     continue
+
         # Get xj
         xj = sorted_x_importance_pair_LL[j][0]
 
         # Update y_cond_xi_and_not_xjs_time_L based on xj
         y_cond_xi_and_not_xjs_time_L = get_y_cond_xi_and_not_xjs_time_L(y_cond_xi_and_not_xjs_time_L, xj)
+
+        # # Write log file
+        # spamwriter_log.writerow(["isolating: ", xj])
+        # spamwriter_log.writerow(["y_cond_xi_and_not_xjs_time_L: ", y_cond_xi_and_not_xjs_time_L])
+        # spamwriter_log.writerow([])
+        # f_log.flush()
 
     # Get p(y | xi and not xjs)
     # If y_cond_xi_and_not_xjs_time_L is None or the number of times in y_cond_xi_and_not_xjs_time_L is smaller than min_number_of_times_cutoff
@@ -337,7 +525,7 @@ def get_y_cond_xi_and_not_xjs_time_L(time_L, xj):
 
 # Get the list of (x, importance) pairs sorted in descending order of the importance
 # Here, only the pairs whose importance is significant are included
-def get_significant_sorted_x_importance_pair_LL(sorted_x_importance_pair_LL):
+def get_significant_sorted_x_importance_pair_LL(sorted_x_importance_pair_LL, y):
     # If sorted_x_importance_pair_LL is None or empty
     if sorted_x_importance_pair_LL is None or len(sorted_x_importance_pair_LL) == 0:
         return sorted_x_importance_pair_LL
@@ -345,22 +533,13 @@ def get_significant_sorted_x_importance_pair_LL(sorted_x_importance_pair_LL):
     # Initialize significant_sorted_x_importance_pair_LL
     significant_sorted_x_importance_pair_LL = []
 
-    # Get the z-value
-    z_val_L = stats.zscore([importance for x, importance in sorted_x_importance_pair_LL])
-
-    # Get the p-value
-    p_val_L = stats.norm.sf(z_val_L)
-
     # Get significant_sorted_x_importance_pair_LL
-    # For each index in p_val_L
-    for idx in range(len(p_val_L)):
-        # Get p-value
-        p_val = p_val_L[idx]
-
-        # If p-value is no larger than the p-value cutoff
-        if p_val <= p_val_cutoff:
+    # For each x, importance in sorted_x_importance_pair_LL
+    for x, importance in sorted_x_importance_pair_LL:
+        # If importance is larger than p(y)
+        if importance > 0:
             # Update significant_sorted_x_importance_pair_LL by including (x, importance) pairs whose importance is significant
-            significant_sorted_x_importance_pair_LL.append(sorted_x_importance_pair_LL[idx])
+            significant_sorted_x_importance_pair_LL.append([x, importance])
 
     return significant_sorted_x_importance_pair_LL
 
@@ -401,34 +580,34 @@ def predict():
             y_time_val_predicted_Dic[y] = {}
 
         # For each time
-        for time in sorted(time_var_val_Dic.keys()):
-            # Initialize p_y_cond_xis_and_not_xjs_L
-            p_y_cond_xis_and_not_xjs_L = [1]
+        for i in sorted(time_var_val_Dic.keys()):
+            # Initialize p_not_y_cond_xis_and_not_xjs
+            p_not_y_cond_xis_and_not_xjs = 1
 
-            # For each (x, importance) pair in sorted_x_importance_pair_LL_Dic[y] sorted in descending order of the importance
-            for x, importance in sorted_x_importance_pair_LL_Dic[y]:
-                # If x is true at the time
-                if x in time_var_val_Dic[time] and time_var_val_Dic[time][x] == 1:
-                    # Get the last probability in p_y_cond_xis_and_not_xjs_L
-                    last_prob = p_y_cond_xis_and_not_xjs_L[-1]
+            # # For each (x, importance) pair in sorted_x_importance_pair_LL_Dic[y] sorted in descending order of the importance
+            # for x, importance in sorted_x_importance_pair_LL_Dic[y]:
+            # For each (x, importance) pair in significant_sorted_x_importance_pair_LL_Dic[y] sorted in descending order of the importance
+            # Here, only the pairs whose importance is significant are included in the list
+            for xj in w_L_Dic:
+                wj0 = w_L_Dic[xj][0]
+                wj1 = w_L_Dic[xj][1]
+                xji = x_time_val_Dic[xj][i]
+                zji = wj0 + wj1 * xji
+                pji = sigmoid(zji)
 
-                    # Update the last probability to last_prob * p(y | x)
-                    p_y_cond_xis_and_not_xjs_L[-1] = last_prob * importance
-
-                    # Add last_prob * (1 - p(y | x)) to p_y_cond_xis_and_not_xjs_L
-                    p_y_cond_xis_and_not_xjs_L.append(last_prob * (1 - importance))
+                p_not_y_cond_xis_and_not_xjs *= (1 - pji)
 
             # Get p(y | xis and not xjs)
-            p_y_cond_xis_and_not_xjs = sum(p_y_cond_xis_and_not_xjs_L[:-1])
+            p_y_cond_xis_and_not_xjs = 1 - p_not_y_cond_xis_and_not_xjs
 
             # Predict value
-            if random.uniform(0, 1) <= p_y_cond_xis_and_not_xjs:
+            if 0.5 <= p_y_cond_xis_and_not_xjs:
                 val_predicted = 1
             else:
                 val_predicted = 0
 
             # Update y_time_val_predicted_Dic
-            y_time_val_predicted_Dic[y][time] = val_predicted
+            y_time_val_predicted_Dic[y][i] = val_predicted
 
     # Write predict file
 

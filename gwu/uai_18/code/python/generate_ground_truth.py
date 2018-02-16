@@ -20,45 +20,45 @@ import random
 # _LL_Dic : indicates the data structure is a dictionary, where the value is a list of list
 
 
-# Generate interaction
-def generate_interaction():
-    # Read source setting file
-    with open(src_setting_file, 'r') as f:
+# Generate ground_truth
+def generate_ground_truth():
+    # Read attribute setting file
+    with open(attribute_setting_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
-        # Get src_L
-        src_L = []
+        # Get x_L
+        x_L = []
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
-            src_L.append(spamreader[i][0].strip())
+            x_L.append(spamreader[i][0].strip())
 
-    # Read target setting file
-    with open(tar_setting_file, 'r') as f:
+    # Read class setting file
+    with open(class_setting_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
-        # Get tar_L
-        tar_L = []
+        # Get y_L
+        y_L = []
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
-            tar_L.append(spamreader[i][0].strip())
+            y_L.append(spamreader[i][0].strip())
 
-    # Write interaction file
-    with open(interaction_file, 'w') as f:
+    # Write ground_truth file
+    with open(ground_truth_file, 'w') as f:
         spamwriter = csv.writer(f, delimiter = ',')
         # Write the header
-        spamwriter.writerow(['target', 'probability', 'interaction'])
+        spamwriter.writerow(['class', 'probability', 'ground_truth'])
 
-        for target in tar_L:
-            # The interactions
-            interaction_LLL = []
+        for y in y_L:
+            # The ground truth
+            ground_truth_LLL = []
 
-            # Get the interaction number
-            interaction_num = random.randint(interaction_num_range_L[0], interaction_num_range_L[1])
+            # Get the ground_truth number
+            ground_truth_num = random.randint(ground_truth_num_range_L[0], ground_truth_num_range_L[1])
 
-            while len(interaction_LLL) < interaction_num:
+            while len(ground_truth_LLL) < ground_truth_num:
                 # Get the probability
                 prob = random.uniform(prob_range_L[0], prob_range_L[1])
 
-                # Get the interaction
-                interaction_LL = []
+                # Get the ground_truth
+                ground_truth_LL = []
 
                 # Get the number of components
                 component_num = random.randint(component_num_range_L[0], component_num_range_L[1])
@@ -66,9 +66,9 @@ def generate_interaction():
                 # Get the name of the components
                 var_L = []
                 while len(var_L) < component_num:
-                    rand_idx = random.randint(0, len(src_L) - 1)
-                    if not src_L[rand_idx] in var_L:
-                        var_L.append(src_L[rand_idx])
+                    rand_idx = random.randint(0, len(x_L) - 1)
+                    if not x_L[rand_idx] in var_L:
+                        var_L.append(x_L[rand_idx])
 
                 # Get the window of the components, where win_end > win_start
                 win_LL = []
@@ -77,7 +77,7 @@ def generate_interaction():
                     win_end = win_range_L[1]
                     win_LL.append([win_start, win_end])
 
-                # Add the components to the interaction
+                # Add the components to the ground_truth
                 for j in range(component_num):
                     var = var_L[j]
                     # Get the negation probability
@@ -93,26 +93,26 @@ def generate_interaction():
 
                     win_start = win_LL[j][0]
                     win_end = win_LL[j][1]
-                    interaction_LL.append([var, win_start, win_end])
+                    ground_truth_LL.append([var, win_start, win_end])
 
-                # Check whether the interaction intersects with the existing ones
-                if check_intersect(interaction_LL, interaction_LLL) is False:
-                    interaction_LLL.append(interaction_LL)
-                    # Write the target, probability, and the interaction
-                    interaction_L = []
-                    for [var, win_start, win_end] in interaction_LL:
-                        interaction_L.append(var)
-                        interaction_L.append(win_start)
-                        interaction_L.append(win_end)
-                    spamwriter.writerow([target, prob] + interaction_L)
+                # Check whether the ground_truth intersects with the existing ones
+                if check_intersect(ground_truth_LL, ground_truth_LLL) is False:
+                    ground_truth_LLL.append(ground_truth_LL)
+                    # Write the class, probability, and the ground_truth
+                    ground_truth_L = []
+                    for [var, win_start, win_end] in ground_truth_LL:
+                        ground_truth_L.append(var)
+                        ground_truth_L.append(win_start)
+                        ground_truth_L.append(win_end)
+                    spamwriter.writerow([y, prob] + ground_truth_L)
 
 
-# Check whether i_LL and j_LLL intersect, that is, whether there are two interactions containing sources with the same name
+# Check whether i_LL and j_LLL intersect, that is, whether there are two ground truth containing attributes with the same name
 def check_intersect(i_LL, j_LLL):
     for i_L in i_LL:
         for j_LL in j_LLL:
             for j_L in j_LL:
-                # Check whether i_L[0] equals j_L[0], i.e., the name of the source is the same
+                # Check whether i_L[0] equals j_L[0], i.e., the name of the attribute is the same
                 if get_var_name(j_L[0]) == get_var_name(i_L[0]):
                     return True
 
@@ -129,33 +129,33 @@ def get_var_name(var_val):
 if __name__=="__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    src_setting_dir = sys.argv[1]
-    tar_setting_dir = sys.argv[2]
-    interaction_dir = sys.argv[3]
-    interaction_num_range_L = [int(sys.argv[4]), int(sys.argv[5])]
+    attribute_setting_dir = sys.argv[1]
+    class_setting_dir = sys.argv[2]
+    ground_truth_dir = sys.argv[3]
+    ground_truth_num_range_L = [int(sys.argv[4]), int(sys.argv[5])]
     component_num_range_L = [int(sys.argv[6]), int(sys.argv[7])]
     win_range_L = [int(sys.argv[8]), int(sys.argv[9])]
     prob_range_L = [float(sys.argv[10]), float(sys.argv[11])]
     neg_prob_range_L = [float(sys.argv[12]), float(sys.argv[13])]
 
     # Make directory
-    directory = os.path.dirname(interaction_dir)
+    directory = os.path.dirname(ground_truth_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for src_setting_file in os.listdir(src_setting_dir):
-        if not src_setting_file.startswith('.') and src_setting_file.endswith(".txt"):
-            # Get source setting file number
-            num = src_setting_file
-            num = num.replace('src_setting_', '')
+    for attribute_setting_file in os.listdir(attribute_setting_dir):
+        if not attribute_setting_file.startswith('.') and attribute_setting_file.endswith(".txt"):
+            # Get attribute setting file number
+            num = attribute_setting_file
+            num = num.replace('attribute_setting_', '')
             num = num.replace('.txt', '')
-            # Get source setting file
-            src_setting_file = src_setting_dir + 'src_setting_' + num + '.txt'
-            # Get target setting file
-            tar_setting_file = tar_setting_dir + 'tar_setting_' + num + '.txt'
-            # Get interaction file
-            interaction_file = interaction_dir + 'interaction_' + num + '.txt'
-            # Generate interaction
-            generate_interaction()
+            # Get attribute setting file
+            attribute_setting_file = attribute_setting_dir + 'attribute_setting_' + num + '.txt'
+            # Get class setting file
+            class_setting_file = class_setting_dir + 'class_setting_' + num + '.txt'
+            # Get ground_truth file
+            ground_truth_file = ground_truth_dir + 'ground_truth_' + num + '.txt'
+            # Generate ground_truth
+            generate_ground_truth()
 
 

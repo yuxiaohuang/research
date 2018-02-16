@@ -20,14 +20,14 @@ import random
 # _LL_Dic : indicates the data structure is a dictionary, where the value is a list of list
 
 
-# Generate source and target data
+# Generate x and y data
 def generate_data():
-    # Load the source setting file
-    with open(src_setting_file, 'r') as f:
+    # Load the x setting file
+    with open(attribute_setting_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
 
-        # Get the source list
-        src_L = []
+        # Get the x list
+        x_L = []
 
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
@@ -37,35 +37,35 @@ def generate_data():
             num_Dic[var] = num
             prob = float(spamreader[i][2].strip())
             prob_Dic[var] = prob
-            # Update the source list
-            src_L.append(var)
+            # Update the x list
+            x_L.append(var)
 
     random.seed()
 
-    # Generate the source value
+    # Generate the x value
     for time in range(time_num):
-        for source in src_L:
+        for x in x_L:
             # Initialization
             if not time in val_Dic:
                 val_Dic[time] = {}
-            val_Dic[time][source] = 0
+            val_Dic[time][x] = 0
             # Generate random number from [0, 1)
             rand_prob = random.random()
-            if rand_prob < prob_Dic[source]:
-                val_Dic[time][source] = 1
+            if rand_prob < prob_Dic[x]:
+                val_Dic[time][x] = 1
 
-    # Load the interaction file
-    with open(interaction_file, 'r') as f:
+    # Load the ground_truth file
+    with open(ground_truth_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
-        # Get the target, probability and interaction
+        # Get the y, probability and ground_truth
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
-            # Target lies in the first column in each row
-            target = spamreader[i][0].strip()
+            # y lies in the first column in each row
+            y = spamreader[i][0].strip()
             # Probability lies in the second column in each row
             prob = float(spamreader[i][1].strip())
-            # interaction lies in the remaining columns, with the form component_i, win_start_i, win_end_i
-            interaction_LL = []
+            # ground_truth lies in the remaining columns, with the form component_i, win_start_i, win_end_i
+            ground_truth_LL = []
             component_num = (len(spamreader[i]) - 2) // 3
             for j in range(component_num):
                 component_L = []
@@ -75,17 +75,17 @@ def generate_data():
                 component_L.append(int(spamreader[i][j * 3 + 3].strip()))
                 # Window end
                 component_L.append(int(spamreader[i][j * 3 + 4].strip()))
-                interaction_LL.append(component_L)
-            if not target in prob_interaction_L_Dic:
-                prob_interaction_L_Dic[target] = []
-            prob_interaction_L_Dic[target].append([prob, interaction_LL])
+                ground_truth_LL.append(component_L)
+            if not y in prob_ground_truth_L_Dic:
+                prob_ground_truth_L_Dic[y] = []
+            prob_ground_truth_L_Dic[y].append([prob, ground_truth_LL])
 
-    # Load the target setting file
-    with open(tar_setting_file, 'r') as f:
+    # Load the y setting file
+    with open(class_setting_file, 'r') as f:
         spamreader = list(csv.reader(f, delimiter = ','))
 
-        # Initialize the target list
-        tar_L = []
+        # Initialize the y list
+        y_L = []
 
         # From the second line to the last (since the first line is the header)
         for i in range(1, len(spamreader)):
@@ -93,36 +93,36 @@ def generate_data():
             var = spamreader[i][0].strip()
             prob = float(spamreader[i][1].strip())
             prob_Dic[var] = prob
-            # Update the target list
-            tar_L.append(var)
+            # Update the y list
+            y_L.append(var)
 
-    # Generate the target value
-    for target in tar_L:
+    # Generate the y value
+    for y in y_L:
         # Initialization
         for time in sorted(val_Dic.keys()):
             rand_prob = random.random()
-            if rand_prob < prob_Dic[target]:
+            if rand_prob < prob_Dic[y]:
                 # Add noise
-                val_Dic[time][target] = 1
+                val_Dic[time][y] = 1
             else:
-                val_Dic[time][target] = 0
+                val_Dic[time][y] = 0
 
-        # Add the impact of the interactions
+        # Add the impact of the ground truth
         for time in sorted(val_Dic.keys()):
-            if val_Dic[time][target] == 1:
+            if val_Dic[time][y] == 1:
                 continue
 
-            for [prob, interaction_LL] in prob_interaction_L_Dic[target]:
-                if get_presence(time, interaction_LL) is True:
+            for [prob, ground_truth_LL] in prob_ground_truth_L_Dic[y]:
+                if get_presence(time, ground_truth_LL) is True:
                     # Generate random number from [0, 1]
                     rand_prob = random.uniform(0, 1)
                     if rand_prob < prob:
-                        val_Dic[time][target] = 1
+                        val_Dic[time][y] = 1
                         break
 
     # Write the raw data file
     # Write the header
-    header_L = src_L + tar_L
+    header_L = x_L + y_L
     spamwriter.writerow(header_L)
     # Write the value
     for time in range(time_num):
@@ -131,9 +131,9 @@ def generate_data():
 
 
 # Check the presence of each component in the pie
-def get_presence(time, interaction_LL):
+def get_presence(time, ground_truth_LL):
     # Check the presence of each component in the pie
-    for component_L in interaction_LL:
+    for component_L in ground_truth_LL:
         # Get the var_val, window start and window end of the component
         var_val = component_L[0]
         var = var_val[:-2]
@@ -145,9 +145,9 @@ def get_presence(time, interaction_LL):
         # Default is absence
         presence_F = False
         for prev_time in range(time - win_end, time - win_start + 1):
-            # If the var is measured at the time, and the value at the time equals the one that is necessary to produce the target
+            # If the var is measured at the time, and the value at the time equals the one that is necessary to produce the y
             # if prev_time in val_Dic and val_Dic[prev_time][var] == 1:
-            if prev_time in val_Dic and val_Dic[prev_time][var] == int(val): # This new implementation allows negation to enter the interaction
+            if prev_time in val_Dic and val_Dic[prev_time][var] == int(val): # This new implementation allows negation to enter the ground_truth
                 presence_F = True
 
         # If the component is absent in the window above
@@ -162,9 +162,9 @@ def get_presence(time, interaction_LL):
 if __name__=="__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    src_setting_dir = sys.argv[1]
-    tar_setting_dir = sys.argv[2]
-    interaction_dir = sys.argv[3]
+    attribute_setting_dir = sys.argv[1]
+    class_setting_dir = sys.argv[2]
+    ground_truth_dir = sys.argv[3]
     raw_data_dir = sys.argv[4]
     time_num = int(sys.argv[5])
 
@@ -173,18 +173,18 @@ if __name__=="__main__":
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for src_setting_file in os.listdir(src_setting_dir):
-        if not src_setting_file.startswith('.') and src_setting_file.endswith(".txt"):
+    for attribute_setting_file in os.listdir(attribute_setting_dir):
+        if not attribute_setting_file.startswith('.') and attribute_setting_file.endswith(".txt"):
             # Get src setting file number
-            num = src_setting_file
-            num = num.replace('src_setting_', '')
+            num = attribute_setting_file
+            num = num.replace('attribute_setting_', '')
             num = num.replace('.txt', '')
             # Get src setting file
-            src_setting_file = src_setting_dir + 'src_setting_' + num + '.txt'
+            attribute_setting_file = attribute_setting_dir + 'attribute_setting_' + num + '.txt'
             # Get tar setting file
-            tar_setting_file = tar_setting_dir + 'tar_setting_' + num + '.txt'
-            # Get interaction file
-            interaction_file = interaction_dir + 'interaction_' + num + '.txt'
+            class_setting_file = class_setting_dir + 'class_setting_' + num + '.txt'
+            # Get ground_truth file
+            ground_truth_file = ground_truth_dir + 'ground_truth_' + num + '.txt'
             # Get raw data
             raw_data_file = raw_data_dir + 'data_' + num + '.txt'
 
@@ -193,15 +193,15 @@ if __name__=="__main__":
             # val: value of var at the time
             val_Dic = {}
 
-            # The dictionary of probabiity and interaction
-            # key: target
-            # val: list comprised of probability and the interactions
-            prob_interaction_L_Dic = {}
+            # The dictionary of probabiity and ground_truth
+            # key: y
+            # val: list comprised of probability and the ground truth
+            prob_ground_truth_L_Dic = {}
 
-            # The dictionary of the number of times of the variable (source and target) being present
+            # The dictionary of the number of times of the variable (x and y) being present
             num_Dic = {}
 
-            # The dictionary of the probability of the variable (source and target) being present
+            # The dictionary of the probability of the variable (x and y) being present
             prob_Dic = {}
 
             # Write the raw data file

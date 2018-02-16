@@ -54,52 +54,52 @@ interaction_LL = []
 
 
 # Call classification in a parallel fashion
-def parallel(src_data_training_file):
-    if not src_data_training_file.startswith('.') and src_data_training_file.endswith(".txt"):
-        tar_data_training_file = tar_data_training_dir + src_data_training_file.replace('src', 'tar')
-        src_data_testing_file = src_data_testing_dir + src_data_training_file.replace('train', 'test')
-        tar_data_testing_file = tar_data_testing_dir + src_data_training_file.replace('src', 'tar').replace('train',
+def parallel(attribute_data_training_file):
+    if not attribute_data_training_file.startswith('.') and attribute_data_training_file.endswith(".txt"):
+        class_data_training_file = class_data_training_dir + attribute_data_training_file.replace('attribute', 'class')
+        attribute_data_testing_file = attribute_data_testing_dir + attribute_data_training_file.replace('train', 'test')
+        class_data_testing_file = class_data_testing_dir + attribute_data_training_file.replace('attribute', 'class').replace('train',
                                                                                                             'test')
-        src_data_training_file = src_data_training_dir + src_data_training_file
+        attribute_data_training_file = attribute_data_training_dir + attribute_data_training_file
 
         # Write the name of the dataset
-        f.write(src_data_training_file.replace('src_data_', '') + '\n')
+        f.write(attribute_data_training_file.replace('attribute_data_', '') + '\n')
 
         # Classification
-        classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file)
+        classification(attribute_data_training_file, class_data_training_file, attribute_data_testing_file, class_data_testing_file)
 
 
 # Classification
-def classification(src_data_training_file, tar_data_training_file, src_data_testing_file, tar_data_testing_file):
+def classification(attribute_data_training_file, class_data_training_file, attribute_data_testing_file, class_data_testing_file):
     # Get X_training_L and y_training_L
     global X_training_L, y_training_L
-    [X_training_L, y_training_L] = get_feature_and_class_vectors(src_data_training_file, tar_data_training_file)
+    [X_training_L, y_training_L] = get_feature_and_class_vectors(attribute_data_training_file, class_data_training_file)
 
     # Get X_testing_L and y_testing_L
     global X_testing_L, y_testing_L
-    [X_testing_L, y_testing_L] = get_feature_and_class_vectors(src_data_testing_file, tar_data_testing_file)
+    [X_testing_L, y_testing_L] = get_feature_and_class_vectors(attribute_data_testing_file, class_data_testing_file)
 
     # Get name_val_L
     global name_val_L
     name_val_L = []
     for var in sorted(val_Dic[1].keys()):
-        if 'target' in var or 'tar' in var or 'class' in var:
+        if 'class' in var:
             name_val_L.append(var)
 
     # Get feature_val_L
     global feature_val_L
     feature_val_L = []
     for var in sorted(val_Dic[1].keys()):
-        if not 'target' in var and not 'tar' in var and not 'class' in var:
+        if not 'class' in var:
             feature_val_L.append(var)
 
     global model, run_time
 
-    # Decision tree
-    decision_tree(src_data_training_file)
+    # # Decision tree
+    # decision_tree(attribute_data_training_file)
 
-    # # Random forest
-    # random_forest(src_data_training_file)
+    # Random forest
+    random_forest(attribute_data_training_file)
 
     # # SVM
     # svm()
@@ -115,16 +115,16 @@ def classification(src_data_training_file, tar_data_training_file, src_data_test
 
 
 # Get feature and class vectors
-def get_feature_and_class_vectors(src_data_file, tar_data_file):
+def get_feature_and_class_vectors(attribute_data_file, class_data_file):
     # Initialization
     global val_Dic
     val_Dic = {}
 
-    # Load src file
-    load_data(src_data_file)
+    # Load attribute file
+    load_data(attribute_data_file)
 
-    # Load tar file
-    load_data(tar_data_file)
+    # Load class file
+    load_data(class_data_file)
 
     # Get feature vectors, X_LL and y_LL
     X_LL = get_feature_vector('X')
@@ -162,8 +162,8 @@ def get_feature_vector(X_y_F):
         val_L = []
 
         for var in sorted(val_Dic[time].keys()):
-            if ((X_y_F == 'X' and ('target' in var or 'tar' in var or 'class' in var))
-                or (X_y_F == 'y' and (not 'target' in var and not 'tar' in var and not 'class' in var))):
+            if ((X_y_F == 'X' and 'class' in var)
+                or (X_y_F == 'y' and (not 'class' in var))):
                 continue
 
             val = val_Dic[time][var]
@@ -174,7 +174,7 @@ def get_feature_vector(X_y_F):
 
 
 # Decision tree
-def decision_tree(src_data_training_file):
+def decision_tree(attribute_data_training_file):
     f.write('decision tree' + '\n')
 
     col = -1
@@ -212,7 +212,7 @@ def decision_tree(src_data_training_file):
 
         # Decision tree file
         decision_tree_file = os.path.dirname(statistics_file) + '/tree/' + os.path.basename(
-            src_data_training_file).replace("src_data", "tree")
+            attribute_data_training_file).replace("attribute_data", "tree")
         decision_tree_file = decision_tree_file.replace(".txt", "")
         decision_tree_file += os.path.basename(statistics_file).replace("statistics_classification", "")
         decision_tree_file = decision_tree_file.replace(".txt", ".dot")
@@ -238,7 +238,7 @@ def decision_tree(src_data_training_file):
 
         # Interaction file
         Interaction_file = os.path.dirname(statistics_file) + '/interaction/' + os.path.basename(
-            src_data_training_file).replace("src_data", "interaction")
+            attribute_data_training_file).replace("attribute_data", "interaction")
         Interaction_file = Interaction_file.replace(".txt", "")
         Interaction_file += os.path.basename(statistics_file).replace("statistics_classification", "")
 
@@ -288,7 +288,7 @@ def helper(tree_, node, interaction_L, y):
         temp_left = list(interaction_L)
         feature_val = feature_val_L[tree_.feature[node]]
         # If one-hot encoding
-        if '_' in feature_val.replace('src_', ''):
+        if '_' in feature_val.replace('attribute_', ''):
             if feature_val[-1:] == '0':
                 feature_val_left = feature_val[:-1] + '1'
             elif feature_val[-1:] == '1':
@@ -304,7 +304,7 @@ def helper(tree_, node, interaction_L, y):
         temp_right = list(interaction_L)
         feature_val = feature_val_L[tree_.feature[node]]
         # If one-hot encoding
-        if '_' in feature_val.replace('src_', ''):
+        if '_' in feature_val.replace('attribute_', ''):
             if feature_val[-1:] == '0' or feature_val[-1:] == '1':
                 feature_val_right = feature_val
             else:
@@ -316,7 +316,7 @@ def helper(tree_, node, interaction_L, y):
 
 
 # Random forest
-def random_forest(src_data_training_file):
+def random_forest(attribute_data_training_file):
     f.write('random forest' + '\n')
 
     col = -1
@@ -356,7 +356,7 @@ def random_forest(src_data_training_file):
         indices = np.argsort(importances)[::-1]
 
         # Feature importance text file
-        importance_txt_file = os.path.dirname(statistics_file) + '/importance_txt/' + os.path.basename(src_data_training_file).replace("src", "importance_txt")
+        importance_txt_file = os.path.dirname(statistics_file) + '/importance_txt/' + os.path.basename(attribute_data_training_file).replace("attribute", "importance_txt")
         importance_txt_file = importance_txt_file.replace(".txt", "")
         importance_txt_file += os.path.basename(statistics_file).replace("statistics_classification", "")
 
@@ -375,7 +375,7 @@ def random_forest(src_data_training_file):
 
         # Feature importance histogram figure
         importance_hist_fig = os.path.dirname(statistics_file) + '/importance_hist/' + os.path.basename(
-            src_data_training_file).replace("src", "importance_hist")
+            attribute_data_training_file).replace("attribute", "importance_hist")
         importance_hist_fig = importance_hist_fig.replace(".txt", "")
         importance_hist_fig += os.path.basename(statistics_file).replace("statistics_classification", "")
         importance_hist_fig = importance_hist_fig.replace(".txt", ".pdf")
@@ -705,17 +705,17 @@ def get_statistics_all():
 if __name__ == "__main__":
     # get parameters from command line
     # please see details of the parameters in the readme file
-    src_data_training_dir = sys.argv[1]
-    tar_data_training_dir = sys.argv[2]
-    src_data_testing_dir = sys.argv[3]
-    tar_data_testing_dir = sys.argv[4]
+    attribute_data_training_dir = sys.argv[1]
+    class_data_training_dir = sys.argv[2]
+    attribute_data_testing_dir = sys.argv[3]
+    class_data_testing_dir = sys.argv[4]
     statistics_file = sys.argv[5]
     statistics_all_file = sys.argv[6]
 
     with open(statistics_file, 'w') as f:
         num_cores = 10
         p = Pool(num_cores)
-        p.map(parallel, os.listdir(src_data_training_dir))
+        p.map(parallel, os.listdir(attribute_data_training_dir))
 
     with open(statistics_all_file, 'w') as f_all:
         # Get statistics across all datasets

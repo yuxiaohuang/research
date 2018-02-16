@@ -34,14 +34,14 @@ def generate_setting(type):
         var_num = random.randint(var_num_range_L[0], var_num_range_L[1])
 
         for i in range(var_num):
-            if type == 'src':
+            if type == 'attribute':
                 # Get the number of times
                 num = random.randint(num_range_L[0], num_range_L[1])
 
             # Get the probability
             prob = random.uniform(prob_range_L[0], prob_range_L[1])
 
-            if type == 'src':
+            if type == 'attribute':
                 # Write the var, num and probability
                 spamwriter.writerow([type + '_' + str(i), num, prob])
             else:
@@ -59,7 +59,7 @@ if __name__=="__main__":
     setting_num = int(sys.argv[3])
     var_num_range_L = [int(sys.argv[4]), int(sys.argv[5])]
     prob_range_L = [float(sys.argv[6]), float(sys.argv[7])]
-    if type == 'src':
+    if type == 'attribute':
         num_range_L = [int(sys.argv[8]), int(sys.argv[9])]
 
     # Make directory

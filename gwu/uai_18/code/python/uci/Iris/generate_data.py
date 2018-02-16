@@ -28,7 +28,7 @@ file_type = ".txt"
 delimiter_type = ','
 
 # Flag, indicating whether there is a header (1, yes; 0, no)
-header = 1
+header = 0
 
 # The row number
 row_num = 0
@@ -41,10 +41,10 @@ col_num = 0
 class_col = -1
 
 # The list of class values we are interested in
-class_val_L = ['1']
+class_val_L = ['Iris-virginica']
 
 # The columns of continuous features
-con_feature_col_L = []
+con_feature_col_L = range(4)
 
 # The list of number of bins
 bins_num_L = []
@@ -66,7 +66,7 @@ training_percentage = 0.8
 training_iteration = 1
 
 # The number of repetition of experiments
-interation_num = 1
+interation_num = 100
 
 # The dictionary of value of each var at each time
 # key: time->var
@@ -148,7 +148,7 @@ def generate_data():
 
             # The row number
             global row_num
-            row_num = len(spamreader)
+            row_num = 150
 
             # The column number
             global col_num
