@@ -1,3 +1,0 @@
-
-# Here is the command for generating the script 
-python /home/yuxiaohuang/research/gwu/uai_18/code/python/generate_script.py /home/yuxiaohuang/research/gwu/uai_18/code/python/knowledge_discovery.py /home/yuxiaohuang/research/gwu/uai_18/script/ /home/yuxiaohuang/research/gwu/uai_18/data/uci_data/Iris/attribute/training/ /home/yuxiaohuang/research/gwu/uai_18/data/uci_data/Iris/class/training/ /home/yuxiaohuang/research/gwu/uai_18/result/knowledge/ /home/yuxiaohuang/research/gwu/uai_18/result/log/ 100 0 0.01 0.01 1

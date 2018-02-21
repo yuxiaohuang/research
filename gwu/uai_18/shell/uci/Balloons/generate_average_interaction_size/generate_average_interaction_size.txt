@@ -1,7 +1,0 @@
-
-# Here is the command for generating the average interaction size 
-
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_average_interaction_size.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/interaction/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/average_interaction_result_size.txt 0
-
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_average_interaction_size_decision_tree.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/decision_tree/interaction/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/classification/decision_tree/statistics_interaction/average_interaction_result_size.txt
-

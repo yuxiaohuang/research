@@ -1,3 +1,0 @@
-
-# Run command_results
-(time /home/yuxiaohuang/research/gwu/uai_18/shell/command/classification/command_result_classification.txt) 2> /home/yuxiaohuang/research/gwu/uai_18/result/statistics/classification/time.txt

@@ -1,0 +1,3 @@
+
+# Here is the command for generating the script 
+python /home/yuxiaohuang/research/gwu/uai_18/code/python/ours/generate_script.py /home/yuxiaohuang/research/gwu/uai_18/code/python/ours/driver.py /home/yuxiaohuang/research/gwu/uai_18/script/ours/ /home/yuxiaohuang/research/gwu/uai_18/data/uci/test/ /home/yuxiaohuang/research/gwu/uai_18/result/ours/weight/ /home/yuxiaohuang/research/gwu/uai_18/result/ours/mse/ /home/yuxiaohuang/research/gwu/uai_18/result/ours/prediction/ /home/yuxiaohuang/research/gwu/uai_18/result/ours/statistics/ None None

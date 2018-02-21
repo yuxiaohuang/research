@@ -1,0 +1,4 @@
+
+for myfile in /home/yuxiaohuang/research/gwu/uai_18/shell/generate_script/others/*.txt;         
+do (sh $myfile)  
+done

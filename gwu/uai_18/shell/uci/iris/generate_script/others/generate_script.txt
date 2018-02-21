@@ -1,0 +1,3 @@
+
+# Here is the command for generating the script 
+python /Users/yhuang/Desktop/uai_18/code/python/others/generate_script.py /Users/yhuang/Desktop/uai_18/code/python/others/driver.py /Users/yhuang/Desktop/uai_18/script/others/ /Users/yhuang/Desktop/uai_18/data/uci/iris/ /Users/yhuang/Desktop/uai_18/result/others/statistics/
