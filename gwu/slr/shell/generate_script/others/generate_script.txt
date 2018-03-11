@@ -1,0 +1,3 @@
+
+# Here is the command for generating the script 
+python /home/yuxiaohuang/research/gwu/slr/code/python/others/generate_script.py /home/yuxiaohuang/research/gwu/slr/code/python/others/driver.py /home/yuxiaohuang/research/gwu/slr/script/others/ /home/yuxiaohuang/research/gwu/slr/data/uci/test/ /home/yuxiaohuang/research/gwu/slr/result/others/statistics/ /home/yuxiaohuang/research/gwu/slr/result/others/probabilities/

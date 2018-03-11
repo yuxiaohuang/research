@@ -1,0 +1,12 @@
+
+module load python
+
+count=0;
+
+NR_procs=10;
+
+for myfile in /home/yuxiaohuang/research/gwu/slr/script/others/*.txt;         
+    do (sh $myfile) &
+    let count+=1
+    [[ $((count % NR_procs)) -eq 0 ]] && wait
+done

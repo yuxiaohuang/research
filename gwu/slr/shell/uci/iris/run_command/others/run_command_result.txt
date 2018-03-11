@@ -1,0 +1,3 @@
+
+# Run command_results
+(time /Users/yhuang/Desktop/uai_18/shell/command/others/command_result.txt) 2> /Users/yhuang/Desktop/uai_18/result/others/time.txt

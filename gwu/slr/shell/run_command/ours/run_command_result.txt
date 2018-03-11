@@ -1,0 +1,3 @@
+
+# Run command_results
+(time /home/yuxiaohuang/research/gwu/slr/shell/command/ours/command_result.txt) 2> /home/yuxiaohuang/research/gwu/slr/result/ours/time.txt
