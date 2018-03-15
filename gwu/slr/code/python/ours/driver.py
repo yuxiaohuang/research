@@ -28,8 +28,14 @@ target = -1
 # The categorical features, empty by default
 categorical_features = []
 
-# The features
+# The features for Iris
 features = ['Sepal length', 'Sepal width', 'Petal length', 'Petal width']
+
+# The features for breast-cancer-wisconsin
+# features = ['Clump Thickness', 'Uniformity of Cell Size', 'Uniformity of Cell Shape', 'Marginal Adhesion', 'Single Epithelial Cell Size', 'Bare Nuclei', 'Bland Chromatin', 'Normal Nucleoli', 'Mitoses', 'class']
+
+# The features for Wine
+# features = ['Alcohol', 'Malic acid', 'Ash', 'Alcalinity of ash', 'Magnesium', 'Total phenols', 'Flavanoids', 'Nonflavanoid phenols', 'Proanthocyanins', 'Color intensity', 'Hue', 'OD280_OD315 of diluted wines', 'Proline']
 
 # The percentage of the testing set, 0.3 by default
 test_size = 0.3
@@ -88,15 +94,9 @@ def data_preprocessing():
 
 
 # Get the SimpleLogisticRegression classifier
-def get_slg(max_iter, eta):
-    if max_iter.isdigit() is False and eta.isdigit() is False:
-        slg = SimpleLogisticRegression.SimpleLogisticRegression()
-    elif max_iter.isdigit() is True and eta.isdigit() is False:
-        slg = SimpleLogisticRegression.SimpleLogisticRegression(max_iter=int(max_iter))
-    elif max_iter.isdigit() is False and eta.isdigit() is True:
-        slg = SimpleLogisticRegression.SimpleLogisticRegression(eta=float(eta))
-    else:
-        slg = SimpleLogisticRegression.SimpleLogisticRegression(max_iter=int(max_iter), eta=float(eta))
+def get_slg(max_iter, C, min_bin_size):
+    # Use default value
+    slg = SimpleLogisticRegression.SimpleLogisticRegression()
 
     return slg
 
@@ -110,12 +110,21 @@ def get_weights():
 
         # For each unique value of the target
         for yu in slg.ws_:
+            # Transform labels back to original encoding
+            yu_str = str(target_le.inverse_transform(yu))
+
             # For each xj
             for j in slg.ws_[yu]:
-                wj0 = slg.ws_[yu][j][0]
-                wj1 = slg.ws_[yu][j][1]
-                f.write(str(yu) + ', ' + str(j) + ', ' + str(wj0) + ', ' + str(wj1) + '\n')
-                f.flush()
+                # For each bin
+                for bin in slg.ws_[yu][j]:
+                    wj0 = slg.ws_[yu][j][bin][0]
+                    wj1 = slg.ws_[yu][j][bin][1]
+
+                    if j == 0:
+                        f.write(str(yu_str) + ', latent, ' + str(slg.bins_[j]) + ', ' + str(wj0) + ', ' + str(wj1) + '\n')
+                    else:
+                        f.write(str(yu_str) + ', ' + features[j - 1] + ', ' + str([slg.bins_[j][bin], slg.bins_[j][bin + 1]]) + ', ' + str(wj0) + ', ' + str(wj1) + '\n')
+                    f.flush()
 
 
 # Get the mse figure
@@ -195,7 +204,7 @@ def get_probabilities():
         # For each unique value of the target
         for yu in slg.ws_:
             # Transform labels back to original encoding
-            yu_str = target_le.inverse_transform(yu)
+            yu_str = str(target_le.inverse_transform(yu))
 
             # For each xj
             for j in range(X.shape[1] + 1):
@@ -266,13 +275,14 @@ if __name__ == "__main__":
     statistics_file = sys.argv[5]
     probabilities_file = sys.argv[6]
     max_iter = sys.argv[7]
-    eta = sys.argv[8]
+    C = sys.argv[8]
+    min_bin_size = sys.argv[9]
 
     # Data preprocessing
     X, y, X_train, X_test, y_train, y_test = data_preprocessing()
 
     # Get the SimpleLogisticRegression classifier
-    slg = get_slg(max_iter, eta)
+    slg = get_slg(max_iter, C, min_bin_size)
 
     # The fit function
     slg.fit(X_train, y_train)

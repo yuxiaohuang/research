@@ -9,7 +9,7 @@ import os
 # Generate the script
 def generate_script():
     # Get the script
-    script = 'python' + ' ' + py_file + ' ' + data_file + ' ' + weight_file + ' ' + mse_fig + ' ' + prediction_file + ' ' + statistics_file + ' ' + probabilities_file + ' ' + max_iter + ' ' + eta
+    script = 'python' + ' ' + py_file + ' ' + data_file + ' ' + weight_file + ' ' + mse_fig + ' ' + prediction_file + ' ' + statistics_file + ' ' + probabilities_file + ' ' + max_iter + ' ' + C + ' ' + min_bin_size
 
     # Write the script file
     with open(script_file, 'w') as f:
@@ -30,7 +30,8 @@ if __name__=="__main__":
     statistics_dir = sys.argv[7]
     probabilities_dir = sys.argv[8]
     max_iter = sys.argv[9]
-    eta = sys.argv[10]
+    C = sys.argv[10]
+    min_bin_size = sys.argv[11]
 
     # Make script_dir
     directory = os.path.dirname(script_dir)

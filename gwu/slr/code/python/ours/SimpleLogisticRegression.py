@@ -2,22 +2,22 @@
 
 
 # Modules
+import pandas as pd
 import numpy as np
 import math
-from numpy import prod
-from operator import itemgetter
 
 
 class SimpleLogisticRegression:
-    def __init__(self, max_iter=100, c=1, eta=0.1):
+    def __init__(self, max_iter=100, C=1, min_bin_size=3):
         # Initialize the maximum iteration
         self.max_iter = max_iter
 
         # Initialize c
-        self.c = c
+        self.C = C
 
-        # Initialize the learning rate
-        self.eta_ = eta
+        self.min_bin_size_ = min_bin_size
+
+        self.bins_ = {}
 
         # Initialize the dictionary of weights (w0 and w1)
         self.ws_ = {}
@@ -42,6 +42,18 @@ class SimpleLogisticRegression:
         self : object
             Returns self.
         """
+
+        # For each xj
+        for j in range(X.shape[1] + 1):
+            if j == 0:
+                # Initialize the dictionary of bins
+                self.bins_[j] = [1, 1]
+            else:
+                xus = np.unique(X[:, j - 1])
+                bin_num = len(xus) / self.min_bin_size_
+                out, bins = pd.cut(X[:, j - 1], bin_num, retbins=True)
+                # Initialize the dictionary of bins
+                self.bins_[j] = bins
 
         # Initialize the dictionary of ws
         self.ws_ = {}
@@ -80,19 +92,20 @@ class SimpleLogisticRegression:
                 for j in range(X.shape[1] + 1):
                     # Initialize the dictionary of ws for xj
                     if j not in self.ws_[yu]:
-                        self.ws_[yu][j] = [1, 1]
+                        self.ws_[yu][j] = {}
 
-                # Initialize the dictionary of delta_ws (delta_w0 and delta_w1)
-                delta_ws = {}
+                    # Initialize the dictionary of ws for bin
+                    for bin in range(len(self.bins_[j]) - 1):
+                        if bin not in self.ws_[yu][j]:
+                            self.ws_[yu][j][bin] = [0, 0]
 
                 # Initialize the dictionary of product of all ujs for yu
                 prod_ujs = self.get_prod_ujs(X, yu)
 
                 # For each xj
                 for j in self.ws_[yu]:
-                    # Initialize the dictionary of delta_ws (delta_w0 and delta_w1) for xj
-                    if j not in delta_ws:
-                        delta_ws[j] = [0, 0]
+                    # Initialize the dictionary of delta_wij
+                    delta_wij = {}
 
                     # For each row
                     for i in range(X.shape[0]):
@@ -114,30 +127,36 @@ class SimpleLogisticRegression:
                         else:
                             xij = X[i][j - 1]
 
+                        bin = self.get_bin(xij, j)
+
                         # Get delta_w0 of xj at row i
-                        delta_wij0 = (fi - 1 + prod_uijs) * pij / (1 - prod_uijs) * -1
+                        delta_wij0 = (fi + prod_uijs - 1) * prod_uijs * pij * -1 / self.C
 
                         # Get delta_w1 of xj at row i
-                        delta_wij1 = (fi - 1 + prod_uijs) * pij / (1 - prod_uijs) * -xij
+                        delta_wij1 = (fi + prod_uijs - 1) * prod_uijs * pij * -xij / self.C
+
+                        if bin not in delta_wij:
+                            delta_wij[bin] = [0, 0]
 
                         # Update delta_w0 of xj
-                        delta_ws[j][0] += delta_wij0
+                        delta_wij[bin][0] += delta_wij0 * -1
 
                         # Update delta_w1 of xj
-                        delta_ws[j][1] += delta_wij1
+                        delta_wij[bin][1] += delta_wij1 * -1
 
-                    # Update delta_wj0 and delta_wj1
-                    delta_ws[j][0] *= -self.eta_
-                    delta_ws[j][1] *= -self.eta_
-
-                # For each xj
-                for j in self.ws_[yu]:
-                    # Update the dictionary of wights (w0 and w1)
-                    self.ws_[yu][j][0] += delta_ws[j][0]
-                    self.ws_[yu][j][1] += delta_ws[j][1]
+                    for bin in delta_wij:
+                        self.ws_[yu][j][bin][0] += delta_wij[bin][0]
+                        self.ws_[yu][j][bin][1] += delta_wij[bin][1]
 
             # Update the mses
             self.update_mses(iteration, X, y)
+
+    def get_bin(self, xij, j):
+        for idx in range(1, len(self.bins_[j])):
+            if xij <= self.bins_[j][idx]:
+                return idx - 1
+
+        return len(self.bins_[j]) - 2
 
     # Get the product of all ujs for yu
     def get_prod_ujs(self, X, yu):
@@ -171,15 +190,18 @@ class SimpleLogisticRegression:
 
     # Get pij
     def get_pij(self, X, yu, i, j):
-        # Get wj0 and wj1
-        wj0 = self.ws_[yu][j][0]
-        wj1 = self.ws_[yu][j][1]
-
         # Get xij
         if j == 0:
             xij = 1
         else:
             xij = X[i][j - 1]
+
+        # Get bin
+        bin = self.get_bin(xij, j)
+
+        # Get wj0 and wj1
+        wj0 = self.ws_[yu][j][bin][0]
+        wj1 = self.ws_[yu][j][bin][1]
 
         # Get zij
         zij = wj0 + wj1 * xij
@@ -249,7 +271,7 @@ class SimpleLogisticRegression:
                 yu_probs.append([yu, prob])
 
             # Sort yu_probs in descending order of prob
-            yu_probs = sorted(yu_probs, key=itemgetter(1), reverse=True)
+            yu_probs = sorted(yu_probs, key=lambda x: x[1], reverse=True)
 
             # Update yu_probs_log
             yu_probs_log.append(yu_probs)
