@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Run script for generating the setting###-----------------------------------------------------------------------------------------
+
+/home/yuxiaohuang/research/gwu/ala/code/shell/script/ours/generate_setting.txt

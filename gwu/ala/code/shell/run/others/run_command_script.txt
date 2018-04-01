@@ -1,0 +1,3 @@
+
+# Run command_data
+/home/yuxiaohuang/research/gwu/slr/shell/command/others/command_script.txt

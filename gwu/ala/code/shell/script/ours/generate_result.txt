@@ -1,0 +1,12 @@
+###-----------------------------------------------------------------------------------------
+### Run command for generating the result###-----------------------------------------------------------------------------------------
+
+count=0;
+
+NR_procs=10;
+
+for setting_file in /home/yuxiaohuang/research/gwu/ala/setting/ours/*.txt;         
+    do (python /home/yuxiaohuang/research/gwu/ala/code/python/ours/generate_result.py $setting_file) &
+    let count+=1
+    [[ $((count % NR_procs)) -eq 0 ]] && wait
+done

@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Run command for generating the setting ###-----------------------------------------------------------------------------------------
+
+python /home/yuxiaohuang/research/gwu/ala/code/python/ours/generate_setting.py /home/yuxiaohuang/research/gwu/ala/data/ /home/yuxiaohuang/research/gwu/ala/setting/ours/ /home/yuxiaohuang/research/gwu/ala/result/ours/ 'target' 'Sepal length', 'Sepal width', 'Petal length', 'Petal width', 'target'
