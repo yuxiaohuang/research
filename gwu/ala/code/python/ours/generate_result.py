@@ -62,8 +62,8 @@ class Setting:
         # The maximum number of iterations, 100 by default
         self.max_iter = 100
 
-        # The number of bins for ALA, 2 by default
-        self.bin_num = 2
+        # The minimum number of samples in each bin, 3 by default
+        self.min_samples_bin = 3
 
         # The value of C, 1 by default
         self.C = 1
@@ -119,7 +119,7 @@ class Setting:
                            'scaler',
                            'random_state',
                            'max_iter',
-                           'bin_num',
+                           'min_samples_bin',
                            'C',
                            'mse_fig_dir',
                            'mse_fig_name',
@@ -292,8 +292,8 @@ def get_para_vals(setting, para_name, vals):
         setting.random_state = int(vals)
     elif para_name == 'max_iter':
         setting.max_iter = int(vals)
-    elif para_name == 'bin_num':
-        setting.bin_num = int(vals)
+    elif para_name == 'min_samples_bin':
+        setting.min_samples_bin = int(vals)
     elif para_name == 'C':
         setting.C = int(vals)
     elif para_name == 'mse_fig_dir':
@@ -483,8 +483,6 @@ def write_score_file(setting, y_test, y_pred):
     score_file = setting.score_file_dir + setting.score_file_name + setting.score_file_type
 
     with open(score_file, 'w') as f:
-        print(y_pred)
-        print(y_test)
         precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average)
 
         # Write header
@@ -502,7 +500,7 @@ if __name__ == "__main__":
     setting, data = pipe_line(setting_file)
 
     # Declare the ALA classifier
-    ala = ALA.ALA(setting.max_iter, setting.bin_num, setting.C)
+    ala = ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C)
 
     # Train ala
     ala.fit(data.X_train, data.y_train)
