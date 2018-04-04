@@ -6,8 +6,18 @@ import os
 import csv
 import pandas as pd
 import numpy as np
+
 import matplotlib.pyplot as plt
+SIZE = 30
+plt.rc('font', size=SIZE)          # text size
+plt.rc('axes', titlesize=SIZE)     # axes title size
+plt.rc('axes', labelsize=SIZE)     # x and y labels size
+plt.rc('xtick', labelsize=SIZE)    # xtick size
+plt.rc('ytick', labelsize=SIZE)    # ytick size
+plt.rc('legend', fontsize=SIZE)    # legend size
+plt.rc('figure', titlesize=SIZE)   # figure title size
 plt.switch_backend('agg')
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -62,8 +72,8 @@ class Setting:
         # The maximum number of iterations, 100 by default
         self.max_iter = 100
 
-        # The minimum number of samples in each bin, 3 by default
-        self.min_samples_bin = 3
+        # The minimum number of samples in each bin, 2 by default
+        self.min_samples_bin = 2
 
         # The value of C, 1 by default
         self.C = 1
@@ -233,7 +243,8 @@ def pipe_line(setting_file):
     X = df.drop([setting.target], axis=1)
 
     # One-hot encoding on categorical features
-    X = pd.get_dummies(X, columns=setting.categorical_features).values
+    if len(setting.categorical_features) > 0:
+        X = pd.get_dummies(X, columns=setting.categorical_features).values
 
     # Get the target vector
     y = df[setting.target]
@@ -400,7 +411,7 @@ def plot_prob_dist_fig(setting, X, ala):
         for j in sorted(ala.prob_dist_dict_[yu].keys()):
             xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
             pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
-            xijs_orig = [1] if j == 0 else np.unique(sorted(X[:, j - 1]))
+            xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
 
             # Get the pandas series
             df = pd.DataFrame(list(zip(xijs_orig, pijs)), columns=['Feature value', 'Probability'])
@@ -411,10 +422,15 @@ def plot_prob_dist_fig(setting, X, ala):
             df.plot(x='Feature value',
                     y='Probability',
                     kind='bar',
-                    figsize=(16, 9),
+                    figsize=(20, 10),
                     title=('P(' + yu_orig + ' | ' + xj + ')'),
-                    #xticks=[xij for xij in sorted(ala.prob_dist_dict_[yu][j].keys())],
-                    fontsize=30)
+                    legend=False,
+                    color='b')
+
+            # Set the x-axis label
+            plt.xlabel("Feature value")
+            # Set the y-axis label
+            plt.ylabel("Probability")
 
             plt.tight_layout()
             prob_dist_fig = (setting.prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
@@ -458,7 +474,7 @@ def write_prob_dist_file(setting, X, ala):
                 xj = 'x0' if j == 0 else setting.features[j - 1]
                 xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
                 pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
-                xijs_orig = [1] if j == 0 else np.unique(sorted(X[:, j - 1]))
+                xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
 
                 for idx in range(len(pijs)):
                     pij = pijs[idx]

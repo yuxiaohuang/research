@@ -12,11 +12,11 @@ class ALA:
     The ALA classifier
     """
 
-    def __init__(self, max_iter=100, min_samples_bin=3, C=1):
+    def __init__(self, max_iter=100, min_samples_bin=2, C=1):
         # The maximum number of iteration, 100 by default
         self.max_iter_ = max_iter
 
-        # The minimum number of samples in each bin, 3 by default
+        # The minimum number of samples in each bin, 2 by default
         self.min_samples_bin_ = min_samples_bin
 
         # C, 1 by default
@@ -86,11 +86,8 @@ class ALA:
                         if bin not in self.ws_[yu][j]:
                             self.ws_[yu][j][bin] = [0, 0]
 
-                # # Initialize the dictionary of product of all ujs for yu
-                # prod_ujs = self.get_prod_ujs(X, yu)
-
-                # Initialize the dictionary of sum of all log(uj) for yu
-                sum_log_ujs = self.get_sum_log_ujs(X, yu)
+                # Initialize the dictionary of product of all ujs for yu
+                prod_ujs = self.get_prod_ujs(X, yu)
 
                 # For each xj
                 for j in self.ws_[yu]:
@@ -103,7 +100,7 @@ class ALA:
                         fi = 1 if y[i] == yu else 0
 
                         # Get prod_uijs
-                        sum_log_uijs = sum_log_ujs[i]
+                        prod_uijs = prod_ujs[i]
 
                         # Get pij
                         pij = self.get_pij(X, yu, i, j)
@@ -115,25 +112,23 @@ class ALA:
                         bin = self.get_bin(xij, j)
 
                         # Get delta_w0 of xj at row i
-                        delta_wij0 = sum_log_uijs * pij * -1 / self.C_
+                        delta_wij0 = (fi + prod_uijs - 1) * prod_uijs * pij * -1 / self.C_
 
                         # Get delta_w1 of xj at row i
-                        delta_wij1 = sum_log_uijs * pij * -xij / self.C_
+                        delta_wij1 = (fi + prod_uijs - 1) * prod_uijs * pij * -xij / self.C_
 
                         # Initialize the dictionary of delta_wij for key bin
                         if bin not in delta_wij:
                             delta_wij[bin] = [0, 0]
 
                         # Update delta_w0 of xj
-                        delta_wij[bin][0] += delta_wij0 if fi == 0 else -delta_wij0
+                        delta_wij[bin][0] += delta_wij0 * -1
 
                         # Update delta_w1 of xj
-                        delta_wij[bin][1] += delta_wij1 if fi == 0 else -delta_wij1
+                        delta_wij[bin][1] += delta_wij1 * -1
 
                     # Update the dictionary of self.ws_
                     for bin in delta_wij:
-                        # print([delta_wij[bin][0], delta_wij[bin][1]])
-
                         self.ws_[yu][j][bin][0] += delta_wij[bin][0]
                         self.ws_[yu][j][bin][1] += delta_wij[bin][1]
 
@@ -196,49 +191,6 @@ class ALA:
             prod_uijs *= uij
 
         return prod_uijs
-
-    def get_sum_log_ujs(self, X, yu):
-        """
-        Get the product of all ujs for yu
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :return: the product of all ujs for yu
-        """
-
-        # Initialize prod_ujs
-        sum_log_ujs = {}
-
-        # For each row
-        for i in range(X.shape[0]):
-            # Update prod_ujs
-            sum_log_ujs[i] = self.get_sum_log_uijs(X, yu, i)
-
-        return sum_log_ujs
-
-    def get_sum_log_uijs(self, X, yu, i):
-        """
-        Get the product of all uijs for row i
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :param i: row i
-        :return: the product of all uijs for row i
-        """
-
-        # Initialize prod_uijs
-        sum_log_uijs = 0
-
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            # Get pij
-            pij = self.get_pij(X, yu, i, j)
-
-            # Get uij
-            uij = 1 - pij
-
-            # Update prod_uijs
-            sum_log_uijs += math.log(uij)
-
-        return sum_log_uijs
 
     def get_pij(self, X, yu, i, j):
         """
