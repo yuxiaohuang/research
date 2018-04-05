@@ -12,7 +12,7 @@ class ALA:
     The ALA classifier
     """
 
-    def __init__(self, max_iter=100, min_samples_bin=2, C=1):
+    def __init__(self, max_iter=100, min_samples_bin=3, C=1):
         # The maximum number of iteration, 100 by default
         self.max_iter_ = max_iter
 
@@ -86,8 +86,8 @@ class ALA:
                         if bin not in self.ws_[yu][j]:
                             self.ws_[yu][j][bin] = [0, 0]
 
-                # Initialize the dictionary of product of all ujs for yu
-                prod_ujs = self.get_prod_ujs(X, yu)
+                # Initialize the dictionary of min_ujs for yu
+                min_ujs = self.get_min_ujs(X, yu)
 
                 # For each xj
                 for j in self.ws_[yu]:
@@ -99,9 +99,6 @@ class ALA:
                         # Get fi
                         fi = 1 if y[i] == yu else 0
 
-                        # Get prod_uijs
-                        prod_uijs = prod_ujs[i]
-
                         # Get pij
                         pij = self.get_pij(X, yu, i, j)
 
@@ -112,10 +109,10 @@ class ALA:
                         bin = self.get_bin(xij, j)
 
                         # Get delta_w0 of xj at row i
-                        delta_wij0 = (fi + prod_uijs - 1) * prod_uijs * pij * -1 / self.C_
+                        delta_wij0 = pij * (min_ujs[i] - 1 + fi) * -1 / self.C_
 
                         # Get delta_w1 of xj at row i
-                        delta_wij1 = (fi + prod_uijs - 1) * prod_uijs * pij * -xij / self.C_
+                        delta_wij1 = pij * (min_ujs[i] - 1 + fi) * -xij / self.C_
 
                         # Initialize the dictionary of delta_wij for key bin
                         if bin not in delta_wij:
@@ -149,35 +146,35 @@ class ALA:
 
         return len(self.bins_[j]) - 2
 
-    def get_prod_ujs(self, X, yu):
+    def get_min_ujs(self, X, yu):
         """
-        Get the product of all ujs for yu
+        Get the minimum of all ujs for each row i
         :param X: the feature vector
         :param yu: an unique value of y
-        :return: the product of all ujs for yu
+        :return: the minimum of all ujs for each row i
         """
 
-        # Initialize prod_ujs
-        prod_ujs = {}
+        # Initialize min_ujs
+        min_ujs = {}
 
         # For each row
         for i in range(X.shape[0]):
-            # Update prod_ujs
-            prod_ujs[i] = self.get_prod_uijs(X, yu, i)
+            # Update min_ujs
+            min_ujs[i] = self.get_min_uijs(X, yu, i)
 
-        return prod_ujs
+        return min_ujs
 
-    def get_prod_uijs(self, X, yu, i):
+    def get_min_uijs(self, X, yu, i):
         """
-        Get the product of all uijs for row i
+        Get the minimum of all ujs for row i
         :param X: the feature vector
         :param yu: an unique value of y
         :param i: row i
-        :return: the product of all uijs for row i
+        :return: the minimum of all ujs for row i
         """
 
-        # Initialize prod_uijs
-        prod_uijs = 1
+        # Initialize min_uijs
+        min_uijs = None
 
         # For each xj
         for j in range(X.shape[1] + 1):
@@ -187,10 +184,11 @@ class ALA:
             # Get uij
             uij = 1 - pij
 
-            # Update prod_uijs
-            prod_uijs *= uij
+            # Update min_uijs
+            if min_uijs is None or min_uijs > uij:
+                min_uijs = uij
 
-        return prod_uijs
+        return min_uijs
 
     def get_pij(self, X, yu, i, j):
         """
@@ -288,7 +286,8 @@ class ALA:
             # For each unique value of the target
             for yu in self.ws_:
                 # Get prod_uijs
-                prod_uijs = self.get_prod_uijs(X, yu, i)
+                # Estimate prod_uijs by min_uijs
+                prod_uijs = self.get_min_uijs(X, yu, i)
 
                 # Get p(yu)
                 prob = 1 - prod_uijs
@@ -322,7 +321,8 @@ class ALA:
             # For each unique value of the target
             for yu in self.ws_:
                 # Get prod_uijs
-                prod_uijs = self.get_prod_uijs(X, yu, i)
+                # Estimate prod_uijs by min_uijs
+                prod_uijs = self.get_min_uijs(X, yu, i)
 
                 # Get p(yu)
                 prob = 1 - prod_uijs

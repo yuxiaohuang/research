@@ -106,7 +106,7 @@ random_state =
 max_iter = 
 
 ###--------------------------------------------------------------------------------------------------------
-### The The minimum number of samples in each bin, 2 by default
+### The The minimum number of samples in each bin, 3 by default
 ###--------------------------------------------------------------------------------------------------------
 
 min_samples_bin_ = 

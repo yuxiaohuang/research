@@ -72,8 +72,8 @@ class Setting:
         # The maximum number of iterations, 100 by default
         self.max_iter = 100
 
-        # The minimum number of samples in each bin, 2 by default
-        self.min_samples_bin = 2
+        # The minimum number of samples in each bin, 3 by default
+        self.min_samples_bin = 3
 
         # The value of C, 1 by default
         self.C = 1
