@@ -1,4 +1,4 @@
 ###-----------------------------------------------------------------------------------------
 ### Run script for generating the result###-----------------------------------------------------------------------------------------
 
-(time /home/yuxiaohuang/research/gwu/ala/code/shell/script/ours/generate_result.txt) 2> /home/yuxiaohuang/research/gwu/ala/result/ours/time.txt
+(time /home/yuxiaohuang/research/gwu/ala/code/shell/ours/script/generate_result.txt) 2> /home/yuxiaohuang/research/gwu/ala/result/ours/time.txt

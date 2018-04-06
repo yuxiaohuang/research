@@ -6,6 +6,7 @@ import os
 import csv
 import pandas as pd
 import numpy as np
+import inspect
 
 import matplotlib.pyplot as plt
 SIZE = 30
@@ -23,7 +24,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import precision_recall_fscore_support
-import ALA
+
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.svm import SVC
 
 
 class Setting:
@@ -72,20 +81,8 @@ class Setting:
         # The maximum number of iterations, 100 by default
         self.max_iter = 100
 
-        # The minimum number of samples in each bin, 3 by default
-        self.min_samples_bin = 3
-
         # The value of C, 1 by default
         self.C = 1
-
-        # The pathname of the MSE figure directory, None by default
-        self.mse_fig_dir = None
-
-        # The name of the MSE figure, the name of the setting file by default
-        self.mse_fig_name = os.path.basename(setting_file).split('.')[0]
-
-        # The type of the MSE figure, '.pdf' by default
-        self.mse_fig_type = '.pdf'
 
         # The pathname of the probability distribution figure directory, None by default
         self.prob_dist_fig_dir = None
@@ -116,7 +113,19 @@ class Setting:
 
         # The average for precision_recall_fscore_support, 'micro' by default
         self.average = 'micro'
-        
+
+        # The dictionary of classifiers, by default:
+        # RandomForestClassifier
+        # AdaBoostClassifier
+        # MLPClassifier
+        # KNeighborsClassifier
+        # GaussianNB
+        # DecisionTreeClassifier
+        # LogisticRegression
+        # GaussianProcessClassifier
+        # SVC
+        self.classifiers = {}
+
         # The parameter names
         self.para_names = ['data_file',
                            'header',
@@ -129,11 +138,7 @@ class Setting:
                            'scaler',
                            'random_state',
                            'max_iter',
-                           'min_samples_bin',
                            'C',
-                           'mse_fig_dir',
-                           'mse_fig_name',
-                           'mse_fig_type',
                            'prob_dist_fig_dir',
                            'prob_dist_fig_name',
                            'prob_dist_fig_type',
@@ -143,7 +148,8 @@ class Setting:
                            'score_file_dir',
                            'score_file_name',
                            'score_file_type',
-                           'average']
+                           'average',
+                           'classifiers']
 
 
 class Data:
@@ -224,6 +230,18 @@ def pipe_line(setting_file):
     # Get setting.features
     setting.features = [feature for feature in setting.columns if feature != setting.target]
 
+    # Get setting.classifiers
+    if len(setting.classifiers.keys()) == 0:
+        setting.classifiers = ({'RandomForestClassifier': RandomForestClassifier,
+                                'AdaBoostClassifier': AdaBoostClassifier,
+                                'MLPClassifier': MLPClassifier,
+                                'KNeighborsClassifier': KNeighborsClassifier,
+                                'GaussianNB': GaussianNB,
+                                'DecisionTreeClassifier': DecisionTreeClassifier,
+                                'LogisticRegression': LogisticRegression,
+                                'GaussianProcessClassifier': GaussianProcessClassifier,
+                                'SVC': SVC})
+
     # Load data
     df = pd.read_csv(setting.data_file, header=setting.header)
 
@@ -303,16 +321,8 @@ def get_para_vals(setting, para_name, vals):
         setting.random_state = int(vals)
     elif para_name == 'max_iter':
         setting.max_iter = int(vals)
-    elif para_name == 'min_samples_bin':
-        setting.min_samples_bin = int(vals)
     elif para_name == 'C':
         setting.C = int(vals)
-    elif para_name == 'mse_fig_dir':
-        setting.mse_fig_dir = vals
-    elif para_name == 'mse_fig_name':
-        setting.mse_fig_name = vals
-    elif para_name == 'mse_fig_type':
-        setting.mse_fig_type = vals
     elif para_name == 'prob_dist_fig_dir':
         setting.prob_dist_fig_dir = vals
     elif para_name == 'prob_dist_fig_name':
@@ -333,103 +343,107 @@ def get_para_vals(setting, para_name, vals):
         setting.score_file_type = vals
     elif para_name == 'average':
         setting.average = vals
+    elif para_name == 'classifiers':
+        if 'RandomForestClassifier' in vals:
+            setting.classifiers['RandomForestClassifier'] = RandomForestClassifier
+        if 'AdaBoostClassifier' in vals:
+            setting.classifiers['AdaBoostClassifier'] = AdaBoostClassifier
+        if 'MLPClassifier' in vals:
+            setting.classifiers['MLPClassifier'] = MLPClassifier
+        if 'KNeighborsClassifier' in vals:
+            setting.classifiers['KNeighborsClassifier'] = KNeighborsClassifier
+        if 'GaussianNB' in vals:
+            setting.classifiers['GaussianNB'] = GaussianNB
+        if 'DecisionTreeClassifier' in vals:
+            setting.classifiers['DecisionTreeClassifier'] = DecisionTreeClassifier
+        if 'LogisticRegression' in vals:
+            setting.classifiers['LogisticRegression'] = LogisticRegression
+        if 'GaussianProcessClassifier' in vals:
+            setting.classifiers['GaussianProcessClassifier'] = GaussianProcessClassifier
+        if 'SVC' in vals:
+            setting.classifiers['SVC'] = SVC
 
 
-def train_test_eval(setting, data):
+def train_test_evaluate(setting, data):
     """
-    Train, test, and evaluate the ALA classifier
+    Train, test, and evaluate the classifier
     :param setting: the Setting object
     :param data: the Data object
     :return:
     """
 
-    # Declare the ALA classifier
-    ala = ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C)
+    for clf_name in setting.classifiers.keys():
+        classifier = setting.classifiers[clf_name]
+        clf = (classifier() if classifier in ([setting.classifiers['KNeighborsClassifier'],
+                                               setting.classifiers['GaussianNB']])
+               else classifier(random_state=setting.random_state))
 
-    # Train ala
-    ala.fit(data.X_train, data.y_train)
+        # Train clf
+        clf.fit(data.X_train, data.y_train)
 
-    # Test ala
-    y_pred = ala.predict(data.X_test)
+        # Test clf
+        y_pred = clf.predict(data.X_test)
 
-    # Evaluate ala
-    eval(setting, data, ala, y_pred)
+        # Evaluate clf
+        eval(setting, data, clf, y_pred)
 
 
-def eval(setting, data, ala, y_pred):
+def eval(setting, data, clf, y_pred):
     """
-    Evaluate the ALA classifier
+    Evaluate the classifier
     :param setting: the Setting object
     :param data: the Data object
-    :param ala: the ALA classifier
+    :param clf: the classifier
     :param y_pred: the predicted values of the target
     :return:
     """
 
-    if setting.mse_fig_dir is not None:
-        # Plot the mean square error figure
-        plot_mse_fig(setting, ala)
-
-    if setting.prob_dist_fig_dir is not None:
+    if (setting.prob_dist_fig_dir is not None
+        and isinstance(clf, setting.classifiers['LogisticRegression']) is True):
         # Plot the probability distribution figures
-        plot_prob_dist_fig(setting, data.X, ala)
+        plot_prob_dist_fig(setting, data.X, clf)
 
-    if setting.prob_dist_file_dir is not None:
+    if (setting.prob_dist_file_dir is not None
+        and isinstance(clf, setting.classifiers['LogisticRegression']) is True):
         # Write the probability distribution file
-        write_prob_dist_file(setting, data.X, ala)
+        write_prob_dist_file(setting, data.X, clf)
 
     if setting.score_file_dir is not None:
         # Write the score file
-        write_score_file(setting, data.y_test, y_pred)
+        write_score_file(setting, data.y_test, y_pred, clf)
 
 
-def plot_mse_fig(setting, ala):
-    """
-    Plot the mean square error figure
-    :param setting: the Setting object
-    :param ala: the ALA classifier
-    :return:
-    """
-
-    # Make directory
-    directory = os.path.dirname(setting.mse_fig_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    plt.plot(range(1, len(ala.mses_) + 1), ala.mses_)
-    plt.ylabel('MSE')
-    plt.xlabel('Iteration')
-    plt.tight_layout()
-    mse_fig = setting.mse_fig_dir + setting.mse_fig_name + setting.mse_fig_type
-    plt.savefig(mse_fig, dpi=300)
-
-
-def plot_prob_dist_fig(setting, X, ala):
+def plot_prob_dist_fig(setting, X, clf):
     """
     Plot the probability distribution figures.
     :param setting: the Setting object
     :param X: the feature vector
-    :param ala: the ALA classifier
+    :param clf: the classifier
     :return:
     """
 
+    # Get the name of the classifier
+    clf_name = get_clf_name(setting, clf)
+    # Get the directory of the probability distribution figure
+    prob_dist_fig_dir = setting.prob_dist_fig_dir + clf_name + '/'
+
     # Make directory
-    directory = os.path.dirname(setting.prob_dist_fig_dir)
+    directory = os.path.dirname(prob_dist_fig_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     # Get the dictionary of probability distribution
-    ala.get_prob_dist_dict(setting.scaler.transform(X))
+    prob_dist_dict = get_prob_dist_dict(setting.scaler.transform(X), clf)
 
     # For each unique value of the target
-    for yu in sorted(ala.prob_dist_dict_.keys()):
+    for yu in sorted(prob_dist_dict.keys()):
         # Get the original value of yu
         yu_orig = str(setting.encoder.inverse_transform(yu))
 
         # For each xj
-        for j in sorted(ala.prob_dist_dict_[yu].keys()):
-            xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-            pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
+        for j in sorted(prob_dist_dict[yu].keys()):
+            xijs = sorted(prob_dist_dict[yu][j].keys())
+            pijs = [prob_dist_dict[yu][j][xij] for xij in xijs]
             xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
 
             # Get the pandas series
@@ -452,44 +466,120 @@ def plot_prob_dist_fig(setting, X, ala):
             plt.ylabel("Probability")
 
             plt.tight_layout()
-            prob_dist_fig = (setting.prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
+
+            # Get the name of the classifier
+            clf_name = get_clf_name(setting, clf)
+            prob_dist_fig = (prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
                              + setting.prob_dist_fig_type)
             plt.savefig(prob_dist_fig)
 
 
-def write_prob_dist_file(setting, X, ala):
+def get_prob_dist_dict(X, clf):
+    """
+    Get the dictionary of probability distribution
+    :param X: the feature vector
+    :param clf: the classifier
+    :return: the dictionary of probability distribution
+    """
+
+    # Initialization
+    prob_dist_dict = {}
+
+    # For each xj
+    for j in range(X.shape[1] + 1):
+        # Initialize X_sparse
+        X_sparse = np.zeros((X.shape[0], X.shape[1]))
+
+        if j > 0:
+            # Update xj in X_sparse
+            X_sparse[:, j - 1] = X[:, j - 1]
+
+        # Get the unique value and the corresponding index in xj
+        if j == 0:
+            xus, idxs = np.unique([1], return_index=True)
+        else:
+            xus, idxs = np.unique(X_sparse[:, j - 1], return_index=True)
+
+        # For each unique index
+        for i in idxs:
+            # Get xij
+            xij = 1 if j == 0 else X_sparse[i, j - 1]
+            # Get the probability of each label
+            probs = clf.predict_proba(X_sparse[i, :].reshape(1, -1)).ravel()
+
+            # For each unique value of the target
+            for yu in range(len(probs)):
+                # Get the probability
+                prob = probs[yu]
+
+                # Initialization
+                if yu not in prob_dist_dict:
+                    prob_dist_dict[yu] = {}
+                if j not in prob_dist_dict[yu]:
+                    prob_dist_dict[yu][j] = {}
+
+                # Update prob_dist_dict
+                prob_dist_dict[yu][j][xij] = prob
+
+    return prob_dist_dict
+
+
+def get_clf_name(setting, clf):
+    """
+    Get the name of the classifier
+    :param setting: the Setting object
+    :param clf: the classifier
+    :return: the name of the classifier
+    """
+
+    for clf_name in setting.classifiers.keys():
+        classifier = setting.classifiers[clf_name]
+        if isinstance(clf, classifier) is True:
+            return clf_name
+
+    # Report exception
+    print('Classifier undefined!')
+    exit(1)
+
+
+def write_prob_dist_file(setting, X, clf):
     """
     Write the probability distribution file
     :param setting: the Setting object
     :param X: the feature vector
-    :param ala: the ALA object
+    :param clf: the classifier
     :return:
     """
 
+    # Get the name of the classifier
+    clf_name = get_clf_name(setting, clf)
+    # Get the directory of the probability distribution file
+    prob_dist_file_dir = setting.prob_dist_file_dir + clf_name + '/'
+    # Get the pathname of the probability distribution file
+    prob_dist_file = prob_dist_file_dir + setting.prob_dist_file_name + setting.prob_dist_file_type
+
     # Make directory
-    directory = os.path.dirname(setting.prob_dist_file_dir)
+    directory = os.path.dirname(prob_dist_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     # Get the dictionary of probability distribution
-    ala.get_prob_dist_dict(setting.scaler.transform(X))
-
-    prob_dist_file = setting.prob_dist_file_dir + setting.prob_dist_file_name + setting.prob_dist_file_type
+    prob_dist_dict = get_prob_dist_dict(setting.scaler.transform(X), clf)
 
     with open(prob_dist_file, 'w') as f:
         # Write header
         f.write("yu, xj, xij, pij" + '\n')
 
         # For each unique value of the target
-        for yu in sorted(ala.prob_dist_dict_.keys()):
+        for yu in sorted(prob_dist_dict.keys()):
             # Get the original value of yu
             yu_orig = str(setting.encoder.inverse_transform(yu))
 
             # For each xj
-            for j in sorted(ala.prob_dist_dict_[yu].keys()):
+            for j in sorted(prob_dist_dict[yu].keys()):
                 xj = 'x0' if j == 0 else setting.features[j - 1]
-                xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-                pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
+                xijs = sorted(prob_dist_dict[yu][j].keys())
+                pijs = [prob_dist_dict[yu][j][xij] for xij in xijs]
                 xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
 
                 for idx in range(len(pijs)):
@@ -498,7 +588,7 @@ def write_prob_dist_file(setting, X, ala):
                     f.write(yu_orig + ', ' + xj + ', ' + str(xij_orig) + ', ' + str(pij) + '\n')
 
 
-def write_score_file(setting, y_test, y_pred):
+def write_score_file(setting, y_test, y_pred, clf):
     """
     Write the score file
     :param setting: the Setting object
@@ -506,13 +596,17 @@ def write_score_file(setting, y_test, y_pred):
     :param y_pred: the predicted values of the target
     :return:
     """
+    # Get the name of the classifier
+    clf_name = get_clf_name(setting, clf)
+    # Get the directory of the score file
+    score_file_dir = setting.score_file_dir + clf_name + '/'
+    # Get the pathname of the score file
+    score_file = score_file_dir + setting.score_file_name + setting.score_file_type
 
     # Make directory
-    directory = os.path.dirname(setting.score_file_dir)
+    directory = os.path.dirname(score_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-    score_file = setting.score_file_dir + setting.score_file_name + setting.score_file_type
 
     with open(score_file, 'w') as f:
         precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average)
@@ -531,5 +625,5 @@ if __name__ == "__main__":
     # Read the setting file, and return the Setting and Data object
     setting, data = pipe_line(setting_file)
 
-    # Train, test, and evaluate the ALA classifier
-    train_test_eval(setting, data)
+    # Train, test, and evaluate
+    train_test_evaluate(setting, data)

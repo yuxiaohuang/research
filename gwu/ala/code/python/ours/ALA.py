@@ -16,7 +16,7 @@ class ALA:
         # The maximum number of iteration, 100 by default
         self.max_iter_ = max_iter
 
-        # The minimum number of samples in each bin, 2 by default
+        # The minimum number of samples in each bin, 3 by default
         self.min_samples_bin_ = min_samples_bin
 
         # C, 1 by default
@@ -285,7 +285,6 @@ class ALA:
 
             # For each unique value of the target
             for yu in self.ws_:
-                # Get prod_uijs
                 # Estimate prod_uijs by min_uijs
                 prod_uijs = self.get_min_uijs(X, yu, i)
 
@@ -320,7 +319,6 @@ class ALA:
 
             # For each unique value of the target
             for yu in self.ws_:
-                # Get prod_uijs
                 # Estimate prod_uijs by min_uijs
                 prod_uijs = self.get_min_uijs(X, yu, i)
 
@@ -343,7 +341,7 @@ class ALA:
 
     def get_prob_dist_dict(self, X):
         """
-        Get the probability distribution dictionary
+        Get the dictionary of probability distribution
         :param X: the feature vector
         :return:
         """
