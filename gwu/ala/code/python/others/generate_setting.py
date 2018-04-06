@@ -179,12 +179,21 @@ average =
     KNeighborsClassifier,
     GaussianNB,
     DecisionTreeClassifier,
-    LogisticRegression,
+    LogisticRegression(multi_class='ovr'),
+    LogisticRegression(multi_class='multinomial', solver='lbfgs'),
+    LogisticRegression(multi_class='multinomial', solver='sag'),
+    LogisticRegression(multi_class='multinomial', solver='newton-cg'),  
     GaussianProcessClassifier,
     SVC
 ###--------------------------------------------------------------------------------------------------------
 
 classifiers = 
+
+###--------------------------------------------------------------------------------------------------------
+### The number of jobs to run in parallel, -1 by default (all CPUs are used)
+###--------------------------------------------------------------------------------------------------------
+
+n_jobs = 
 """
 
     # Write the setting into setting_file

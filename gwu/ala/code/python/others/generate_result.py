@@ -7,6 +7,7 @@ import csv
 import pandas as pd
 import numpy as np
 import inspect
+from joblib import Parallel, delayed
 
 import matplotlib.pyplot as plt
 SIZE = 30
@@ -121,10 +122,16 @@ class Setting:
         # KNeighborsClassifier
         # GaussianNB
         # DecisionTreeClassifier
-        # LogisticRegression
+        # LogisticRegression(multi_class='ovr')
+        # LogisticRegression(multi_class='multinomial', solver='lbfgs')
+        # LogisticRegression(multi_class='multinomial', solver='sag')
+        # LogisticRegression(multi_class='multinomial', solver='newton-cg')
         # GaussianProcessClassifier
         # SVC
         self.classifiers = {}
+
+        # The number of jobs to run in parallel, -1 by default (all CPUs are used)
+        self.n_jobs = -1
 
         # The parameter names
         self.para_names = ['data_file',
@@ -149,7 +156,8 @@ class Setting:
                            'score_file_name',
                            'score_file_type',
                            'average',
-                           'classifiers']
+                           'classifiers',
+                           'n_jobs']
 
 
 class Data:
@@ -238,7 +246,10 @@ def pipe_line(setting_file):
                                 'KNeighborsClassifier': KNeighborsClassifier,
                                 'GaussianNB': GaussianNB,
                                 'DecisionTreeClassifier': DecisionTreeClassifier,
-                                'LogisticRegression': LogisticRegression,
+                                'LogisticRegression_ovr': LogisticRegression,
+                                'LogisticRegression_multinomial_lbfgs': LogisticRegression,
+                                'LogisticRegression_multinomial_sag': LogisticRegression,
+                                'LogisticRegression_multinomial_newton-cg': LogisticRegression,
                                 'GaussianProcessClassifier': GaussianProcessClassifier,
                                 'SVC': SVC})
 
@@ -357,73 +368,91 @@ def get_para_vals(setting, para_name, vals):
         if 'DecisionTreeClassifier' in vals:
             setting.classifiers['DecisionTreeClassifier'] = DecisionTreeClassifier
         if 'LogisticRegression' in vals:
-            setting.classifiers['LogisticRegression'] = LogisticRegression
+            setting.classifiers['LogisticRegression_ovr'] = LogisticRegression
+            setting.classifiers['LogisticRegression_multinomial_lbfgs'] = LogisticRegression
+            setting.classifiers['LogisticRegression_multinomial_sag'] = LogisticRegression
+            setting.classifiers['LogisticRegression_multinomial_newton-cg'] = LogisticRegression
         if 'GaussianProcessClassifier' in vals:
             setting.classifiers['GaussianProcessClassifier'] = GaussianProcessClassifier
         if 'SVC' in vals:
             setting.classifiers['SVC'] = SVC
+    elif para_name == 'n_jobs':
+        setting.n_jobs = int(vals)
 
 
-def train_test_evaluate(setting, data):
+def train_test_evaluate(setting, data, clf_name):
     """
     Train, test, and evaluate the classifier
     :param setting: the Setting object
     :param data: the Data object
+    :param clf_name: the name of the classifier
     :return:
     """
 
-    for clf_name in setting.classifiers.keys():
-        classifier = setting.classifiers[clf_name]
-        clf = (classifier() if classifier in ([setting.classifiers['KNeighborsClassifier'],
-                                               setting.classifiers['GaussianNB']])
-               else classifier(random_state=setting.random_state))
+    classifier = setting.classifiers[clf_name]
+    if clf_name in (['KNeighborsClassifier', 'GaussianNB']):
+        clf = classifier()
+    elif clf_name == 'LogisticRegression_multinomial_lbfgs':
+        clf = classifier(multi_class='multinomial', solver='lbfgs', random_state=setting.random_state)
+    elif clf_name == 'LogisticRegression_multinomial_sag':
+        clf = classifier(multi_class='multinomial', solver='sag', random_state=setting.random_state)
+    elif clf_name == 'LogisticRegression_multinomial_newton-cg':
+        clf = classifier(multi_class='multinomial', solver='newton-cg', random_state=setting.random_state)
+    else:
+        clf = classifier(random_state=setting.random_state)
 
-        # Train clf
-        clf.fit(data.X_train, data.y_train)
+    # Train clf
+    clf.fit(data.X_train, data.y_train)
 
-        # Test clf
-        y_pred = clf.predict(data.X_test)
+    # Test clf
+    y_pred = clf.predict(data.X_test)
 
-        # Evaluate clf
-        eval(setting, data, clf, y_pred)
+    # Evaluate clf
+    eval(setting, data, clf, y_pred, clf_name)
 
 
-def eval(setting, data, clf, y_pred):
+def eval(setting, data, clf, y_pred, clf_name):
     """
     Evaluate the classifier
     :param setting: the Setting object
     :param data: the Data object
     :param clf: the classifier
     :param y_pred: the predicted values of the target
+    :param clf_name: the name of the classifier
     :return:
     """
 
     if (setting.prob_dist_fig_dir is not None
-        and isinstance(clf, setting.classifiers['LogisticRegression']) is True):
+        and (isinstance(clf, setting.classifiers['LogisticRegression_ovr']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_lbfgs']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_sag']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_newton-cg']) is True)):
         # Plot the probability distribution figures
-        plot_prob_dist_fig(setting, data.X, clf)
+        plot_prob_dist_fig(setting, data.X, clf, clf_name)
 
     if (setting.prob_dist_file_dir is not None
-        and isinstance(clf, setting.classifiers['LogisticRegression']) is True):
+        and (isinstance(clf, setting.classifiers['LogisticRegression_ovr']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_lbfgs']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_sag']) is True
+             or isinstance(clf, setting.classifiers['LogisticRegression_multinomial_newton-cg']) is True)):
         # Write the probability distribution file
-        write_prob_dist_file(setting, data.X, clf)
+        write_prob_dist_file(setting, data.X, clf, clf_name)
 
     if setting.score_file_dir is not None:
         # Write the score file
-        write_score_file(setting, data.y_test, y_pred, clf)
+        write_score_file(setting, data.y_test, y_pred, clf_name)
 
 
-def plot_prob_dist_fig(setting, X, clf):
+def plot_prob_dist_fig(setting, X, clf, clf_name):
     """
     Plot the probability distribution figures.
     :param setting: the Setting object
     :param X: the feature vector
     :param clf: the classifier
+    :param clf_name: the name of the classifier
     :return:
     """
 
-    # Get the name of the classifier
-    clf_name = get_clf_name(setting, clf)
     # Get the directory of the probability distribution figure
     prob_dist_fig_dir = setting.prob_dist_fig_dir + clf_name + '/'
 
@@ -466,9 +495,7 @@ def plot_prob_dist_fig(setting, X, clf):
             plt.ylabel("Probability")
 
             plt.tight_layout()
-
-            # Get the name of the classifier
-            clf_name = get_clf_name(setting, clf)
+            # Get the pathname of the probability distribution figure
             prob_dist_fig = (prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
                              + setting.prob_dist_fig_type)
             plt.savefig(prob_dist_fig)
@@ -524,35 +551,16 @@ def get_prob_dist_dict(X, clf):
     return prob_dist_dict
 
 
-def get_clf_name(setting, clf):
-    """
-    Get the name of the classifier
-    :param setting: the Setting object
-    :param clf: the classifier
-    :return: the name of the classifier
-    """
-
-    for clf_name in setting.classifiers.keys():
-        classifier = setting.classifiers[clf_name]
-        if isinstance(clf, classifier) is True:
-            return clf_name
-
-    # Report exception
-    print('Classifier undefined!')
-    exit(1)
-
-
-def write_prob_dist_file(setting, X, clf):
+def write_prob_dist_file(setting, X, clf, clf_name):
     """
     Write the probability distribution file
     :param setting: the Setting object
     :param X: the feature vector
     :param clf: the classifier
+    :param clf_name: the name of the classifier
     :return:
     """
 
-    # Get the name of the classifier
-    clf_name = get_clf_name(setting, clf)
     # Get the directory of the probability distribution file
     prob_dist_file_dir = setting.prob_dist_file_dir + clf_name + '/'
     # Get the pathname of the probability distribution file
@@ -588,16 +596,16 @@ def write_prob_dist_file(setting, X, clf):
                     f.write(yu_orig + ', ' + xj + ', ' + str(xij_orig) + ', ' + str(pij) + '\n')
 
 
-def write_score_file(setting, y_test, y_pred, clf):
+def write_score_file(setting, y_test, y_pred, clf_name):
     """
     Write the score file
     :param setting: the Setting object
     :param y_test: the testing set
     :param y_pred: the predicted values of the target
+    :param clf_name: the name of the classifier
     :return:
     """
-    # Get the name of the classifier
-    clf_name = get_clf_name(setting, clf)
+
     # Get the directory of the score file
     score_file_dir = setting.score_file_dir + clf_name + '/'
     # Get the pathname of the score file
@@ -626,4 +634,6 @@ if __name__ == "__main__":
     setting, data = pipe_line(setting_file)
 
     # Train, test, and evaluate
-    train_test_evaluate(setting, data)
+    # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
+    Parallel(n_jobs=setting.n_jobs)(delayed(train_test_evaluate)(setting, data, clf_name)
+                                    for clf_name in setting.classifiers.keys())

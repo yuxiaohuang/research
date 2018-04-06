@@ -5,6 +5,7 @@
 import pandas as pd
 import numpy as np
 import math
+from joblib import Parallel, delayed
 
 
 class ALA:
@@ -12,15 +13,18 @@ class ALA:
     The ALA classifier
     """
 
-    def __init__(self, max_iter=100, min_samples_bin=3, C=1):
+    def __init__(self, max_iter=100, min_samples_bin=3, C=1, n_jobs=-1):
         # The maximum number of iteration, 100 by default
         self.max_iter_ = max_iter
 
-        # The minimum number of samples in each bin, 3 by default
+        # The minimum number of samples in each bin, 2 by default
         self.min_samples_bin_ = min_samples_bin
 
         # C, 1 by default
         self.C_ = C
+
+        # The number of jobs to run in parallel, -1 by default (all CPUs are used)
+        self.n_jobs_ = n_jobs
 
         # The dictionary of bins
         self.bins_ = {}
@@ -62,9 +66,9 @@ class ALA:
 
         self.mses_ = []
 
-        self.gradient_descent(X, y)
+        self.gradient_descent_all(X, y)
 
-    def gradient_descent(self, X, y):
+    def gradient_descent_all(self, X, y):
         """
         Minimizing the cost function using (batch) gradient descent
         :param X: the feature vector
@@ -73,64 +77,76 @@ class ALA:
         """
 
         for _ in range(self.max_iter_):
-            # For each unique value of the target
-            for yu in np.unique(y):
-                # Initialize the dictionary of ws
-                if yu not in self.ws_:
-                    self.ws_[yu] = {}
-                # For each xj
-                for j in range(X.shape[1] + 1):
-                    if j not in self.ws_[yu]:
-                        self.ws_[yu][j] = {}
-                    for bin in range(len(self.bins_[j]) - 1):
-                        if bin not in self.ws_[yu][j]:
-                            self.ws_[yu][j][bin] = [0, 0]
-
-                # Initialize the dictionary of min_ujs for yu
-                min_ujs = self.get_min_ujs(X, yu)
-
-                # For each xj
-                for j in self.ws_[yu]:
-                    # Initialize the dictionary of delta_wij
-                    delta_wij = {}
-
-                    # For each row
-                    for i in range(X.shape[0]):
-                        # Get fi
-                        fi = 1 if y[i] == yu else 0
-
-                        # Get pij
-                        pij = self.get_pij(X, yu, i, j)
-
-                        # Get xij
-                        xij = 1 if j == 0 else X[i][j - 1]
-
-                        # Get the bin xij falls into
-                        bin = self.get_bin(xij, j)
-
-                        # Get delta_w0 of xj at row i
-                        delta_wij0 = pij * (min_ujs[i] - 1 + fi) * -1 / self.C_
-
-                        # Get delta_w1 of xj at row i
-                        delta_wij1 = pij * (min_ujs[i] - 1 + fi) * -xij / self.C_
-
-                        # Initialize the dictionary of delta_wij for key bin
-                        if bin not in delta_wij:
-                            delta_wij[bin] = [0, 0]
-
-                        # Update delta_w0 of xj
-                        delta_wij[bin][0] += delta_wij0 * -1
-
-                        # Update delta_w1 of xj
-                        delta_wij[bin][1] += delta_wij1 * -1
-
-                    # Update the dictionary of self.ws_
-                    for bin in delta_wij:
-                        self.ws_[yu][j][bin][0] += delta_wij[bin][0]
-                        self.ws_[yu][j][bin][1] += delta_wij[bin][1]
+            # Gradient descent for each unique value of the target
+            # Set backend="threading" to share memory between parent and threads
+            Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
+                                                               for yu in np.unique(y))
 
             # Update the mses
             self.update_mses(X, y)
+
+    def gradient_descent_one(self, X, y, yu):
+        """
+        Minimizing the cost function using (batch) gradient descent
+        :param X: the feature vector
+        :param y: the target vector
+        :param y: a unique value of the target
+        :return:
+        """
+
+        # Initialize the dictionary of ws
+        if yu not in self.ws_.keys():
+            self.ws_[yu] = {}
+        # For each xj
+        for j in range(X.shape[1] + 1):
+            if j not in self.ws_[yu]:
+                self.ws_[yu][j] = {}
+            for bin in range(len(self.bins_[j]) - 1):
+                if bin not in self.ws_[yu][j]:
+                    self.ws_[yu][j][bin] = [0, 0]
+
+        # Initialize the dictionary of min_ujs for yu
+        min_ujs = self.get_min_ujs(X, yu)
+
+        # For each xj
+        for j in self.ws_[yu]:
+            # Initialize the dictionary of delta_wij
+            delta_wij = {}
+
+            # For each row
+            for i in range(X.shape[0]):
+                # Get fi
+                fi = 1 if y[i] == yu else 0
+
+                # Get pij
+                pij = self.get_pij(X, yu, i, j)
+
+                # Get xij
+                xij = 1 if j == 0 else X[i][j - 1]
+
+                # Get the bin xij falls into
+                bin = self.get_bin(xij, j)
+
+                # Get delta_w0 of xj at row i
+                delta_wij0 = pij * (min_ujs[i] - 1 + fi) * -1 / self.C_
+
+                # Get delta_w1 of xj at row i
+                delta_wij1 = pij * (min_ujs[i] - 1 + fi) * -xij / self.C_
+
+                # Initialize the dictionary of delta_wij for key bin
+                if bin not in delta_wij:
+                    delta_wij[bin] = [0, 0]
+
+                # Update delta_w0 of xj
+                delta_wij[bin][0] += delta_wij0 * -1
+
+                # Update delta_w1 of xj
+                delta_wij[bin][1] += delta_wij1 * -1
+
+            # Update the dictionary of self.ws_
+            for bin in delta_wij:
+                self.ws_[yu][j][bin][0] += delta_wij[bin][0]
+                self.ws_[yu][j][bin][1] += delta_wij[bin][1]
 
     def get_bin(self, xij, j):
         """
@@ -284,7 +300,7 @@ class ALA:
             yu_probs_each = []
 
             # For each unique value of the target
-            for yu in self.ws_:
+            for yu in self.ws_.keys():
                 # Estimate prod_uijs by min_uijs
                 prod_uijs = self.get_min_uijs(X, yu, i)
 
@@ -318,7 +334,7 @@ class ALA:
             yu_probs = []
 
             # For each unique value of the target
-            for yu in self.ws_:
+            for yu in self.ws_.keys():
                 # Estimate prod_uijs by min_uijs
                 prod_uijs = self.get_min_uijs(X, yu, i)
 
@@ -347,7 +363,7 @@ class ALA:
         """
 
         # For each unique value of the target
-        for yu in self.ws_:
+        for yu in self.ws_.keys():
             if not yu in self.prob_dist_dict_:
                 self.prob_dist_dict_[yu] = {}
 

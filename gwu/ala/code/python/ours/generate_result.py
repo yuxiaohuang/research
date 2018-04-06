@@ -72,8 +72,8 @@ class Setting:
         # The maximum number of iterations, 100 by default
         self.max_iter = 100
 
-        # The minimum number of samples in each bin, 3 by default
-        self.min_samples_bin = 3
+        # The minimum number of samples in each bin, 2 by default
+        self.min_samples_bin = 2
 
         # The value of C, 1 by default
         self.C = 1
@@ -116,6 +116,9 @@ class Setting:
 
         # The average for precision_recall_fscore_support, 'micro' by default
         self.average = 'micro'
+
+        # The number of jobs to run in parallel, -1 by default (all CPUs are used)
+        self.n_jobs = -1
         
         # The parameter names
         self.para_names = ['data_file',
@@ -143,7 +146,8 @@ class Setting:
                            'score_file_dir',
                            'score_file_name',
                            'score_file_type',
-                           'average']
+                           'average',
+                           'n_jobs']
 
 
 class Data:
@@ -333,6 +337,8 @@ def get_para_vals(setting, para_name, vals):
         setting.score_file_type = vals
     elif para_name == 'average':
         setting.average = vals
+    elif para_name == 'n_jobs':
+        setting.n_jobs = int(vals)
 
 
 def train_test_eval(setting, data):
