@@ -37,7 +37,7 @@ class Setting:
         self.max_iter = 100
 
         # The minimum number of samples in each bin
-        self.min_samples_bin = 2
+        self.min_samples_bin = 1
 
         # The value of C
         self.C = 1
@@ -333,11 +333,12 @@ def get_data(data_file, setting, names):
 
     # One-hot encoding on categorical features
     if len(names.categorical_features) > 0:
-        X = pd.get_dummies(X, columns=names.categorical_features).values
+        X = pd.get_dummies(X, columns=names.categorical_features)
+        names.features = X.columns
 
     # Cast X to float
     X = X.astype(float)
-    
+
     # Get the target vector
     y = df[names.target]
 
@@ -507,7 +508,7 @@ def train_test_eval(setting, names, data):
     """
 
     # Declare the ALA classifier
-    ala = ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C, setting.n_jobs)
+    ala = ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C)
 
     # Train ala
     ala.fit(data.X_train, data.y_train)
@@ -627,6 +628,7 @@ def plot_prob_dist_fig(setting, names, X, ala):
             xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
             pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
             xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
+            xijs_orig = [round(xij_orig, 2) for xij_orig in xijs_orig]
 
             # Get the pandas series
             df = pd.DataFrame(list(zip(xijs_orig, pijs)), columns=['Feature value', 'Probability'])

@@ -651,6 +651,7 @@ def plot_prob_dist_fig(setting, names, X, clf, clf_name):
             xijs = sorted(prob_dist_dict[yu][j].keys())
             pijs = [prob_dist_dict[yu][j][xij] for xij in xijs]
             xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
+            xijs_orig = [round(xij_orig, 2) for xij_orig in xijs_orig]
 
             # Get the pandas series
             df = pd.DataFrame(list(zip(xijs_orig, pijs)), columns=['Feature value', 'Probability'])

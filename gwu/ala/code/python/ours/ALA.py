@@ -13,11 +13,11 @@ class ALA:
     The ALA classifier
     """
 
-    def __init__(self, max_iter=100, min_samples_bin=3, C=1, n_jobs=-1):
+    def __init__(self, max_iter=100, min_samples_bin=1, C=1, n_jobs=-1):
         # The maximum number of iteration, 100 by default
         self.max_iter_ = max_iter
 
-        # The minimum number of samples in each bin, 2 by default
+        # The minimum number of samples in each bin, 1 by default
         self.min_samples_bin_ = min_samples_bin
 
         # C, 1 by default
@@ -55,7 +55,7 @@ class ALA:
                 # Get the unique values of xj
                 xus = np.unique(X[:, j - 1])
                 # Get the bin number
-                bin_num = len(xus) / self.min_samples_bin_
+                bin_num = len(xus) / (len(xus) // 10 + self.min_samples_bin_)
                 # Get the bins
                 out, bins = pd.cut(X[:, j - 1], bin_num, retbins=True)
                 self.bins_[j] = bins
@@ -79,7 +79,9 @@ class ALA:
         for _ in range(self.max_iter_):
             # Gradient descent for each unique value of the target
             # Set backend="threading" to share memory between parent and threads
-            Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
+            # Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
+            #                                                    for yu in np.unique(y))
+            Parallel(n_jobs=1, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
                                                                for yu in np.unique(y))
 
             # Update the mses
@@ -108,10 +110,14 @@ class ALA:
         # Initialize the dictionary of min_ujs for yu
         min_ujs = self.get_min_ujs(X, yu)
 
+        # Initialize the dictionary of delta_wij
+        delta_wij = {}
+
         # For each xj
         for j in self.ws_[yu]:
+
             # Initialize the dictionary of delta_wij
-            delta_wij = {}
+            delta_wij[j] = {}
 
             # For each row
             for i in range(X.shape[0]):
@@ -134,19 +140,32 @@ class ALA:
                 delta_wij1 = pij * (min_ujs[i] - 1 + fi) * -xij / self.C_
 
                 # Initialize the dictionary of delta_wij for key bin
-                if bin not in delta_wij:
-                    delta_wij[bin] = [0, 0]
+                if bin not in delta_wij[j]:
+                    delta_wij[j][bin] = [0, 0]
 
                 # Update delta_w0 of xj
-                delta_wij[bin][0] += delta_wij0 * -1
+                delta_wij[j][bin][0] += delta_wij0 * -1
 
                 # Update delta_w1 of xj
-                delta_wij[bin][1] += delta_wij1 * -1
+                delta_wij[j][bin][1] += delta_wij1 * -1
 
-            # Update the dictionary of self.ws_
-            for bin in delta_wij:
-                self.ws_[yu][j][bin][0] += delta_wij[bin][0]
-                self.ws_[yu][j][bin][1] += delta_wij[bin][1]
+        # Initialize the maximum absolute w
+        max_abs_w = None
+
+        # Get the maximum absolute w0 and w1
+        for j in delta_wij.keys():
+            for bin in delta_wij[j].keys():
+                if max_abs_w == None or max_abs_w < abs(delta_wij[j][bin][0]):
+                    max_abs_w = abs(delta_wij[j][bin][0])
+                if max_abs_w == None or max_abs_w < abs(delta_wij[j][bin][1]):
+                    max_abs_w = abs(delta_wij[j][bin][1])
+        max_abs_w = 1 if max_abs_w < 1 else max_abs_w
+
+        # Update the dictionary of self.ws_
+        for j in delta_wij.keys():
+            for bin in delta_wij[j].keys():
+                self.ws_[yu][j][bin][0] += delta_wij[j][bin][0] / max_abs_w
+                self.ws_[yu][j][bin][1] += delta_wij[j][bin][1] / max_abs_w
 
     def get_bin(self, xij, j):
         """
