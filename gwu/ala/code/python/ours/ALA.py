@@ -30,16 +30,10 @@ class ALA:
         self.bins_ = {}
 
         # The dictionary of weights (u)
-        self.us_ = {}
-
-        # The dictionary of probabilities
-        self.pis_ = {}
-
-        # The dictionary of weights (w0 and w1)
         self.ws_ = {}
 
         # The dictionary of probabilities
-        self.pijs_ = {}
+        self.pis_ = {}
 
         # The dictionary of probability distribution
         self.prob_dist_dict_ = {}
@@ -69,13 +63,9 @@ class ALA:
                 out, bins = pd.cut(X[:, j - 1], bin_num, retbins=True)
                 self.bins_[j] = bins
 
-        self.us_ = {}
-
-        self.pis_ = {}
-
         self.ws_ = {}
 
-        self.pijs_ = {}
+        self.pis_ = {}
 
         self.prob_dist_dict_ = {}
 
@@ -111,16 +101,6 @@ class ALA:
         :return:
         """
 
-        if yu not in self.us_.keys():
-            self.us_[yu] = {}
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            if j not in self.us_[yu].keys():
-                self.us_[yu][j] = {}
-            for bin in range(len(self.bins_[j]) - 1):
-                if bin not in self.us_[yu][j].keys():
-                    self.us_[yu][j][bin] = 1
-
         if yu not in self.ws_.keys():
             self.ws_[yu] = {}
         # For each xj
@@ -134,12 +114,10 @@ class ALA:
         # Get pis for yu
         self.get_pis(X, yu)
 
-        delta_us = {}
         delta_ws = {}
 
         # For each xj
         for j in range(X.shape[1] + 1):
-            delta_us[j] = {}
             delta_ws[j] = {}
 
             # For each row
@@ -150,72 +128,39 @@ class ALA:
                 # Get pi
                 pi = self.pis_[yu][i]
 
-                # Get pij
-                pij = self.pijs_[yu][i][j]
-
-                # Get delta_u
-                delta_u = (fi - pi) * pij
-
                 # Get xij
                 xij = 1 if j == 0 else X[i][j - 1]
+
+                # Get delta_u
+                delta_u0 = (fi - pi) * 1
+                delta_u1 = (fi - pi) * xij
 
                 # Get the bin xij falls into
                 bin = self.get_bin(xij, j)
 
                 # Initialize the dictionary of delta_w for key bin
-                if bin not in delta_us[j].keys():
-                    delta_us[j][bin] = 0
-
-                # Update delta_u of xj
-                delta_us[j][bin] += delta_u
-
-                # Get uj
-                uj = self.us_[yu][j][bin]
-
-                # Get delta_w0
-                delta_w0 = (fi - pi) * uj * pij * (1 - pij) * 1
-
-                # Get delta_w1
-                delta_w1 = (fi - pi) * uj * pij * (1 - pij) * xij
-
-                # Initialize the dictionary of delta_w for key bin
                 if bin not in delta_ws[j].keys():
                     delta_ws[j][bin] = [0, 0]
 
-                # Update delta_w0 of xj
-                delta_ws[j][bin][0] += delta_w0
-
-                # Update delta_w1 of xj
-                delta_ws[j][bin][1] += delta_w1
+                # Update delta_u of xj
+                delta_ws[j][bin][0] += delta_u0
+                delta_ws[j][bin][1] += delta_u1
 
         # Initialize the maximum absolute delta_u
         max_abs_u = None
         # Get the maximum absolute delta_u
-        for j in delta_us.keys():
-            for bin in delta_us[j].keys():
-                if max_abs_u == None or max_abs_u < abs(delta_us[j][bin]):
-                    max_abs_u = abs(delta_us[j][bin])
-        max_abs_u = 1 if max_abs_u < 1 else max_abs_u
-        # Update the dictionary of self.us_
-        for j in delta_us.keys():
-            for bin in delta_us[j].keys():
-                self.us_[yu][j][bin] += delta_us[j][bin] / max_abs_u
-
-        # Initialize the maximum absolute delta_w
-        max_abs_w = None
-        # Get the maximum absolute w0 and w1
         for j in delta_ws.keys():
             for bin in delta_ws[j].keys():
-                if max_abs_w == None or max_abs_w < abs(delta_ws[j][bin][0]):
-                    max_abs_w = abs(delta_ws[j][bin][0])
-                if max_abs_w == None or max_abs_w < abs(delta_ws[j][bin][1]):
-                    max_abs_w = abs(delta_ws[j][bin][1])
-        max_abs_w = 1 if max_abs_w < 1 else max_abs_w
+                if max_abs_u == None or max_abs_u < abs(delta_ws[j][bin][0]):
+                    max_abs_u = abs(delta_ws[j][bin][0])
+                if max_abs_u == None or max_abs_u < abs(delta_ws[j][bin][1]):
+                    max_abs_u = abs(delta_ws[j][bin][1])
+        max_abs_u = 1 if max_abs_u < 1 else max_abs_u
         # Update the dictionary of self.ws_
         for j in delta_ws.keys():
             for bin in delta_ws[j].keys():
-                self.ws_[yu][j][bin][0] += delta_ws[j][bin][0] / max_abs_w
-                self.ws_[yu][j][bin][1] += delta_ws[j][bin][1] / max_abs_w
+                self.ws_[yu][j][bin][0] += delta_ws[j][bin][0] / max_abs_u
+                self.ws_[yu][j][bin][1] += delta_ws[j][bin][1] / max_abs_u
 
     def get_pis(self, X, yu):
         """
@@ -226,9 +171,6 @@ class ALA:
         """
 
         self.pis_[yu] = {}
-
-        # Get pijs for yu
-        self.get_pijs(X, yu)
 
         # For each row
         for i in range(X.shape[0]):
@@ -243,37 +185,17 @@ class ALA:
                 bin = self.get_bin(xij, j)
 
                 # Get uj
-                uj = self.us_[yu][j][bin]
-
-                # Get pij
-                pij = self.pijs_[yu][i][j]
+                uj0 = self.ws_[yu][j][bin][0]
+                uj1 = self.ws_[yu][j][bin][1]
 
                 # Update zi
-                zi += uj * pij
+                zi += uj0 + uj1 * xij
 
             # Get pi
             pi = self.sigmoid(zi)
 
             # Update pis
             self.pis_[yu][i] = pi
-
-    def get_pijs(self, X, yu):
-        """
-        Get the minimum of all ujs for each row i
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :return: the minimum of all ujs for each row i
-        """
-
-        self.pijs_[yu] = {}
-
-        # For each row
-        for i in range(X.shape[0]):
-            self.pijs_[yu][i] = {}
-
-            for j in range(X.shape[1] + 1):
-                # Get pij
-                self.pijs_[yu][i][j] = self.get_pij(X, yu, i, j)
 
     def get_pij(self, X, yu, i, j):
         """
@@ -291,12 +213,12 @@ class ALA:
         # Get bin
         bin = self.get_bin(xij, j)
 
-        # Get wj0 and wj1
-        wj0 = self.ws_[yu][j][bin][0]
-        wj1 = self.ws_[yu][j][bin][1]
+        # Get uj
+        uj0 = self.ws_[yu][j][bin][0]
+        uj1 = self.ws_[yu][j][bin][1]
 
-        # Get zij
-        zij = wj0 + wj1 * xij
+        # Update zi
+        zij = uj0 + uj1 * xij
 
         # Get pij
         pij = self.sigmoid(zij)
