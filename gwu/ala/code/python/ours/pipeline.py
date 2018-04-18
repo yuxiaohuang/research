@@ -331,6 +331,7 @@ def get_data(data_file, setting, names):
     # Get the feature vector
     X = df[names.features]
 
+    print(names.features)
     # One-hot encoding on categorical features
     if len(names.categorical_features) > 0:
         X = pd.get_dummies(X, columns=names.categorical_features)

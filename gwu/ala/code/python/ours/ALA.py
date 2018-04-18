@@ -115,17 +115,20 @@ class ALA:
             self.us_[yu] = {}
         # For each xj
         for j in range(X.shape[1] + 1):
-            if j not in self.us_[yu]:
-                self.us_[yu][j] = 0
+            if j not in self.us_[yu].keys():
+                self.us_[yu][j] = {}
+            for bin in range(len(self.bins_[j]) - 1):
+                if bin not in self.us_[yu][j].keys():
+                    self.us_[yu][j][bin] = 1
 
         if yu not in self.ws_.keys():
             self.ws_[yu] = {}
         # For each xj
         for j in range(X.shape[1] + 1):
-            if j not in self.ws_[yu]:
+            if j not in self.ws_[yu].keys():
                 self.ws_[yu][j] = {}
             for bin in range(len(self.bins_[j]) - 1):
-                if bin not in self.ws_[yu][j]:
+                if bin not in self.ws_[yu][j].keys():
                     self.ws_[yu][j][bin] = [0, 0]
 
         # Get pis for yu
@@ -136,7 +139,7 @@ class ALA:
 
         # For each xj
         for j in range(X.shape[1] + 1):
-            delta_us[j] = 0
+            delta_us[j] = {}
             delta_ws[j] = {}
 
             # For each row
@@ -153,26 +156,30 @@ class ALA:
                 # Get delta_u
                 delta_u = (fi - pi) * pij
 
-                # Update delta_u of xj
-                delta_us[j] += delta_u
-
-                # Get uj
-                uj = self.us_[yu][j]
-
                 # Get xij
                 xij = 1 if j == 0 else X[i][j - 1]
 
                 # Get the bin xij falls into
                 bin = self.get_bin(xij, j)
 
+                # Initialize the dictionary of delta_w for key bin
+                if bin not in delta_us[j].keys():
+                    delta_us[j][bin] = 0
+
+                # Update delta_u of xj
+                delta_us[j][bin] += delta_u
+
+                # Get uj
+                uj = self.us_[yu][j][bin]
+
                 # Get delta_w0
-                delta_w0 = (fi - pi) * uj * pij * (1 - pij) * xij
+                delta_w0 = (fi - pi) * uj * pij * (1 - pij) * 1
 
                 # Get delta_w1
-                delta_w1 = (fi - pi) * uj * pij * (1 - pij) * 1
+                delta_w1 = (fi - pi) * uj * pij * (1 - pij) * xij
 
                 # Initialize the dictionary of delta_w for key bin
-                if bin not in delta_ws[j]:
+                if bin not in delta_ws[j].keys():
                     delta_ws[j][bin] = [0, 0]
 
                 # Update delta_w0 of xj
@@ -185,12 +192,14 @@ class ALA:
         max_abs_u = None
         # Get the maximum absolute delta_u
         for j in delta_us.keys():
-            if max_abs_u == None or max_abs_u < abs(delta_us[j]):
-                max_abs_u = abs(delta_us[j])
+            for bin in delta_us[j].keys():
+                if max_abs_u == None or max_abs_u < abs(delta_us[j][bin]):
+                    max_abs_u = abs(delta_us[j][bin])
         max_abs_u = 1 if max_abs_u < 1 else max_abs_u
         # Update the dictionary of self.us_
         for j in delta_us.keys():
-            self.us_[yu][j] += delta_us[j] / max_abs_u
+            for bin in delta_us[j].keys():
+                self.us_[yu][j][bin] += delta_us[j][bin] / max_abs_u
 
         # Initialize the maximum absolute delta_w
         max_abs_w = None
@@ -227,8 +236,14 @@ class ALA:
 
             # For each xj
             for j in range(X.shape[1] + 1):
+                # Get xij
+                xij = 1 if j == 0 else X[i][j - 1]
+
+                # Get the bin xij falls into
+                bin = self.get_bin(xij, j)
+
                 # Get uj
-                uj = self.us_[yu][j]
+                uj = self.us_[yu][j][bin]
 
                 # Get pij
                 pij = self.pijs_[yu][i][j]
@@ -254,8 +269,7 @@ class ALA:
 
         # For each row
         for i in range(X.shape[0]):
-            if not i in self.pijs_[yu].keys():
-                self.pijs_[yu][i] = {}
+            self.pijs_[yu][i] = {}
 
             for j in range(X.shape[1] + 1):
                 # Get pij
@@ -410,15 +424,15 @@ class ALA:
         :return:
         """
 
+        self.prob_dist_dict_ = {}
+
         # For each unique value of the target
         for yu in self.ws_.keys():
-            if not yu in self.prob_dist_dict_:
-                self.prob_dist_dict_[yu] = {}
+            self.prob_dist_dict_[yu] = {}
 
             # For each xj
             for j in range(X.shape[1] + 1):
-                if not j in self.prob_dist_dict_[yu]:
-                    self.prob_dist_dict_[yu][j] = {}
+                self.prob_dist_dict_[yu][j] = {}
 
                 # Get the unique value and the corresponding index of xj
                 xus, idxs = (np.unique([1], return_index=True) if j == 0
