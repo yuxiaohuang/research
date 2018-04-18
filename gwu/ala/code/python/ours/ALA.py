@@ -86,8 +86,8 @@ class ALA:
             # Set backend="threading" to share memory between parent and threads
             # Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
             #                                                    for yu in np.unique(y))
-            Parallel(n_jobs=1, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
-                                                    for yu in np.unique(y))
+            Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
+                                                               for yu in np.unique(y))
 
             # Update the mses
             self.update_mses(X, y)
@@ -114,12 +114,8 @@ class ALA:
         # Get pis for yu
         self.get_pis(X, yu)
 
-        delta_ws = {}
-
         # For each xj
         for j in range(X.shape[1] + 1):
-            delta_ws[j] = {}
-
             # For each row
             for i in range(X.shape[0]):
                 # Get fi
@@ -131,36 +127,12 @@ class ALA:
                 # Get xij
                 xij = 1 if j == 0 else X[i][j - 1]
 
-                # Get delta_u
-                delta_u0 = (fi - pi) * 1
-                delta_u1 = (fi - pi) * xij
-
                 # Get the bin xij falls into
                 bin = self.get_bin(xij, j)
 
-                # Initialize the dictionary of delta_w for key bin
-                if bin not in delta_ws[j].keys():
-                    delta_ws[j][bin] = [0, 0]
-
-                # Update delta_u of xj
-                delta_ws[j][bin][0] += delta_u0
-                delta_ws[j][bin][1] += delta_u1
-
-        # Initialize the maximum absolute delta_u
-        max_abs_u = None
-        # Get the maximum absolute delta_u
-        for j in delta_ws.keys():
-            for bin in delta_ws[j].keys():
-                if max_abs_u == None or max_abs_u < abs(delta_ws[j][bin][0]):
-                    max_abs_u = abs(delta_ws[j][bin][0])
-                if max_abs_u == None or max_abs_u < abs(delta_ws[j][bin][1]):
-                    max_abs_u = abs(delta_ws[j][bin][1])
-        max_abs_u = 1 if max_abs_u < 1 else max_abs_u
-        # Update the dictionary of self.ws_
-        for j in delta_ws.keys():
-            for bin in delta_ws[j].keys():
-                self.ws_[yu][j][bin][0] += delta_ws[j][bin][0] / max_abs_u
-                self.ws_[yu][j][bin][1] += delta_ws[j][bin][1] / max_abs_u
+                # Get delta_u
+                self.ws_[yu][j][bin][0] += (fi - pi) * 1 / self.C_
+                self.ws_[yu][j][bin][1] += (fi - pi) * xij / self.C_
 
     def get_pis(self, X, yu):
         """
@@ -175,7 +147,6 @@ class ALA:
         # For each row
         for i in range(X.shape[0]):
             zi = 0
-
             # For each xj
             for j in range(X.shape[1] + 1):
                 # Get xij
@@ -184,12 +155,12 @@ class ALA:
                 # Get the bin xij falls into
                 bin = self.get_bin(xij, j)
 
-                # Get uj
-                uj0 = self.ws_[yu][j][bin][0]
-                uj1 = self.ws_[yu][j][bin][1]
+                # Get wj
+                wj0 = self.ws_[yu][j][bin][0]
+                wj1 = self.ws_[yu][j][bin][1]
 
                 # Update zi
-                zi += uj0 + uj1 * xij
+                zi += wj0 + wj1 * xij
 
             # Get pi
             pi = self.sigmoid(zi)
@@ -210,15 +181,15 @@ class ALA:
         # Get xij
         xij = 1 if j == 0 else X[i][j - 1]
 
-        # Get bin
+        # Get the bin xij falls into
         bin = self.get_bin(xij, j)
 
-        # Get uj
-        uj0 = self.ws_[yu][j][bin][0]
-        uj1 = self.ws_[yu][j][bin][1]
+        # Get wj
+        wj0 = self.ws_[yu][j][bin][0]
+        wj1 = self.ws_[yu][j][bin][1]
 
         # Update zi
-        zij = uj0 + uj1 * xij
+        zij = wj0 + wj1 * xij
 
         # Get pij
         pij = self.sigmoid(zij)
@@ -351,7 +322,6 @@ class ALA:
         # For each unique value of the target
         for yu in self.ws_.keys():
             self.prob_dist_dict_[yu] = {}
-
             # For each xj
             for j in range(X.shape[1] + 1):
                 self.prob_dist_dict_[yu][j] = {}
