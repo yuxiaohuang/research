@@ -101,10 +101,10 @@ class ALA:
             self.ws_[yu] = {}
         # For each xj
         for j in range(X.shape[1] + 1):
-            if j not in self.ws_[yu]:
+            if j not in self.ws_[yu].keys():
                 self.ws_[yu][j] = {}
             for bin in range(len(self.bins_[j]) - 1):
-                if bin not in self.ws_[yu][j]:
+                if bin not in self.ws_[yu][j].keys():
                     self.ws_[yu][j][bin] = [0, 0]
 
         # Initialize the dictionary of min_ujs for yu
@@ -114,8 +114,7 @@ class ALA:
         delta_wij = {}
 
         # For each xj
-        for j in self.ws_[yu]:
-
+        for j in self.ws_[yu].keys():
             # Initialize the dictionary of delta_wij
             delta_wij[j] = {}
 
@@ -134,20 +133,20 @@ class ALA:
                 bin = self.get_bin(xij, j)
 
                 # Get delta_w0 of xj at row i
-                delta_wij0 = pij * (min_ujs[i] - 1 + fi) * -1 / self.C_
+                delta_wij0 = pij * (min_ujs[i] - 1 + fi) * 1 / self.C_
 
                 # Get delta_w1 of xj at row i
-                delta_wij1 = pij * (min_ujs[i] - 1 + fi) * -xij / self.C_
+                delta_wij1 = pij * (min_ujs[i] - 1 + fi) * xij / self.C_
 
                 # Initialize the dictionary of delta_wij for key bin
-                if bin not in delta_wij[j]:
+                if bin not in delta_wij[j].keys():
                     delta_wij[j][bin] = [0, 0]
 
                 # Update delta_w0 of xj
-                delta_wij[j][bin][0] += delta_wij0 * -1
+                delta_wij[j][bin][0] += delta_wij0
 
                 # Update delta_w1 of xj
-                delta_wij[j][bin][1] += delta_wij1 * -1
+                delta_wij[j][bin][1] += delta_wij1
 
         # Initialize the maximum absolute w
         max_abs_w = None
@@ -155,10 +154,8 @@ class ALA:
         # Get the maximum absolute w0 and w1
         for j in delta_wij.keys():
             for bin in delta_wij[j].keys():
-                if max_abs_w == None or max_abs_w < abs(delta_wij[j][bin][0]):
-                    max_abs_w = abs(delta_wij[j][bin][0])
-                if max_abs_w == None or max_abs_w < abs(delta_wij[j][bin][1]):
-                    max_abs_w = abs(delta_wij[j][bin][1])
+                if max_abs_w == None or max_abs_w < max(abs(delta_wij[j][bin][0]), abs(delta_wij[j][bin][1])):
+                    max_abs_w = max(abs(delta_wij[j][bin][0]), abs(delta_wij[j][bin][1]))
         max_abs_w = 1 if max_abs_w < 1 else max_abs_w
 
         # Update the dictionary of self.ws_
@@ -383,12 +380,12 @@ class ALA:
 
         # For each unique value of the target
         for yu in self.ws_.keys():
-            if not yu in self.prob_dist_dict_:
+            if not yu in self.prob_dist_dict_.keys():
                 self.prob_dist_dict_[yu] = {}
 
             # For each xj
             for j in range(X.shape[1] + 1):
-                if not j in self.prob_dist_dict_[yu]:
+                if not j in self.prob_dist_dict_[yu].keys():
                     self.prob_dist_dict_[yu][j] = {}
 
                 # Get the unique value and the corresponding index of xj
