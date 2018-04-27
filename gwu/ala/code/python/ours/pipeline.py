@@ -9,6 +9,7 @@ import Setting
 import ALA
 
 from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 
 
@@ -91,6 +92,10 @@ def eval(setting, names, data, ala, y_pred):
 
     setting.set_plt()
 
+    if setting.score_file_dir is not None:
+        # Write the score file
+        write_score_file(setting, data.y_test, y_pred)
+
     if setting.mse_fig_dir is not None:
         # Plot the mean square error figure
         plot_mse_fig(setting, ala)
@@ -102,10 +107,6 @@ def eval(setting, names, data, ala, y_pred):
     if setting.prob_dist_file_dir is not None:
         # Write the probability distribution file
         write_prob_dist_file(setting, names, data.X, ala)
-
-    if setting.score_file_dir is not None:
-        # Write the score file
-        write_score_file(setting, data.y_test, y_pred)
 
 
 def plot_mse_fig(setting, ala):
@@ -246,7 +247,7 @@ def write_score_file(setting, y_test, y_pred):
         precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average[0])
 
         # Write header
-        f.write("precision, recall, fscore using " + setting.average[0] + '\n')
+        f.write("precision, recall, fscore using " + setting.average[0] + ':' + '\n')
 
         # Write the precision, recall, and fscore
         f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n\n')
@@ -254,10 +255,18 @@ def write_score_file(setting, y_test, y_pred):
         precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average[1])
 
         # Write header
-        f.write("precision, recall, fscore using " + setting.average[1] + '\n')
+        f.write("precision, recall, fscore using " + setting.average[1] + ':' + '\n')
 
         # Write the precision, recall, and fscore
-        f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n')
+        f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n\n')
+
+        accuracy = accuracy_score(y_test, y_pred)
+
+        # Write header
+        f.write("accuracy:" + '\n')
+
+        # Write the accuracy
+        f.write(str(accuracy) + '\n')
 
 
 if __name__ == "__main__":

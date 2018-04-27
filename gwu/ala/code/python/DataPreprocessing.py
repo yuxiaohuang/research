@@ -162,9 +162,9 @@ class DataPreprocessing():
         elif para_name == 'target':
             names.target = vals
         elif para_name == 'exclude_features':
-            names.exclude_features = vals
+            names.exclude_features = [str(val) for val in vals]
         elif para_name == 'categorical_features':
-            names.categorical_features = vals
+            names.categorical_features = [str(val) for val in vals]
 
     def get_data(self, data_files, setting, names):
         """
@@ -238,6 +238,9 @@ class DataPreprocessing():
 
         # Load data
         df = pd.read_csv(data_file, header=names.header, delim_whitespace=names.delim_whitespace, sep=names.sep)
+
+        # Replace '/' with '_'
+        df = df.replace('/', '_')
 
         # Replace missing_representation with NaN
         df = df.replace(names.place_holder_for_missing_vals, np.NaN)
