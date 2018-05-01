@@ -76,8 +76,7 @@ class ALA:
         :return:
         """
 
-        for i in range(100):
-            print(i)
+        for _ in range(100):
             # Gradient descent for each unique value of the target
             # Set backend="threading" to share memory between parent and threads
             # Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)

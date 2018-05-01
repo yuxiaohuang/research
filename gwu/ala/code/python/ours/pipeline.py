@@ -179,6 +179,9 @@ def plot_prob_dist_fig(setting, names, X, ala):
             # Set the y-axis label
             plt.ylabel("Probability")
 
+            if len(xijs_orig) > 50:
+                plt.tick_params(labelbottom='off')
+
             plt.tight_layout()
             prob_dist_fig = (setting.prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
                              + setting.prob_dist_fig_type)

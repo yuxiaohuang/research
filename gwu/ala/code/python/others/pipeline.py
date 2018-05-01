@@ -194,6 +194,9 @@ def plot_prob_dist_fig(setting, names, X, clf, clf_name):
             # Set the y-axis label
             plt.ylabel("Probability")
 
+            if len(xijs_orig) > 50:
+                plt.tick_params(labelbottom='off')
+
             plt.tight_layout()
             # Get the pathname of the probability distribution figure
             prob_dist_fig = (prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj

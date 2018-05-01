@@ -147,20 +147,18 @@ class DataPreprocessing():
         :return:
         """
 
-        vals = vals[0] if len(vals) == 1 else vals
-
         if para_name == 'header':
-            names.header = int(vals)
+            names.header = int(vals[0])
         elif para_name == 'delim_whitespace':
-            names.delim_whitespace = vals
+            names.delim_whitespace = str(vals[0])
         elif para_name == 'sep':
-            names.sep = vals
+            names.sep = str(vals[0])
         elif para_name == 'place_holder_for_missing_vals':
-            names.place_holder_for_missing_vals = vals
+            names.place_holder_for_missing_vals = str(vals[0])
         elif para_name == 'columns':
             names.columns = [str(val) for val in vals]
         elif para_name == 'target':
-            names.target = vals
+            names.target = str(vals[0])
         elif para_name == 'exclude_features':
             names.exclude_features = [str(val) for val in vals]
         elif para_name == 'categorical_features':
@@ -237,7 +235,10 @@ class DataPreprocessing():
         """
 
         # Load data
-        df = pd.read_csv(data_file, header=names.header, delim_whitespace=names.delim_whitespace, sep=names.sep)
+        if names.delim_whitespace is True:
+            df = pd.read_csv(data_file, header=names.header, delim_whitespace=names.delim_whitespace)
+        else:
+            df = pd.read_csv(data_file, header=names.header, sep=names.sep)
 
         # Replace '/' with '_'
         df = df.replace('/', '_')
