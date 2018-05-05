@@ -30,7 +30,7 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
     # Get the DataPreprocessing object
     dp = DataPreprocessing.DataPreprocessing(data_dir)
 
-    # Match data file with names file
+    # Match data file withm names file
     data_names = dp.match_data_names()
 
     # The parallel pipelines for data preprocessing, train, test, and evaluate the ALA classifier

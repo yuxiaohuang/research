@@ -1,6 +1,4 @@
 ###-----------------------------------------------------------------------------------------
 ### Pipeline for other algorithms###-----------------------------------------------------------------------------------------
 
-mkdir /home/yuxiaohuang/research/gwu/ala/result/others/
-
 python /home/yuxiaohuang/research/gwu/ala/code/python/others/pipeline.py /home/yuxiaohuang/research/gwu/ala/data/ /home/yuxiaohuang/research/gwu/ala/result/others/ /home/yuxiaohuang/research/gwu/ala/code/python/
