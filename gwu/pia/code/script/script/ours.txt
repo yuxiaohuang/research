@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
+
+python /home/yuxiaohuang/research/gwu/pia/code/python/ours/pipeline.py /home/yuxiaohuang/research/gwu/pia/data/ /home/yuxiaohuang/research/gwu/pia/result/ours/ /home/yuxiaohuang/research/gwu/pia/code/python/

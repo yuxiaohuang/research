@@ -5,11 +5,11 @@ import glob
 import csv
 import pandas as pd
 import numpy as np
-import Names
-import Data
 
 from sklearn.model_selection import train_test_split
 
+import Names
+import Data
 
 class DataPreprocessing():
     """The Data Processing class"""
@@ -17,7 +17,10 @@ class DataPreprocessing():
     def __init__(self, data_dir):
         """
         Get all files in data_dir
-        :param data_dir: the pathname of the data directory
+        
+        Parameters
+        ----------
+        param data_dir : the pathname of the data directory
         """
 
         self.files = glob.glob(data_dir + '**/*.txt', recursive=True) + glob.glob(data_dir + '**/*.csv', recursive=True)
@@ -25,8 +28,10 @@ class DataPreprocessing():
     def match_data_names(self):
         """
         Match data file with names file
-        :param files: the pathname of the data and names files
-        :return: matched [data_file, names_file] lists
+        
+        Returns
+        ----------
+        Matched [data_file, names_file] lists
         """
 
         # Initialization
@@ -58,11 +63,17 @@ class DataPreprocessing():
     def get_setting_names_data(self, data_files, names_file, result_dir, Setting):
         """
         Data preprocessing
-        :param data_files: the pathname of the data files
-        :param names_file: the pathname of the names file
-        :param result_dir: the pathname of the result directory
-        :param result_dir: the Setting module
-        :return: the setting, names, and data object
+
+        Parameters
+        ----------
+        data_files : the pathname of the data files
+        names_file : the pathname of the names file
+        result_dir : the pathname of the result directory
+        Setting : the Setting object
+        
+        Returns
+        ----------
+        The Setting, Names, and Data object
         """
 
         data_file = data_files[0].replace('.train', '')
@@ -91,8 +102,14 @@ class DataPreprocessing():
     def get_names(self, names_file):
         """
         Get the Names object
-        :param names_file: the pathname of the names file
-        :return: the Names object
+        
+        Parameters
+        ----------        
+        names_file : the pathname of the names file
+        
+        Returns
+        ----------
+        The Names object
         """
 
         with open(names_file, 'r') as f:
@@ -141,10 +158,12 @@ class DataPreprocessing():
     def get_para_vals(self, names, para_name, vals):
         """
         Get parameter values
-        :param names: the Names object
-        :param para_name: the parameter name
-        :param vals: the values
-        :return:
+        
+        Parameters
+        ----------        
+        names : the Names object
+        para_name : the parameter name
+        vals : the values
         """
 
         if para_name == 'header':
@@ -167,10 +186,16 @@ class DataPreprocessing():
     def get_data(self, data_files, setting, names):
         """
         Get the Data object
-        :param data_files: the pathname of the data files
-        :param setting: the Setting object
-        :param names: the Names object
-        :return: the Data object
+        
+        Parameters
+        ----------        
+        data_files : the pathname of the data files
+        setting : the Setting object
+        names : the Names object
+        
+        Returns
+        ----------
+        The Data object
         """
 
         # If one data file
@@ -215,23 +240,30 @@ class DataPreprocessing():
             print("Wrong number of data files!")
             exit(1)
 
-        # Standardize the features
-        X_train = setting.scaler.fit_transform(X_train.astype(float))
-        X_test = setting.scaler.transform(X_test.astype(float))
+        # Update names.features and names.features_I
+        names.features = list(X.columns)
+        names.features_I = list(X.columns)
+
+        # Cast X to numpy 2d-array
+        X_train, X_test = X_train.values, X_test.values
 
         # Declare the Data object
         data = Data.Data(X, X_train, X_test, y, y_train, y_test)
-
-        names.features = X.columns
 
         return data
 
     def get_X_y(self, data_file, names):
         """
         Get X and y
-        :param data_file: the pathname of the data file
-        :param names: the Names object
-        :return: the feature and target vector
+        
+        Parameters
+        ----------        
+        data_file : the pathname of the data file
+        names : the Names object
+        
+        Returns
+        ----------
+        The feature and target vector
         """
 
         # Load data
@@ -266,19 +298,22 @@ class DataPreprocessing():
     def encode_X_y(self, X, y, setting, names):
         """
         Encode X and y
-        :param X: the feature vector
-        :param y: the target vector
-        :param setting: the Setting object
-        :param names: the Names object
-        :return: the encoded feature and target vector
+        
+        Parameters
+        ----------        
+        X : the feature vector
+        y : the target vector
+        setting : the Setting object
+        names : the Names object
+
+        Returns
+        ----------
+        The encoded feature and target vector
         """
 
         # One-hot encoding on categorical features
         if len(names.categorical_features) > 0:
             X = pd.get_dummies(X, columns=names.categorical_features)
-
-        # Cast X to float
-        X = X.astype(float)
 
         # Encode the target
         y = setting.encoder.fit_transform(y)
@@ -288,11 +323,13 @@ class DataPreprocessing():
     def write_parameter_file(self, data_files, names_file, setting, names):
         """
         Write the parameter file
-        :param data_file: the pathname of the data files
-        :param names_file: the pathname of the names file
-        :param setting: the Setting object
-        :param names: the Names object
-        :return:
+        
+        Parameters
+        ----------        
+        data_file : the pathname of the data files
+        names_file : the pathname of the names file
+        setting : the Setting object
+        names : the Names object
         """
 
         # Make directory
@@ -397,22 +434,22 @@ class DataPreprocessing():
         random_state = """ + str(setting.random_state) + """
         
         ###--------------------------------------------------------------------------------------------------------
-        ### The maximum number of iterations
+        ### The minimum number of samples required for calculating importance
         ###--------------------------------------------------------------------------------------------------------
         
-        max_iter = """ + str(setting.max_iter) + """
+        min_samples_importance = """ + str(setting.min_samples_importance) + """
         
         ###--------------------------------------------------------------------------------------------------------
-        ### The minimum number of samples in each bin
+        ### The minimum number of samples required for an interaction
         ###--------------------------------------------------------------------------------------------------------
         
-        min_samples_bin = """ + str(setting.min_samples_bin) + """
-        
+        min_samples_interaction = """ + str(setting.min_samples_interaction) + """
+ 
         ###--------------------------------------------------------------------------------------------------------
-        ### The value of C
+        ### The p_val cutoff
         ###--------------------------------------------------------------------------------------------------------
         
-        C = """ + str(setting.C) + """
+        p_val = """ + str(setting.p_val) + """
         
         ###--------------------------------------------------------------------------------------------------------
         ### The average for precision_recall_fscore_support
@@ -425,9 +462,16 @@ class DataPreprocessing():
         ###--------------------------------------------------------------------------------------------------------
         
         n_jobs = """ + str(setting.n_jobs) + """
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The top k feature-importance pairs shown in the bar plot
+        ###--------------------------------------------------------------------------------------------------------
+                
+        self.k = """ + str(setting.k) + """
         """
 
         parameter_file = setting.parameter_file_dir + setting.parameter_file_name + setting.parameter_file_type
         # Write the parameter file
         with open(parameter_file, 'w') as f:
             f.write(parameters + '\n')
+

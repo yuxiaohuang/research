@@ -11,20 +11,27 @@ class Data:
                  y_train,
                  y_test):
 
-        # The feature data
+        # The feature vector
         self.X = X
 
-        # The feature data for training
+        # The feature vector for training
         self.X_train = X_train
 
-        # The feature data for testing
+        # The feature vector for testing
         self.X_test = X_test
 
-        # The target data
+        # The target vector
         self.y = y
 
-        # The target data for training
+        # The target vector for training
         self.y_train = y_train
 
-        # The target data for testing
+        # The target vector for testing
         self.y_test = y_test
+        
+        # The feature vector for training, with interaction
+        self.X_train_I = None
+
+        # The feature vector for testing, with interaction
+        self.X_test_I = None
+

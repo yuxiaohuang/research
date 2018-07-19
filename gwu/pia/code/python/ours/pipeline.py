@@ -5,26 +5,29 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import Setting
-import ALA
 
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 
+import Setting
+import PIA
+
 
 def get_result_from_data(data_dir, result_dir, dp_dir):
     """
     Get result from data
-    :param data_dir: the pathname of the data directory
-    :param result_dir: the pathname of the result directory
-    :param dp_dir: the pathname of the DataPreprocessing module directory
-    :return:
+            
+    Parameters
+    ----------
+    data_dir : the pathname of the data directory
+    result_dir : the pathname of the result directory
+    dp_dir : the pathname of the DataPreprocessing module directory
     """
 
     # Add code_dir folder
     sys.path.append(dp_dir)
-
+    
     # Import the DataPreprocessing module
     import DataPreprocessing
     # Get the DataPreprocessing object
@@ -42,234 +45,262 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
 
 def pipeline(dp, data_files, names_file, result_dir):
     """
-    The pipeline for data preprocessing, train, test, and evaluate the ALA classifier
-    :param dp: the DataPreprocessing module
-    :param data_files: the pathname of the data files
-    :param names_file: the pathname of the names file
-    :param result_dir: the pathname of the result directory
-    :return:
+    The pipeline for data preprocessing, principle interaction analysis (PIA), train, test, and evaluate the classifiers
+    
+    Parameters
+    ----------
+    dp : the DataPreprocessing module
+    data_files : the pathname of the data files
+    names_file : the pathname of the names file
+    result_dir : the pathname of the result directory
     """
 
     # Data preprocessing: get the Setting, Names, and Data object
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
+    
+    # Get the PIA object
+    pia = PIA.PIA(setting.min_samples_importance, setting.min_samples_interaction, setting.p_val, setting.random_state)
 
-    # Train, test, and evaluate the ALA classifier
-    train_test_eval(setting, names, data)
+    # The fit-transform
+    data.X_train_I = pia.fit_transform(data.X_train, data.y_train)
+    # The transform
+    data.X_test_I = pia.transform(data.X_test)
+    # Update names.features_I
+    for class_ in pia.D.keys():
+        for I, prob in pia.D[class_]:
+            # Here, we only add interaction with multiple conditions
+            if len(I) > 1:
+                names.features_I.append([names.features[c] for c in I])
+
+    # Write the interaction file
+    write_interaction_file(setting, names, pia)
+        
+    # Train, test, and evaluate the classifier
+    # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
+    Parallel(n_jobs=setting.n_jobs)(delayed(train_test_eval)(setting, names, data, clf_name, pia)
+                                    for clf_name in setting.classifiers.keys())
 
 
-def train_test_eval(setting, names, data):
+def write_interaction_file(setting, names, pia):
     """
-    Train, test, and evaluate the ALA classifier
-    :param setting: the Setting object
-    :param names: the Names object
-    :param data: the Data object
-    :return:
+    Write the interaction file
+
+    Parameters
+    ----------
+    setting: the Setting object
+    names : the Names object
+    pia : the PIA object
     """
 
-    # Declare the ALA classifier
-    ala = ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C)
+    # Get the pathname of the interaction file
+    interaction_file = setting.interaction_file_dir + setting.interaction_file_name + setting.interaction_file_type
 
-    # Train ala
-    ala.fit(data.X_train, data.y_train)
+    # Make directory
+    directory = os.path.dirname(interaction_file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-    # Test ala
-    y_pred = ala.predict(data.X_test)
+    with open(interaction_file, 'w') as f:
+        # Write header
+        f.write("class, interaction, probability" + '\n')
 
-    # Evaluate ala
-    eval(setting, names, data, ala, y_pred)
+        # For each class of the target
+        for class_ in sorted(pia.D.keys()):
+            for I, prob in pia.D[class_]:
+                f.write(str(setting.encoder.inverse_transform([class_])[0]) + ',' + ' & '.join([names.features[c] for c in I]) + ', ' + str(prob) + '\n')
 
 
-def eval(setting, names, data, ala, y_pred):
+def train_test_eval(setting, names, data, clf_name, pia):
     """
-    Evaluate the ALA classifier
-    :param setting: the Setting object
-    :param names: the Names object
-    :param data: the Data object
-    :param ala: the ALA classifier
-    :param y_pred: the predicted values of the target
-    :return:
+    Train, test, and evaluate the classifier
+    
+    Parameters
+    ----------
+    setting : the Setting object
+    names : the Names object
+    data : the Data object
+    clf_name : the name of the classifier
+    pia : the PIA object
+    """
+
+    classifier = setting.classifiers[clf_name]
+
+    if clf_name == 'RandomForestClassifier':
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        clf_I = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+    elif clf_name == 'AdaBoostClassifier':
+        clf = classifier(random_state=setting.random_state)
+        clf_I = classifier(random_state=setting.random_state)
+    elif clf_name == 'MLPClassifier':
+        clf = classifier(random_state=setting.random_state)
+        clf_I = classifier(random_state=setting.random_state)
+    elif clf_name == 'KNeighborsClassifier':
+        clf = classifier(n_jobs=setting.n_jobs)
+        clf_I = classifier(n_jobs=setting.n_jobs)
+    elif clf_name == 'GaussianNB':
+        clf = classifier()
+        clf_I = classifier()
+    elif clf_name == 'DecisionTreeClassifier':
+        clf = classifier(random_state=setting.random_state)
+        clf_I = classifier(random_state=setting.random_state)
+    elif clf_name == 'LogisticRegression':
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        clf_I = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+    elif clf_name == 'GaussianProcessClassifier':
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        clf_I = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+    elif clf_name == 'SVC':
+        clf = classifier(random_state=setting.random_state)
+        clf_I = classifier(random_state=setting.random_state)
+
+    # Train clf
+    clf.fit(data.X_train, data.y_train)
+
+    # Test clf
+    y_pred = clf.predict(data.X_test)
+    
+    # Train clf_I, with interaction
+    clf_I.fit(data.X_train_I, data.y_train)
+
+    # Test clf, with interaction
+    y_pred_I = clf_I.predict(data.X_test_I)
+
+    # Evaluate clf
+    eval(setting, names, data, clf, clf_I, y_pred, y_pred_I, clf_name, pia)    
+
+
+def eval(setting, names, data, clf, clf_I, y_pred, y_pred_I, clf_name, pia):
+    """
+    Evaluate the classifier
+    
+    Parameters
+    ----------
+    setting: the Setting object
+    names: the Names object
+    data: the Data object
+    clf: the classifier
+    clf_I: the classifier, with interaction
+    y_pred: the predicted values of the target
+    y_pred_I: the predicted values of the target, with interaction
+    clf_name: the name of the classifier
+    pia : the PIA object
     """
 
     setting.set_plt()
 
     if setting.score_file_dir is not None:
         # Write the score file
-        write_score_file(setting, data.y_test, y_pred)
+        write_score_file(setting, data.y_test, y_pred, y_pred_I, clf_name)
 
-    if setting.mse_fig_dir is not None:
-        # Plot the mean square error figure
-        plot_mse_fig(setting, ala)
-
-    if setting.prob_dist_fig_dir is not None:
-        # Plot the probability distribution figures
-        plot_prob_dist_fig(setting, names, data.X, ala)
-
-    if setting.prob_dist_file_dir is not None:
-        # Write the probability distribution file
-        write_prob_dist_file(setting, names, data.X, ala)
+    if (setting.feature_importance_fig_dir is not None
+        and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
+        # Plot the feature importance figures
+        plot_feature_importance_fig(setting, names, clf_I, clf_name)
 
 
-def plot_mse_fig(setting, ala):
-    """
-    Plot the mean square error figure
-    :param setting: the Setting object
-    :param ala: the ALA classifier
-    :return:
-    """
-
-    # Make directory
-    directory = os.path.dirname(setting.mse_fig_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    plt.plot(range(1, len(ala.mses_) + 1), ala.mses_)
-    plt.ylabel('MSE')
-    plt.xlabel('Iteration')
-    plt.tight_layout()
-    mse_fig = setting.mse_fig_dir + setting.mse_fig_name + setting.mse_fig_type
-    plt.savefig(mse_fig, dpi=300)
-
-
-def plot_prob_dist_fig(setting, names, X, ala):
-    """
-    Plot the probability distribution figures.
-    :param setting: the Setting object
-    :param names: the Names object
-    :param X: the feature vector
-    :param ala: the ALA classifier
-    :return:
-    """
-
-    # Make directory
-    directory = os.path.dirname(setting.prob_dist_fig_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Get the dictionary of probability distribution
-    ala.get_prob_dist_dict(setting.scaler.transform(X))
-
-    # For each unique value of the target
-    for yu in sorted(ala.prob_dist_dict_.keys()):
-        # Get the original value of yu
-        yu_orig = str(setting.encoder.inverse_transform(yu))
-
-        # For each xj
-        for j in sorted(ala.prob_dist_dict_[yu].keys()):
-            xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-            pijs = [round(ala.prob_dist_dict_[yu][j][xij], 20) for xij in xijs]
-            xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
-            xijs_orig = [round(xij_orig, 2) for xij_orig in xijs_orig]
-
-            # Get the pandas series
-            df = pd.DataFrame(list(zip(xijs_orig, pijs)), columns=['Feature value', 'Probability'])
-
-            xj = 'x0' if j == 0 else names.features[j - 1]
-
-            # Plot the histogram of the series
-            df.plot(x='Feature value',
-                    y='Probability',
-                    kind='bar',
-                    figsize=(20, 10),
-                    title=('P(' + yu_orig + ' | ' + xj + ')'),
-                    legend=False,
-                    color='b')
-
-            # Set the x-axis label
-            plt.xlabel("Feature value")
-            # Set the y-axis label
-            plt.ylabel("Probability")
-
-            if len(xijs_orig) > 50:
-                plt.tick_params(labelbottom='off')
-
-            plt.tight_layout()
-            prob_dist_fig = (setting.prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
-                             + setting.prob_dist_fig_type)
-            plt.savefig(prob_dist_fig)
-
-
-def write_prob_dist_file(setting, names, X, ala):
-    """
-    Write the probability distribution file
-    :param setting: the Setting object
-    :param names: the Names object
-    :param X: the feature vector
-    :param ala: the ALA object
-    :return:
-    """
-
-    # Make directory
-    directory = os.path.dirname(setting.prob_dist_file_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Get the dictionary of probability distribution
-    ala.get_prob_dist_dict(setting.scaler.transform(X))
-
-    prob_dist_file = setting.prob_dist_file_dir + setting.prob_dist_file_name + setting.prob_dist_file_type
-
-    with open(prob_dist_file, 'w') as f:
-        # Write header
-        f.write("yu, xj, xij, pij" + '\n')
-
-        # For each unique value of the target
-        for yu in sorted(ala.prob_dist_dict_.keys()):
-            # Get the original value of yu
-            yu_orig = str(setting.encoder.inverse_transform(yu))
-
-            # For each xj
-            for j in sorted(ala.prob_dist_dict_[yu].keys()):
-                xj = 'x0' if j == 0 else names.features[j - 1]
-                xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-                pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
-                xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
-
-                for idx in range(len(pijs)):
-                    pij = pijs[idx]
-                    xij_orig = xijs_orig[idx]
-                    f.write(yu_orig + ', ' + xj + ', ' + str(xij_orig) + ', ' + str(pij) + '\n')
-
-
-def write_score_file(setting, y_test, y_pred):
+def write_score_file(setting, y_test, y_pred, y_pred_I, clf_name):
     """
     Write the score file
-    :param setting: the Setting object
-    :param y_test: the testing set
-    :param y_pred: the predicted values of the target
-    :return:
+    
+    Parameters
+    ----------
+    setting: the Setting object
+    y_test: the actual values of the target
+    y_pred: the predicted values of the target
+    y_pred_I: the predicted values of the target, with interaction
+    clf_name: the name of the classifier
     """
 
+    # Get the directory of the score file
+    score_file_dir = setting.score_file_dir + clf_name + '/'
+    # Get the pathname of the score file
+    score_file = score_file_dir + setting.score_file_name + setting.score_file_type
+
     # Make directory
-    directory = os.path.dirname(setting.score_file_dir)
+    directory = os.path.dirname(score_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    score_file = setting.score_file_dir + setting.score_file_name + setting.score_file_type
-
     with open(score_file, 'w') as f:
-        precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average[0])
-
-        # Write header
-        f.write("precision, recall, fscore using " + setting.average[0] + ':' + '\n')
-
-        # Write the precision, recall, and fscore
-        f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n\n')
-
-        precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=setting.average[1])
-
-        # Write header
-        f.write("precision, recall, fscore using " + setting.average[1] + ':' + '\n')
-
-        # Write the precision, recall, and fscore
-        f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n\n')
-
+        for average in setting.average:      
+            precision, recall, fscore, support = precision_recall_fscore_support(y_test, y_pred, average=average)
+            # Write the precision, recall, and fscore
+            f.write("precision, recall, fscore using " + average + ':' + '\n')
+            f.write(str(precision) + ', ' + str(recall) + ', ' + str(fscore) + '\n\n')
+         
+            precision_I, recall_I, fscore_I, support_I = precision_recall_fscore_support(y_test, y_pred_I, average=average)
+            # Write the precision, recall, and fscore, with interaction
+            f.write("precision, recall, fscore using " + average + ', with interaction:' + '\n')
+            f.write(str(precision_I) + ', ' + str(recall_I) + ', ' + str(fscore_I) + '\n\n')
+            
+            dif_precision, dif_recall, dif_fscore = precision_I - precision, recall_I - recall, fscore_I - fscore
+            # Write dif_precision, dif_recall, and dif_fscore
+            f.write("precision (with interaction) - precison, recall (with interaction) - recall, fscore (with interaction) - fscore:" + '\n')
+            f.write(str(dif_precision) + ', ' + str(dif_recall) + ', ' + str(dif_fscore) + '\n\n')
+            
         accuracy = accuracy_score(y_test, y_pred)
-
-        # Write header
-        f.write("accuracy:" + '\n')
-
         # Write the accuracy
+        f.write("accuracy:" + '\n')
         f.write(str(accuracy) + '\n')
+        
+        accuracy_I = accuracy_score(y_test, y_pred_I)
+        # Write the accuracy, with interaction
+        f.write("accuracy, with interaction:" + '\n')
+        f.write(str(accuracy_I) + '\n')
+
+        dif_accuracy = accuracy_I - accuracy
+        # Write dif_accuracy
+        f.write("accuracy (with interaction) - accuracy:" + '\n')
+        f.write(str(dif_accuracy) + '\n\n')
+
+
+def plot_feature_importance_fig(setting, names, clf, clf_name):
+    """
+    Plot the feature importance figures
+    
+    Parameters
+    ----------
+    setting : the Setting object
+    names : the Names object
+    clf : the classifier
+    clf_name: the name of the classifier
+    """
+
+    # Get the directory of the feature importance file
+    feature_importance_fig_dir = setting.feature_importance_fig_dir + clf_name + '/'
+    # Get the pathname of the feature importance figure
+    feature_importance_fig = (feature_importance_fig_dir + setting.feature_importance_fig_name + setting.feature_importance_fig_type)
+
+    # Make directory
+    directory = os.path.dirname(feature_importance_fig)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Get the feature importances
+    importances = clf.feature_importances_
+
+    # Get the number of conditions
+    nums = [len(feature) if isinstance(feature, list) is True else 1 for feature in names.features_I]
+
+    # Convert the importances into one-dimensional 1darray with corresponding df column names as axis labels
+    f_importances = pd.Series(importances, nums)
+
+    # Sort the array in descending order of the importances
+    f_importances.sort_values(ascending=False, inplace=True)
+
+    # Get the top k feature-importance pairs
+    f_importances_top_k = f_importances[:min(len(f_importances), 10)]
+
+    # Get the colors
+    colors = ['b' if num == 1 else 'r' for num, importance in f_importances_top_k.iteritems()]
+
+    # Make the bar plot from f_importances_top_k
+    f_importances_top_k.plot(kind='bar', figsize=(20,10), rot=0, fontsize=30, color=colors)
+
+    plt.xlabel('Number of conditions', fontsize=30)
+    plt.ylabel('Importance', fontsize=30)
+    plt.tight_layout()
+    plt.savefig(feature_importance_fig)
 
 
 if __name__ == "__main__":
@@ -284,3 +315,4 @@ if __name__ == "__main__":
 
     # Get result from data
     get_result_from_data(data_dir, result_dir, dp_dir)
+
