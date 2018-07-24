@@ -208,12 +208,6 @@ class DataPreprocessing():
             # Encode X and y
             X, y = self.encode_X_y(X, y, setting, names)
 
-            # Randomly choose setting.test_size% of the data for testing
-            X_train, X_test, y_train, y_test = train_test_split(X,
-                                                                y,
-                                                                test_size=setting.test_size,
-                                                                random_state=setting.random_state,
-                                                                stratify=y)
         elif len(data_files) == 2:
             training_data_file = data_files[0] if 'train' in data_files[0] else data_files[1]
             testing_data_file = data_files[0] if 'test' in data_files[0] else data_files[1]
@@ -231,24 +225,18 @@ class DataPreprocessing():
             # Encode X and y
             X, y = self.encode_X_y(X, y, setting, names)
 
-            X_train = X.iloc[:X_train.shape[0], :]
-            X_test = X.iloc[X_train.shape[0]:, :]
-
-            y_train = y[:y_train.shape[0]]
-            y_test = y[y_train.shape[0]:]
         else:
             print("Wrong number of data files!")
             exit(1)
 
-        # Update names.features and names.features_I
+        # Update names.features
         names.features = list(X.columns)
-        names.features_I = list(X.columns)
 
         # Cast X to numpy 2d-array
-        X_train, X_test = X_train.values, X_test.values
+        X = X.values
 
         # Declare the Data object
-        data = Data.Data(X, X_train, X_test, y, y_train, y_test)
+        data = Data.Data(X, y)
 
         return data
 
@@ -416,18 +404,6 @@ class DataPreprocessing():
         encoder = """ + str(type(setting.encoder)) + """
         
         ###--------------------------------------------------------------------------------------------------------
-        ### The percentage of the testing set
-        ###--------------------------------------------------------------------------------------------------------
-        
-        test_size = """ + str(setting.test_size) + """
-        
-        ###--------------------------------------------------------------------------------------------------------
-        ### The scaler
-        ###--------------------------------------------------------------------------------------------------------
-        
-        scaler = """ + str(type(setting.scaler)) + """
-        
-        ###--------------------------------------------------------------------------------------------------------
         ### The random state
         ###--------------------------------------------------------------------------------------------------------
         
@@ -444,30 +420,12 @@ class DataPreprocessing():
         ###--------------------------------------------------------------------------------------------------------
         
         min_samples_interaction = """ + str(setting.min_samples_interaction) + """
- 
-        ###--------------------------------------------------------------------------------------------------------
-        ### The p_val cutoff
-        ###--------------------------------------------------------------------------------------------------------
-        
-        p_val = """ + str(setting.p_val) + """
-        
-        ###--------------------------------------------------------------------------------------------------------
-        ### The average for precision_recall_fscore_support
-        ###--------------------------------------------------------------------------------------------------------
-        
-        average = """ + ', '.join(setting.average) + """
         
         ###--------------------------------------------------------------------------------------------------------
         ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         ###--------------------------------------------------------------------------------------------------------
         
         n_jobs = """ + str(setting.n_jobs) + """
-
-        ###--------------------------------------------------------------------------------------------------------
-        ### The top k feature-importance pairs shown in the bar plot
-        ###--------------------------------------------------------------------------------------------------------
-                
-        self.k = """ + str(setting.k) + """
         """
 
         parameter_file = setting.parameter_file_dir + setting.parameter_file_name + setting.parameter_file_type

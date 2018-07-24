@@ -33,9 +33,6 @@ class Names:
         # This is not a parameter in the names file,
         # since it can either be inferred based on self.columns and self.target
         self.features = None
-        
-        # The (name of the) features, with interaction
-        self.features_I = None        
 
         # The parameter names
         self.para_names = ['header',

@@ -22,43 +22,17 @@ class Setting:
         # The label encoder
         self.encoder = LabelEncoder()
 
-        # The percentage of the testing set
-        self.test_size = 0.3
-
-        # The scaler
-        self.scaler = StandardScaler()
-
         # The random state
         self.random_state = 0
 
         # The minimum number of samples required for calculating importance
-        self.min_samples_importance = 2
+        self.min_samples_importance = 1
         
         # The minimum number of samples required for an interaction
-        self.min_samples_interaction = 2
-        
-        # The p-val cutoff
-        self.p_val = 0.01
-
-        # The average for precision_recall_fscore_support
-        self.average = ['micro', 'macro']
+        self.min_samples_interaction = 1
 
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
-
-        # The top k feature-importance pairs shown in the bar plot
-        self.k = 10
-
-        # The dictionary of classifiers
-        self.classifiers = ({'RandomForestClassifier': RandomForestClassifier,
-                             'AdaBoostClassifier': AdaBoostClassifier,
-                             'MLPClassifier': MLPClassifier,
-                             'KNeighborsClassifier': KNeighborsClassifier,
-                             'GaussianNB': GaussianNB,
-                             'DecisionTreeClassifier': DecisionTreeClassifier,
-                             'LogisticRegression': LogisticRegression,
-                             'GaussianProcessClassifier': GaussianProcessClassifier,
-                             'SVC': SVC})
 
         # The pathname of the parameter file directory
         self.parameter_file_dir = result_dir + 'parameter_file/'
@@ -69,15 +43,6 @@ class Setting:
         # The type of the parameter_file
         self.parameter_file_type = '.txt'
 
-        # The pathname of the feature importance figure directory
-        self.feature_importance_fig_dir = result_dir + 'feature_importance_fig/'
-
-        # The name of the feature importance figure
-        self.feature_importance_fig_name = os.path.basename(data_file).split('.')[0]
-
-        # The type of the feature importance figure
-        self.feature_importance_fig_type = '.pdf'
-
         # The pathname of the interaction file directory
         self.interaction_file_dir = result_dir + 'interaction_file/'
 
@@ -86,41 +51,4 @@ class Setting:
 
         # The type of the interaction file
         self.interaction_file_type = '.csv'
-
-        # The pathname of the score file directory
-        self.score_file_dir = result_dir + 'score_file/'
-
-        # The name of the score file
-        self.score_file_name = os.path.basename(data_file).split('.')[0]
-
-        # The type of the score file
-        self.score_file_type = '.txt'
-
-    def set_plt(self):
-        """
-        Set plt
-        """
-
-        size = 30
-
-        # Set text size
-        plt.rc('font', size=size)
-
-        # Set axes title size
-        plt.rc('axes', titlesize=size)
-
-        # Set x and y labels size
-        plt.rc('axes', labelsize=size)
-
-        # Set xtick and ytick size
-        plt.rc('xtick', labelsize=size)
-        plt.rc('ytick', labelsize=size)
-
-        # Set legend size
-        plt.rc('legend', fontsize=size)
-
-        # Set figure title size
-        plt.rc('figure', titlesize=size)
-
-        plt.switch_backend('agg')
 

@@ -10,15 +10,12 @@ class PIA:
     Principle Interaction Analysis
     """
     
-    def __init__(self, min_samples_importance=2, min_samples_interaction=2, p_val=0.01, random_state=0):
+    def __init__(self, min_samples_importance=1, min_samples_interaction=1, random_state=0):
         # The minimum number of samples required for calculating importance
         self.min_samples_importance = min_samples_importance
         
         # The minimum number of samples required for an interaction
         self.min_samples_interaction = min_samples_interaction
-        
-        # The p-val cutoff
-        self.p_val = p_val
         
         # The random_state
         self.random_state = random_state
@@ -171,13 +168,6 @@ class PIA:
         True : if P(class_ | C and not xs) >> P(class_)
         False : otherwise
         """
-        
-        # Get the distribution of class_
-        dist = self.dist[class_]
-        
-        # If there are no sufficient samples, class_ cannot be used, return False
-        if len(dist) < self.min_samples_importance:
-            return False
 
         # Get the samples where C is true
         C_samples = self.get_samples(X, C)
@@ -192,10 +182,7 @@ class PIA:
         if len(dist_C_and_not_xs) < self.min_samples_importance:
             return True
 
-        # Get the p-value using the t-test
-        statistics, p_val = stats.ttest_ind(dist_C_and_not_xs, dist, equal_var=False)
-
-        return True if statistics > 0 and p_val < self.p_val else False
+        return True if np.mean(dist_C_and_not_xs) == 1 else False
     
     def get_samples(self, X, C):
         """
@@ -494,54 +481,3 @@ class PIA:
         self.removed[random_c] = 1
         
         return C
-    
-    def transform(self, X):
-        """
-        Transform X by adding interacted features to X 
-        
-        Parameters
-        ----------
-        X : the feature vector
-        
-        Returns
-        ----------    
-        The transformed X
-        """
-        
-        # The transformed X
-        X_I = X.copy()
-        
-        # For each class of the target
-        for class_ in sorted(self.D.keys()):
-            # For each interaction-probability pair
-            for I, prob in self.D[class_]:
-                # Here, we only add interaction with multiple conditions
-                if len(I) > 1:
-                    # Get the values of the interaction
-                    vals = np.array([1 if prod(X[i, I]) == 1 else 0 for i in range(X.shape[0])]).reshape(-1, 1)
-                    # Add the values to the transformed X
-                    X_I = np.hstack([X_I, vals])
-                
-        return X_I
-    
-    def fit_transform(self, X, y):
-        """
-        1. Detect the interactions for each class label
-        2. Transform X by adding interacted features to X 
-        
-        Parameters
-        ----------
-        X : the feature vector
-        y : the target vector
-
-        Returns
-        ----------    
-        The transformed X
-        """
-        
-        # Fit
-        self.fit(X, y)
-        
-        # Transform
-        return self.transform(X)
-
