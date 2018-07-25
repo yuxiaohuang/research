@@ -47,10 +47,13 @@ class PIA:
             self.D[class_] = []
             
             # The conditions that have been removed
-            self.removed = {}
+            self.removed_conditions = {}
         
             # The conditions that have been deleted
-            self.deleted = {}
+            self.deleted_conditions = {}
+
+            # The samples that have been deleted
+            self.deleted_samples = {}
         
             # The conjunction
             C = []
@@ -79,7 +82,7 @@ class PIA:
             if self.sufficient(X, y, class_, C) is True:
                 # Remove the unnecessary conditions from C
                 C = self.remove_unnecessary(X, y, class_, C)
-            
+
                 # Get the samples where C is true
                 C_samples = self.get_samples(X, C)
                 # Get the distribution of class_ where C is true
@@ -89,20 +92,24 @@ class PIA:
 
                 # Add [C, prob] to D
                 self.D[class_].append([C, prob])
-                
-                # Clear removed
-                self.removed = {}
-                
+
+                # Clear removed conditions
+                self.removed_conditions = {}
+
+                # Update deleted samples
+                for sample in C_samples:
+                    self.deleted_samples[sample] = 1
+
                 for c in C:
                     # Get a subset of C by excluding c
-                    C_setminus_c = [x for x in C if x != c]   
-                    
+                    C_setminus_c = [x for x in C if x != c]
+
                     # Recursively call greedy_search using the above subset of C
                     self.greedy_search(X, y, class_, C_setminus_c)
                 
                 # Delete the conditions
                 for c in C:
-                    self.deleted[c] = 1
+                    self.deleted_conditions[c] = 1
                     
                 # Initialize the conjunction
                 C = []
@@ -137,23 +144,12 @@ class PIA:
         False : otherwise
         """
         
-        # Check if P(class_ | C) >> P(class_)
-        if self.sig(X, y, class_, C, []) is False:
-            return False
-        
-        # For each condition that is not in C
-        for x in range(X.shape[1]):
-            if x in C:
-                continue
-            # Check if P(class_ | C and not x) >> P(class_)
-            if self.sig(X, y, class_, C, [x]) is False:
-                return False
-
-        return True
+        # Check if P(class_ | C) == 1
+        return self.sig(X, y, class_, C, [])
     
     def sig(self, X, y, class_, C, xs):
         """
-        Check if P(class_ | C and not xs) >> P(class_)
+        Check if P(class_ | C and not xs) == 1
         
         Parameters
         ----------
@@ -165,24 +161,29 @@ class PIA:
         
         Returns
         ----------    
-        True : if P(class_ | C and not xs) >> P(class_)
+        True : if P(class_ | C and not xs) == 1
         False : otherwise
         """
 
-        # Get the samples where C is true
-        C_samples = self.get_samples(X, C)
+        # Get C \setminus xs
+        C_setminus_xs = list(C)
+        for x in xs:
+            if x in C_setminus_xs:
+                C_setminus_xs.remove(x)
+        # Get the samples where C_setminus_xs is true
+        C_setminus_xs_samples = self.get_samples(X, C_setminus_xs)
         # Get the samples where xs is false
         not_xs_samples = self.get_not_samples(X, xs)
-        # Get the samples where C is true and xs is false
-        C_and_not_xs_samples = list(set(C_samples) & set(not_xs_samples))
-        # Get the distribution of class_ where C is true and xs is false
-        dist_C_and_not_xs = [1 if class_ == y[i] else 0 for i in C_and_not_xs_samples]
+        # Get the samples where C_setminus_xs is true and xs is false
+        C_setminus_xs_and_not_xs_samples = list(set(C_setminus_xs_samples) & set(not_xs_samples))
+        # Get the distribution where C_setminus_xs is true and xs is false
+        dist_C_setminus_xs_and_not_xs = [1 if class_ == y[i] else 0 for i in C_setminus_xs_and_not_xs_samples]
 
-        # If there are no sufficient samples, xs cannot be used, return True
-        if len(dist_C_and_not_xs) < self.min_samples_importance:
-            return True
+        # If there are no sufficient samples, xs cannot be missing, return False
+        if len(dist_C_setminus_xs_and_not_xs) < self.min_samples_importance:
+            return False
 
-        return True if np.mean(dist_C_and_not_xs) == 1 else False
+        return True if np.mean(dist_C_setminus_xs_and_not_xs) == 1 else False
     
     def get_samples(self, X, C):
         """
@@ -199,9 +200,9 @@ class PIA:
         """      
         
         if len(C) > 0:  
-            return [i for i in range(X.shape[0]) if prod(X[i, C]) == 1]
+            return [i for i in range(X.shape[0]) if prod(X[i, C]) == 1 and i not in self.deleted_samples.keys()]
         else:
-            return [i for i in range(X.shape[0])]
+            return [i for i in range(X.shape[0]) if i not in self.deleted_samples.keys()]
     
     def get_not_samples(self, X, C):
         """
@@ -218,9 +219,9 @@ class PIA:
         """
         
         if len(C) > 0:  
-            return [i for i in range(X.shape[0]) if prod(X[i, C]) == 0]
+            return [i for i in range(X.shape[0]) if prod(X[i, C]) == 0 and i not in self.deleted_samples.keys()]
         else:
-            return [i for i in range(X.shape[0])]     
+            return [i for i in range(X.shape[0]) if i not in self.deleted_samples.keys()]
                 
     def remove_unnecessary(self, X, y, class_, C):
         """
@@ -368,7 +369,7 @@ class PIA:
                 continue
 
             # If requirement 2 is not met
-            if c in self.removed.keys() or c in self.deleted.keys():
+            if c in self.removed_conditions.keys() or c in self.deleted_conditions.keys():
                 continue
                 
             # Get C_and_c
@@ -447,8 +448,8 @@ class PIA:
         worst = c_importances_sorted[0][0]
         # Remove worst from C
         C.remove(worst)
-        # Update self.removed
-        self.removed[worst] = 1
+        # Update self.removed_conditions
+        self.removed_conditions[worst] = 1
         
         return [C, True]
     
@@ -477,7 +478,7 @@ class PIA:
         random_c = C[random_idx]
         # Remove random_c from C
         C.remove(random_c)
-        # Update self.removed
-        self.removed[random_c] = 1
+        # Update self.removed_conditions
+        self.removed_conditions[random_c] = 1
         
         return C

@@ -36,7 +36,7 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
     # Match data file with names file
     data_names = dp.match_data_names()
 
-    # The parallel pipelines for data preprocessing, train, test, and evaluate the ALA classifier
+    # The parallel pipelines
     # n_jobs = -1 indicates (all CPUs are used)
     # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
     Parallel(n_jobs=-1)(delayed(pipeline)(dp, data_file, names_file, result_dir)
@@ -57,7 +57,7 @@ def pipeline(dp, data_files, names_file, result_dir):
 
     # Data preprocessing: get the Setting, Names, and Data object
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
-    
+
     # Get the PIA object
     pia = PIA.PIA(setting.min_samples_importance, setting.min_samples_interaction, setting.random_state)
 
