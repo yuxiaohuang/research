@@ -1,3 +1,0 @@
-
-# Run command_results
-(time /home/yuxiaohuang/research/gwu/interaction/shell/command/command_result.txt) 2> /home/yuxiaohuang/research/gwu/interaction/result/time.txt
