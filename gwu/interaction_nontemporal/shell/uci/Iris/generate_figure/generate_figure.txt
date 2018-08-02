@@ -1,4 +1,0 @@
-
-# Here is the command for generating the statistics 
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_figure.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/data/uci_data/Iris/raw/iris.data.txt /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/figure/decision_rule.pdf
-

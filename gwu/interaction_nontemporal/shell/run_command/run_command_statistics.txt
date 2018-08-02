@@ -1,3 +1,0 @@
-
-# Run command_data
-/home/yuxiaohuang/research/gwu/interaction_nontemporal/shell/command/command_statistics.txt

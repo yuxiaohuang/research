@@ -1,3 +1,0 @@
-
-# Here is the command for generating the statistics 
-python /home/yuxiaohuang/research/gwu/interaction_nontemporal/code/python/generate_statistics_superset.py /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/interaction/ /home/yuxiaohuang/research/gwu/interaction_nontemporal/result/statistics/superset/statistics.txt
