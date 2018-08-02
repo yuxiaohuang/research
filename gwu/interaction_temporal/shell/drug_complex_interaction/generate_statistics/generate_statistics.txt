@@ -1,4 +1,0 @@
-
-# Here is the command for generating the statistics 
-python /home/yuxiaohuang/research/gwu/interaction/code/python/generate_statistics.py /home/yuxiaohuang/research/gwu/interaction/data/simulated_data/interaction/ /home/yuxiaohuang/research/gwu/interaction/result/interaction/ /home/yuxiaohuang/research/gwu/interaction/result/statistics/statistics.txt
-
