@@ -1,3 +1,0 @@
-
-# Run command_data
-/Users/yhuang/Desktop/uai_18/shell/command/others/command_script.txt

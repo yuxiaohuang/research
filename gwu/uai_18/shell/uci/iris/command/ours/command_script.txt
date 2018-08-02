@@ -1,6 +1,0 @@
-
-# module load python
-
-for myfile in /Users/yhuang/Desktop/uai_18/shell/generate_script/ours/*.txt;         
-do (sh $myfile)  
-done
