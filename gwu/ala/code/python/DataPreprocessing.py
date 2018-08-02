@@ -8,9 +8,6 @@ import numpy as np
 import Names
 import Data
 
-from sklearn.model_selection import train_test_split
-
-
 class DataPreprocessing():
     """The Data Processing class"""
 
@@ -179,16 +176,6 @@ class DataPreprocessing():
 
             # Get X and y
             X, y = self.get_X_y(data_file, names)
-
-            # Encode X and y
-            X, y = self.encode_X_y(X, y, setting, names)
-
-            # Randomly choose setting.test_size% of the data for testing
-            X_train, X_test, y_train, y_test = train_test_split(X,
-                                                                y,
-                                                                test_size=setting.test_size,
-                                                                random_state=setting.random_state,
-                                                                stratify=y)
         elif len(data_files) == 2:
             training_data_file = data_files[0] if 'train' in data_files[0] else data_files[1]
             testing_data_file = data_files[0] if 'test' in data_files[0] else data_files[1]
@@ -202,25 +189,15 @@ class DataPreprocessing():
             # Combine training and testing data
             X = pd.concat([X_train, X_test])
             y = pd.concat([y_train, y_test])
-
-            # Encode X and y
-            X, y = self.encode_X_y(X, y, setting, names)
-
-            X_train = X.iloc[:X_train.shape[0], :]
-            X_test = X.iloc[X_train.shape[0]:, :]
-
-            y_train = y[:y_train.shape[0]]
-            y_test = y[y_train.shape[0]:]
         else:
             print("Wrong number of data files!")
             exit(1)
 
-        # Standardize the features
-        X_train = setting.scaler.fit_transform(X_train.astype(float))
-        X_test = setting.scaler.transform(X_test.astype(float))
+        # Encode X and y
+        X, y = self.encode_X_y(X, y, setting, names)
 
         # Declare the Data object
-        data = Data.Data(X, X_train, X_test, y, y_train, y_test)
+        data = Data.Data(X, y)
 
         names.features = X.columns
 
@@ -379,10 +356,10 @@ class DataPreprocessing():
         encoder = """ + str(type(setting.encoder)) + """
         
         ###--------------------------------------------------------------------------------------------------------
-        ### The percentage of the testing set
+        ### The k-fold cross validation
         ###--------------------------------------------------------------------------------------------------------
         
-        test_size = """ + str(setting.test_size) + """
+        n_splits = """ + str(setting.n_splits) + """
         
         ###--------------------------------------------------------------------------------------------------------
         ### The scaler
@@ -413,12 +390,6 @@ class DataPreprocessing():
         ###--------------------------------------------------------------------------------------------------------
         
         C = """ + str(setting.C) + """
-        
-        ###--------------------------------------------------------------------------------------------------------
-        ### The average for precision_recall_fscore_support
-        ###--------------------------------------------------------------------------------------------------------
-        
-        average = """ + ', '.join(setting.average) + """
         
         ###--------------------------------------------------------------------------------------------------------
         ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)

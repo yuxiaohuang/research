@@ -10,9 +10,9 @@ from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 
 
-class ALA:
+class LrBin:
     """
-    The ALA classifier
+    The LrBin classifier
     """
 
     def __init__(self, max_iter=100, min_samples_bin=1, C=1, n_jobs=-1):
@@ -31,8 +31,11 @@ class ALA:
         # The dictionary of bins
         self.bins_ = {}
 
-        # The dictionary of weights (w0 and w1)
+        # The dictionary of weights (u)
         self.ws_ = {}
+
+        # The dictionary of probabilities
+        self.pis_ = {}
 
         # The dictionary of probability distribution
         self.prob_dist_dict_ = {}
@@ -62,8 +65,11 @@ class ALA:
                 out, bins = pd.cut(X[:, j - 1], bin_num, retbins=True)
                 self.bins_[j] = bins
 
-        # The dictionary of weights (w0 and w1)
+        # The dictionary of weights (u)
         self.ws_ = {}
+
+        # The dictionary of probabilities
+        self.pis_ = {}
 
         # The dictionary of probability distribution
         self.prob_dist_dict_ = {}
@@ -99,7 +105,6 @@ class ALA:
         :return:
         """
 
-        # Initialize the dictionary of ws
         if yu not in self.ws_.keys():
             self.ws_[yu] = {}
         # For each xj
@@ -110,24 +115,18 @@ class ALA:
                 if bin not in self.ws_[yu][j].keys():
                     self.ws_[yu][j][bin] = [0, 0]
 
-        # Initialize the dictionary of min_ujs for yu
-        min_ujs = self.get_min_ujs(X, yu)
-
-        # Initialize the dictionary of delta_wij
-        delta_wij = {}
+        # Get pis for yu
+        self.get_pis(X, yu)
 
         # For each xj
-        for j in self.ws_[yu].keys():
-            # Initialize the dictionary of delta_wij
-            delta_wij[j] = {}
-
+        for j in range(X.shape[1] + 1):
             # For each row
             for i in range(X.shape[0]):
                 # Get fi
                 fi = 1 if y[i] == yu else 0
 
-                # Get pij
-                pij = self.get_pij(X, yu, i, j)
+                # Get pi
+                pi = self.pis_[yu][i]
 
                 # Get xij
                 xij = 1 if j == 0 else X[i][j - 1]
@@ -135,53 +134,11 @@ class ALA:
                 # Get the bin xij falls into
                 bin = self.get_bin(xij, j)
 
-                # Get delta_w0 of xj at row i
-                delta_wij0 = pij * (min_ujs[i] - 1 + fi) * 1 / self.C_
+                # Get delta_u
+                self.ws_[yu][j][bin][0] += (fi - pi) * 1 / self.C_
+                self.ws_[yu][j][bin][1] += (fi - pi) * xij / self.C_
 
-                # Get delta_w1 of xj at row i
-                delta_wij1 = pij * (min_ujs[i] - 1 + fi) * xij / self.C_
-
-                # Initialize the dictionary of delta_wij for key bin
-                if bin not in delta_wij[j].keys():
-                    delta_wij[j][bin] = [0, 0]
-
-                # Update delta_w0 of xj
-                delta_wij[j][bin][0] += delta_wij0
-
-                # Update delta_w1 of xj
-                delta_wij[j][bin][1] += delta_wij1
-
-        # Initialize the maximum absolute w
-        max_abs_w = None
-
-        # Get the maximum absolute w0 and w1
-        for j in delta_wij.keys():
-            for bin in delta_wij[j].keys():
-                if max_abs_w == None or max_abs_w < max(abs(delta_wij[j][bin][0]), abs(delta_wij[j][bin][1])):
-                    max_abs_w = max(abs(delta_wij[j][bin][0]), abs(delta_wij[j][bin][1]))
-        max_abs_w = 1 if max_abs_w < 1 else max_abs_w
-
-        # Update the dictionary of self.ws_
-        for j in delta_wij.keys():
-            for bin in delta_wij[j].keys():
-                self.ws_[yu][j][bin][0] += delta_wij[j][bin][0] / max_abs_w
-                self.ws_[yu][j][bin][1] += delta_wij[j][bin][1] / max_abs_w
-
-    def get_bin(self, xij, j):
-        """
-        Get the bin for xij
-        :param xij: the value of xj in row i
-        :param j: the jth feature
-        :return: the bin for xij
-        """
-
-        for idx in range(1, len(self.bins_[j])):
-            if xij <= self.bins_[j][idx]:
-                return idx - 1
-
-        return len(self.bins_[j]) - 2
-
-    def get_min_ujs(self, X, yu):
+    def get_pis(self, X, yu):
         """
         Get the minimum of all ujs for each row i
         :param X: the feature vector
@@ -189,41 +146,31 @@ class ALA:
         :return: the minimum of all ujs for each row i
         """
 
-        # Initialize min_ujs
-        min_ujs = {}
+        self.pis_[yu] = {}
 
         # For each row
         for i in range(X.shape[0]):
-            # Update min_ujs
-            min_ujs[i] = self.get_min_uijs(X, yu, i)
+            zi = 0
+            # For each xj
+            for j in range(X.shape[1] + 1):
+                # Get xij
+                xij = 1 if j == 0 else X[i][j - 1]
 
-        return min_ujs
+                # Get the bin xij falls into
+                bin = self.get_bin(xij, j)
 
-    def get_min_uijs(self, X, yu, i):
-        """
-        Get the minimum of all ujs for row i
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :param i: row i
-        :return: the minimum of all ujs for row i
-        """
+                # Get wj
+                wj0 = self.ws_[yu][j][bin][0]
+                wj1 = self.ws_[yu][j][bin][1]
 
-        # Initialize min_uijs
-        min_uijs = None
+                # Update zi
+                zi += wj0 + wj1 * xij
 
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            # Get pij
-            pij = self.get_pij(X, yu, i, j)
+            # Get pi
+            pi = self.sigmoid(zi)
 
-            # Get uij
-            uij = 1 - pij
-
-            # Update min_uijs
-            if min_uijs is None or min_uijs > uij:
-                min_uijs = uij
-
-        return min_uijs
+            # Update pis
+            self.pis_[yu][i] = pi
 
     def get_pij(self, X, yu, i, j):
         """
@@ -238,14 +185,14 @@ class ALA:
         # Get xij
         xij = 1 if j == 0 else X[i][j - 1]
 
-        # Get bin
+        # Get the bin xij falls into
         bin = self.get_bin(xij, j)
 
-        # Get wj0 and wj1
+        # Get wj
         wj0 = self.ws_[yu][j][bin][0]
         wj1 = self.ws_[yu][j][bin][1]
 
-        # Get zij
+        # Update zi
         zij = wj0 + wj1 * xij
 
         # Get pij
@@ -264,6 +211,20 @@ class ALA:
             return 1 - 1 / (1 + math.exp(z))
         return 1 / (1 + math.exp(-z))
 
+    def get_bin(self, xij, j):
+        """
+        Get the bin for xij
+        :param xij: the value of xj in row i
+        :param j: the jth feature
+        :return: the bin for xij
+        """
+
+        for idx in range(1, len(self.bins_[j])):
+            if xij <= self.bins_[j][idx]:
+                return idx - 1
+
+        return len(self.bins_[j]) - 2
+
     def predict_proba(self, X):
         """
         Predict the probability of each class of each sample
@@ -275,21 +236,22 @@ class ALA:
         # Initialize (class, probability) pairs for all samples
         yu_probs_all = []
 
+        # For each unique value of the target
+        for yu in self.pis_.keys():
+            self.get_pis(X, yu)
+
         # For each row
         for i in range(X.shape[0]):
             # Initialize (class, probability) pairs for each sample
             yu_probs_each = []
 
             # For each unique value of the target
-            for yu in self.ws_.keys():
-                # Estimate prod_uijs by min_uijs
-                prod_uijs = self.get_min_uijs(X, yu, i)
-
-                # Get p(yu)
-                prob = 1 - prod_uijs
+            for yu in self.pis_.keys():
+                # Get pi
+                pi = self.pis_[yu][i]
 
                 # Update yu_probs_each
-                yu_probs_each.append([yu, prob])
+                yu_probs_each.append([yu, pi])
 
             # Sort yu_probs_each in descending order of the probability
             yu_probs_each = sorted(yu_probs_each, key=lambda x: x[1], reverse=True)
@@ -306,33 +268,11 @@ class ALA:
         :return: the class of each sample in X
         """
 
-        # Initialize y_pred (the predicted classes)
-        y_pred = []
+        # Get (class, probability) pairs for all samples
+        yu_probs_all = self.predict_proba(X)
 
-        # For each row
-        for i in range(X.shape[0]):
-            # Initialize (class, probability) pairs for each sample
-            yu_probs = []
-
-            # For each unique value of the target
-            for yu in self.ws_.keys():
-                # Estimate prod_uijs by min_uijs
-                prod_uijs = self.get_min_uijs(X, yu, i)
-
-                # Get p(yu)
-                prob = 1 - prod_uijs
-
-                # Update yu_probs
-                yu_probs.append([yu, prob])
-
-            # Sort yu_probs in descending order of prob
-            yu_probs = sorted(yu_probs, key=lambda x: x[1], reverse=True)
-
-            # Get y_predi
-            y_predi = yu_probs[0][0]
-
-            # Update y_pred
-            y_pred.append(y_predi)
+        # Get y_pred (the predicted classes)
+        y_pred = [yu_probs_each[0][0] for yu_probs_each in yu_probs_all]
 
         return np.asarray(y_pred)
 
@@ -343,15 +283,14 @@ class ALA:
         :return:
         """
 
+        self.prob_dist_dict_ = {}
+
         # For each unique value of the target
         for yu in self.ws_.keys():
-            if not yu in self.prob_dist_dict_.keys():
-                self.prob_dist_dict_[yu] = {}
-
+            self.prob_dist_dict_[yu] = {}
             # For each xj
             for j in range(X.shape[1] + 1):
-                if not j in self.prob_dist_dict_[yu].keys():
-                    self.prob_dist_dict_[yu][j] = {}
+                self.prob_dist_dict_[yu][j] = {}
 
                 # Get the unique value and the corresponding index of xj
                 xus, idxs = (np.unique([1], return_index=True) if j == 0

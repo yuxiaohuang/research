@@ -22,8 +22,8 @@ class Setting:
         # The label encoder
         self.encoder = LabelEncoder()
 
-        # The percentage of the testing set
-        self.test_size = 0.3
+        # The k-fold cross validation
+        self.n_splits = 10
 
         # The scaler
         self.scaler = StandardScaler()
@@ -39,9 +39,6 @@ class Setting:
 
         # The value of C
         self.C = 1
-
-        # The average for precision_recall_fscore_support
-        self.average = ['micro', 'macro']
 
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1

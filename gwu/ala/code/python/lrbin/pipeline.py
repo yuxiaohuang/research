@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import Setting
-import ALA
+import LrBin
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import StratifiedKFold
@@ -34,7 +34,7 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
     # Match data file with names file
     data_names = dp.match_data_names()
 
-    # The parallel pipelines for data preprocessing, train, test, and evaluate the ALA classifier
+    # The parallel pipelines for data preprocessing, train, test, and evaluate the LrBin classifier
     # n_jobs = -1 indicates (all CPUs are used)
     # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
     Parallel(n_jobs=-1)(delayed(pipeline)(dp, data_file, names_file, result_dir)
@@ -43,7 +43,7 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
 
 def pipeline(dp, data_files, names_file, result_dir):
     """
-    The pipeline for data preprocessing, train, test, and evaluate the ALA classifier
+    The pipeline for data preprocessing, train, test, and evaluate the LrBin classifier
     :param dp: the DataPreprocessing module
     :param data_files: the pathname of the data files
     :param names_file: the pathname of the names file
@@ -54,44 +54,44 @@ def pipeline(dp, data_files, names_file, result_dir):
     # Data preprocessing: get the Setting, Names, and Data object
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
 
-    # Train, test, and evaluate the ALA classifier
+    # Train, test, and evaluate the LrBin classifier
     train_test_eval(setting, names, data)
 
 
 def train_test_eval(setting, names, data):
     """
-    Train, test, and evaluate the ALA classifier
+    Train, test, and evaluate the LrBin classifier
     :param setting: the Setting object
     :param names: the Names object
     :param data: the Data object
     :return:
     """
 
-    # Declare the ALA classifier
-    pipe_ala = Pipeline([('scaler', setting.scaler),
-                         ('ala', ALA.ALA(setting.max_iter, setting.min_samples_bin, setting.C))])
+    # Declare the LrBin classifier
+    pipe_LrBin = Pipeline([('scaler', setting.scaler),
+                         ('LrBin', LrBin.LrBin(setting.max_iter, setting.min_samples_bin, setting.C))])
 
     # Get the cross validation scores
-    scores = cross_val_score(estimator=pipe_ala,
+    scores = cross_val_score(estimator=pipe_LrBin,
                              X=data.X,
                              y=data.y,
                              cv=StratifiedKFold(n_splits=setting.n_splits, random_state=setting.random_state),
                              n_jobs=setting.n_jobs)
 
-    # Refit ala on the whole data
-    pipe_ala.fit(data.X, data.y)
+    # Refit LrBin on the whole data
+    pipe_LrBin.fit(data.X, data.y)
 
-    # Evaluate ala
-    eval(setting, names, data, pipe_ala.named_steps['ala'], scores)
+    # Evaluate LrBin
+    eval(setting, names, data, pipe_LrBin.named_steps['LrBin'], scores)
 
 
-def eval(setting, names, data, ala, scores):
+def eval(setting, names, data, LrBin, scores):
     """
-    Evaluate the ALA classifier
+    Evaluate the LrBin classifier
     :param setting: the Setting object
     :param names: the Names object
     :param data: the Data object
-    :param ala: the ALA classifier
+    :param LrBin: the LrBin classifier
     :param scores: the cross validation scores
     :return:
     """
@@ -104,11 +104,11 @@ def eval(setting, names, data, ala, scores):
 
     if setting.prob_dist_fig_dir is not None:
         # Plot the probability distribution figures
-        plot_prob_dist_fig(setting, names, data.X, ala)
+        plot_prob_dist_fig(setting, names, data.X, LrBin)
 
     if setting.prob_dist_file_dir is not None:
         # Write the probability distribution file
-        write_prob_dist_file(setting, names, data.X, ala)
+        write_prob_dist_file(setting, names, data.X, LrBin)
 
 
 def write_score_file(setting, scores):
@@ -140,13 +140,13 @@ def write_score_file(setting, scores):
         f.write("The max of the cross validation scores: " + str(round(max(scores), 2)) + '\n')
 
 
-def plot_prob_dist_fig(setting, names, X, ala):
+def plot_prob_dist_fig(setting, names, X, LrBin):
     """
     Plot the probability distribution figures.
     :param setting: the Setting object
     :param names: the Names object
     :param X: the feature vector
-    :param ala: the ALA classifier
+    :param LrBin: the LrBin classifier
     :return:
     """
 
@@ -156,14 +156,14 @@ def plot_prob_dist_fig(setting, names, X, ala):
         os.makedirs(directory)
 
     # For each unique value of the target
-    for yu in sorted(ala.prob_dist_dict_.keys()):
+    for yu in sorted(LrBin.prob_dist_dict_.keys()):
         # Get the original value of yu
         yu_orig = str(setting.encoder.inverse_transform(yu))
 
         # For each xj
-        for j in sorted(ala.prob_dist_dict_[yu].keys()):
-            xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-            pijs = [round(ala.prob_dist_dict_[yu][j][xij], 20) for xij in xijs]
+        for j in sorted(LrBin.prob_dist_dict_[yu].keys()):
+            xijs = sorted(LrBin.prob_dist_dict_[yu][j].keys())
+            pijs = [round(LrBin.prob_dist_dict_[yu][j][xij], 20) for xij in xijs]
             xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
             xijs_orig = [round(xij_orig, 2) for xij_orig in xijs_orig]
 
@@ -195,13 +195,13 @@ def plot_prob_dist_fig(setting, names, X, ala):
             plt.savefig(prob_dist_fig)
 
 
-def write_prob_dist_file(setting, names, X, ala):
+def write_prob_dist_file(setting, names, X, LrBin):
     """
     Write the probability distribution file
     :param setting: the Setting object
     :param names: the Names object
     :param X: the feature vector
-    :param ala: the ALA classifier
+    :param LrBin: the LrBin classifier
     :return:
     """
 
@@ -217,15 +217,15 @@ def write_prob_dist_file(setting, names, X, ala):
         f.write("yu, xj, xij, pij" + '\n')
 
         # For each unique value of the target
-        for yu in sorted(ala.prob_dist_dict_.keys()):
+        for yu in sorted(LrBin.prob_dist_dict_.keys()):
             # Get the original value of yu
             yu_orig = str(setting.encoder.inverse_transform(yu))
 
             # For each xj
-            for j in sorted(ala.prob_dist_dict_[yu].keys()):
+            for j in sorted(LrBin.prob_dist_dict_[yu].keys()):
                 xj = 'x0' if j == 0 else names.features[j - 1]
-                xijs = sorted(ala.prob_dist_dict_[yu][j].keys())
-                pijs = [ala.prob_dist_dict_[yu][j][xij] for xij in xijs]
+                xijs = sorted(LrBin.prob_dist_dict_[yu][j].keys())
+                pijs = [LrBin.prob_dist_dict_[yu][j][xij] for xij in xijs]
                 xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
 
                 for idx in range(len(pijs)):
