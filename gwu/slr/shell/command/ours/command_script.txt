@@ -1,4 +1,0 @@
-
-for myfile in /home/yuxiaohuang/research/gwu/slr/shell/generate_script/ours/*.txt;         
-do (sh $myfile)  
-done
