@@ -2,10 +2,10 @@
 
 import sys
 import os
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import Setting
-import PIA
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import StratifiedKFold
@@ -16,12 +16,10 @@ from joblib import Parallel, delayed
 def get_result_from_data(data_dir, result_dir, dp_dir):
     """
     Get result from data
-
-    Parameters
-    ----------
-    data_dir: the pathname of the data directory
-    result_dir: the pathname of the result directory
-    dp_dir: the pathname of the DataPreprocessing module directory
+    :param data_dir: the pathname of the data directory
+    :param result_dir: the pathname of the result directory
+    :param dp_dir: the pathname of the DataPreprocessing module directory
+    :return:
     """
 
     # Add code_dir folder
@@ -45,13 +43,11 @@ def get_result_from_data(data_dir, result_dir, dp_dir):
 def pipeline(dp, data_files, names_file, result_dir):
     """
     The pipeline for data preprocessing, train, test, and evaluate the ALA classifier
-
-    Parameters
-    ----------
-    dp: the DataPreprocessing module
-    data_files: the pathname of the data files
-    names_file: the pathname of the names file
-    result_dir: the pathname of the result directory
+    :param dp: the DataPreprocessing module
+    :param data_files: the pathname of the data files
+    :param names_file: the pathname of the names file
+    :param result_dir: the pathname of the result directory
+    :return:
     """
 
     # Data preprocessing: get the Setting, Names, and Data object
@@ -66,72 +62,69 @@ def pipeline(dp, data_files, names_file, result_dir):
 def train_test_eval(setting, names, data, clf_name):
     """
     Train, test, and evaluate the classifier
-
-    Parameters
-    ----------
-    setting : the Setting object
-    names : the Names object
-    data : the Data object
-    clf_name : the name of the classifier
+    :param setting: the Setting object
+    :param names: the Names object
+    :param data: the Data object
+    :param clf_name: the name of the classifier
+    :return:
     """
 
     classifier = setting.classifiers[clf_name]
 
     if clf_name == 'RandomForestClassifier':
-        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
     elif clf_name == 'AdaBoostClassifier':
-        clf = classifier(random_state=setting.random_state)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
     elif clf_name == 'MLPClassifier':
-        clf = classifier(random_state=setting.random_state)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
     elif clf_name == 'KNeighborsClassifier':
-        clf = classifier(n_jobs=setting.n_jobs)
+        pipe_clf = Pipeline([('clf',  classifier(n_jobs=setting.n_jobs))])
     elif clf_name == 'GaussianNB':
-        clf = classifier()
+        pipe_clf = Pipeline([('clf',  classifier())])
     elif clf_name == 'DecisionTreeClassifier':
-        clf = classifier(random_state=setting.random_state)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
     elif clf_name == 'LogisticRegression':
-        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
     elif clf_name == 'GaussianProcessClassifier':
-        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
     elif clf_name == 'SVC':
-        clf = classifier(random_state=setting.random_state)
-
-    pipe_pia = Pipeline([('pia', PIA.PIA(clf, setting.min_samples_importance, setting.min_samples_interaction, setting.random_state))])
+        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
 
     # Get the cross validation scores
-    scores = cross_val_score(estimator=pipe_pia,
+    scores = cross_val_score(estimator=pipe_clf,
                              X=data.X,
                              y=data.y,
                              cv=StratifiedKFold(n_splits=min(setting.n_splits, min(np.bincount(data.y))), random_state=setting.random_state),
                              n_jobs=setting.n_jobs)
 
-    # Refit pia on the whole data
-    pipe_pia.fit(data.X, data.y)
+    # Refit clf on the whole data
+    pipe_clf.fit(data.X, data.y)
 
-    # Evaluate pia
-    eval(setting, names, pipe_pia.named_steps['pia'], scores, clf_name)
+    # Evaluate clf
+    eval(setting, names, pipe_clf.named_steps['clf'], scores, clf_name)
 
 
-def eval(setting, names, pia, scores, clf_name):
+def eval(setting, names, clf, scores, clf_name):
     """
     Evaluate the classifier
-
-    Parameters
-    ----------
-    setting: the Setting object
-    names: the Names object
-    pia : the PIA object
-    scores: the cross validation scores
-    clf_name: the name of the classifier
+    :param setting: the Setting object
+    :param names: the Names object
+    :param clf: the classifier
+    :param scores: the cross validation scores
+    :param clf_name: the name of the classifier
+    :return:
     """
+
+    setting.set_plt()
 
     if setting.score_file_dir is not None:
         # Write the score file
         write_score_file(setting, scores, clf_name)
 
-    if setting.interaction_file_dir is not None:
-        # Write the interaction file
-        write_interaction_file(setting, names, pia)
+    if (setting.feature_importance_fig_dir is not None
+        and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
+        # Plot the feature importance figures
+        plot_feature_importance_fig(setting, names, clf, clf_name)
 
 
 def write_score_file(setting, scores, clf_name):
@@ -167,34 +160,45 @@ def write_score_file(setting, scores, clf_name):
         f.write("The max of the cross validation scores: " + str(round(max(scores), 2)) + '\n')
 
 
-def write_interaction_file(setting, names, pia):
+def plot_feature_importance_fig(setting, names, clf, clf_name):
     """
-    Write the interaction file
+    Plot the feature importance figures
 
     Parameters
     ----------
-    setting: the Setting object
+    setting : the Setting object
     names : the Names object
-    pia : the PIA object
+    clf : the classifier
+    clf_name: the name of the classifier
     """
 
-    # Get the pathname of the interaction file
-    interaction_file = setting.interaction_file_dir + setting.interaction_file_name + setting.interaction_file_type
+    # Get the directory of the feature importance file
+    feature_importance_fig_dir = setting.feature_importance_fig_dir + clf_name + '/'
+    # Get the pathname of the feature importance figure
+    feature_importance_fig = (
+    feature_importance_fig_dir + setting.feature_importance_fig_name + setting.feature_importance_fig_type)
 
     # Make directory
-    directory = os.path.dirname(interaction_file)
+    directory = os.path.dirname(feature_importance_fig)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    with open(interaction_file, 'w') as f:
-        # Write header
-        f.write("class, interaction" + '\n')
+    # Get the feature importances
+    importances = clf.feature_importances_
 
-        # For each class of the target
-        for class_ in sorted(pia.D.keys()):
-            for I in pia.D[class_]:
-                f.write(str(setting.encoder.inverse_transform([class_])[0]) + ',' + ' & '.join(
-                    [names.features[c] for c in I]) + '\n')
+    # Convert the importances into one-dimensional 1darray with corresponding df column names as axis labels
+    f_importances = pd.Series(importances, names.features)
+
+    # Sort the array in descending order of the importances
+    f_importances.sort_values(ascending=False, inplace=True)
+
+    # Make the bar plot from f_importances_top_k
+    f_importances.plot(kind='bar', figsize=(20, 10), rot=45, fontsize=30)
+
+    plt.xlabel('Feature', fontsize=30)
+    plt.ylabel('Importance', fontsize=30)
+    plt.tight_layout()
+    plt.savefig(feature_importance_fig)
 
 
 if __name__ == "__main__":

@@ -43,4 +43,3 @@ class Names:
                            'target',
                            'exclude_features',
                            'categorical_features']
-

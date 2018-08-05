@@ -3,6 +3,8 @@
 import numpy as np
 from numpy import prod
 from scipy import stats
+
+from sklearn.metrics import accuracy_score
 import random
 
 class PIA:
@@ -10,7 +12,10 @@ class PIA:
     Principle Interaction Analysis
     """
     
-    def __init__(self, min_samples_importance=1, min_samples_interaction=1, random_state=0):
+    def __init__(self, clf, min_samples_importance=1, min_samples_interaction=1, random_state=0):
+        # The baseline classifier
+        self.clf = clf
+
         # The minimum number of samples required for calculating importance
         self.min_samples_importance = min_samples_importance
         
@@ -32,6 +37,10 @@ class PIA:
         X : the feature vector
         y : the target vector
         """
+
+        if self.clf is not None:
+            # Fit the baseline classifier
+            self.clf.fit(X, y)
 
         # The distribution of each class
         self.dist = {}
@@ -85,13 +94,9 @@ class PIA:
 
                 # Get the samples where C is true
                 C_samples = self.get_samples(X, C)
-                # Get the distribution of class_ where C is true
-                dist_C = [1 if class_ == y[i] else 0 for i in C_samples]
-                # Get the probability, P(class_ | C)
-                prob = np.mean(dist_C)
 
-                # Add [C, prob] to D
-                self.D[class_].append([C, prob])
+                # Add C to D
+                self.D[class_].append(C)
 
                 # Clear removed conditions
                 self.removed_conditions = {}
@@ -122,7 +127,7 @@ class PIA:
                     C, success = self.remove_worst(X, y, class_, C)
                     
                     if success is False:
-                        C = self.remove_random(X, y, class_, C, 0)
+                        C = self.remove_random(C)
                         
                         if len(C) == 0:
                             break
@@ -247,7 +252,7 @@ class PIA:
             c_importances = self.get_c_importances(X, y, class_, C, C)
             
             # Sort the condition-importance pairs in ascending order of importance
-            c_importances_sorted = sorted(c_importances, key=lambda x : x[1], reverse=False)
+            c_importances_sorted = sorted(c_importances, key=lambda x: x[1], reverse=False)
             
             for c, importance in c_importances_sorted:
                 # Remove c from c_importances_sorted
@@ -389,7 +394,7 @@ class PIA:
             return [C, False]
 
         # Sort the condition-importance pairs in descending order of importance
-        c_importances_sorted = sorted(c_importances, key=lambda x : x[1], reverse=True)  
+        c_importances_sorted = sorted(c_importances, key=lambda x: x[1], reverse=True)
         # Get the best feature (the one with the highest importance)
         best = c_importances_sorted[0][0]
         # Add best to C
@@ -411,7 +416,7 @@ class PIA:
         True : if C is a superset of interactions of class_
         False : otherwise 
         """
-        for I, prob in self.D[class_]:
+        for I in self.D[class_]:
             if set(I) <= set(C):
                 return True
             
@@ -443,7 +448,7 @@ class PIA:
             return [C, False]
         
         # Sort the condition-importance pairs in ascending order of importance
-        c_importances_sorted = sorted(c_importances, key=lambda x : x[1], reverse=False) 
+        c_importances_sorted = sorted(c_importances, key=lambda x: x[1], reverse=False)
         # Get the worst feature (the one with the lowest importance)
         worst = c_importances_sorted[0][0]
         # Remove worst from C
@@ -453,18 +458,14 @@ class PIA:
         
         return [C, True]
     
-    def remove_random(self, X, y, class_, C, random_state):
+    def remove_random(self, C):
         """
         Remove a random condition, c, from C
         
         Parameters
         ----------
-        X : the feature vector
-        y : the target vector
-        class_ : a class of the target
         C : a conjunction of conditions
-        random_state : seed from random number generator
-        
+
         Returns
         ----------    
         C_set_minus_c
@@ -482,3 +483,86 @@ class PIA:
         self.removed_conditions[random_c] = 1
         
         return C
+
+    def predict(self, X):
+        """
+        Predict the class of each sample in X
+
+        Parameters
+        ----------
+        X : the feature vector
+        clf : the baseline classifier
+
+        Returns
+        ----------
+        The class of each sample in X
+        """
+
+        # Predict the class of each sample in X using the baseline classifier
+        y_pred = self.clf.predict(X)
+
+        # For each sample
+        for i in range(y_pred.shape[0]):
+            # For each class
+            for class_ in self.D.keys():
+                if self.fires(X, i, class_) is True:
+                    # Update the class of the sample
+                    y_pred[i] = class_
+                    break
+
+
+        return y_pred
+
+    def fires(self, X, i, class_):
+        """
+        Check whether the interaction fires (being true) for sample i
+
+        Parameters
+        ----------
+        X : the feature vector
+        i : the i'th sample
+        class_ : a class of the target
+
+        Returns
+        ----------
+        True : the interaction fires
+        False : otherwise
+        """
+
+        # For each interaction
+        for I in self.D[class_]:
+            # If the interaction fires
+            if prod(X[i, I]) == 1:
+                return True
+
+        return False
+
+    def score(self, X, y, sample_weight=None):
+        """
+        The code is from sklearn:
+        https://github.com/scikit-learn/scikit-learn/blob/f0ab589f/sklearn/base.py#L324
+
+        Returns the mean accuracy on the given test data and labels.
+
+        In multi-label classification, this is the subset accuracy
+        which is a harsh metric since you require for each sample that
+        each label set be correctly predicted.
+
+        Parameters
+        ----------
+        X : array-like, shape = (n_samples, n_features)
+            Test samples.
+
+        y : array-like, shape = (n_samples) or (n_samples, n_outputs)
+            True labels for X.
+
+        sample_weight : array-like, shape = [n_samples], optional
+            Sample weights.
+
+        Returns
+        -------
+        score : float
+            Mean accuracy of self.predict(X) wrt. y.
+        """
+
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
