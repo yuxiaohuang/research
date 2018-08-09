@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
+
+python /home/yuxiaohuang/research/gwu/arc/code/python/ours/pipeline.py /home/yuxiaohuang/research/gwu/arc/data/ /home/yuxiaohuang/research/gwu/arc/result/ours/ /home/yuxiaohuang/research/gwu/arc/code/python/
