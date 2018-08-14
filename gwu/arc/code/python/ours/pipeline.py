@@ -98,12 +98,12 @@ def train_test_eval(setting, names, data, clf_name):
         clf = classifier(random_state=setting.random_state)
 
     pipe_arc = Pipeline([('arc', ARC.ARC(clf,
-                                         setting.min_samples_importance if data.X.shape[0] > setting.min_samples_importance else 1,
-                                         setting.min_samples_interaction if data.X.shape[0] > setting.min_samples_interaction else 1,
+                                         setting.min_samples_importance if max(np.bincount(data.y)) > setting.min_samples_importance else 1,
+                                         setting.min_samples_interaction if max(np.bincount(data.y)) > setting.min_samples_interaction else 1,
                                          setting.random_state))])
 
     # Get cv for cross_val_score
-    cv = StratifiedKFold(n_splits=min(min(np.bincount(data.y)), setting.n_splits), random_state=setting.random_state) if data.X.shape[0] > setting.min_samples_interaction else LeaveOneOut()
+    cv = StratifiedKFold(n_splits=min(min(np.bincount(data.y)), setting.n_splits), random_state=setting.random_state) if max(np.bincount(data.y)) > max(setting.min_samples_importance, setting.min_samples_interaction) else LeaveOneOut()
 
     # Get the cross validation scores
     scores = cross_val_score(estimator=pipe_arc,

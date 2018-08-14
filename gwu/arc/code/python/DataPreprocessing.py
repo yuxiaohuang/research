@@ -8,6 +8,7 @@ import numpy as np
 import Names
 import Data
 
+from imblearn.over_sampling import RandomOverSampler
 
 class DataPreprocessing():
     """The Data Processing class"""
@@ -199,10 +200,15 @@ class DataPreprocessing():
         # Encode X and y
         X, y = self.encode_X_y(X, y, setting, names)
 
-        # Declare the Data object
-        data = Data.Data(X.values, y)
-
+        # Update the name of features
         names.features = X.columns
+
+        # Oversampling
+        ros = RandomOverSampler(random_state=setting.random_state)
+        X, y = ros.fit_sample(X, y)
+
+        # Declare the Data object
+        data = Data.Data(X, y)
 
         return data
 
