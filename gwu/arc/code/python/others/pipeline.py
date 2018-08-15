@@ -95,11 +95,14 @@ def train_test_eval(setting, names, data, clf_name):
 
     # For each split
     for i in range(setting.n_splits):
+        # Get the train and test indices
+        train_index, test_index = data.train_test_indices[i]
+
         # Fit clf
-        clf.fit(data.X_trains[i], data.y_trains[i])
+        clf.fit(data.X[train_index], data.y[train_index])
 
         # Update scores
-        scores[i] = clf.score(data.X_tests[i], data.y_tests[i])
+        scores[i] = clf.score(data.X[test_index], data.y[test_index])
 
         if (setting.feature_importance_fig_dir is not None
             and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
@@ -256,7 +259,7 @@ def write_score_file(setting, scores, clf_name):
         # Write the list of the cross validation scores
         f.write("The list of the cross validation scores: " + '\n')
         for i in range(len(scores)):
-            f.write(str(i + 1) + ', ' + str(round(scores[i], 2)) + '\n')
+            f.write(str(i) + ', ' + str(round(scores[i], 2)) + '\n')
 
 
 if __name__ == "__main__":

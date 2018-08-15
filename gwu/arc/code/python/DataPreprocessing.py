@@ -225,15 +225,8 @@ class DataPreprocessing():
         # Update the number of splits
         setting.n_splits = len(train_test_indices)
 
-        # Get the dictionary of training feature vectors, testing feature vectors, training target vector, and testing target vector
-        X_trains, X_tests, y_trains, y_tests = {}, {}, {}, {}
-        # Get train and test indices
-        for i in range(len(train_test_indices)):
-            train_index, test_index = train_test_indices[i]
-            X_trains[i], X_tests[i], y_trains[i], y_tests[i] = X[train_index], X[test_index], y[train_index], y[test_index]
-
         # Declare the Data object
-        data = Data.Data(X, y, X_trains, X_tests, y_trains, y_tests)
+        data = Data.Data(X, y, train_test_indices)
 
         return data
 
