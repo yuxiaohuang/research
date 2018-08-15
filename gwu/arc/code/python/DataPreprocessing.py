@@ -9,6 +9,9 @@ import Names
 import Data
 
 from imblearn.over_sampling import RandomOverSampler
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import LeaveOneOut
+
 
 class DataPreprocessing():
     """The Data Processing class"""
@@ -202,13 +205,35 @@ class DataPreprocessing():
 
         # Update the name of features
         names.features = X.columns
+        # Transform X from dataframe into numpy array
+        X = X.values
 
-        # Oversampling
-        ros = RandomOverSampler(random_state=setting.random_state)
-        X, y = ros.fit_sample(X, y)
+        # Oversampling when the minimum number of class label is 1
+        if min(np.bincount(y)) == 1:
+            ros = RandomOverSampler(random_state=setting.random_state)
+            X, y = ros.fit_sample(X, y)
+
+        # Cross validation using StratifiedKFold or LeaveOneOut
+        if X.shape[0] > max(setting.min_samples_importance, setting.min_samples_interaction):
+            cv = StratifiedKFold(n_splits=min(min(np.bincount(y)), setting.n_splits), random_state=setting.random_state)
+        else:
+            cv = LeaveOneOut()
+
+        # Get the train and test indices
+        train_test_indices = [[train_index, test_index] for train_index, test_index in cv.split(X, y)]
+
+        # Update the number of splits
+        setting.n_splits = len(train_test_indices)
+
+        # Get the dictionary of training feature vectors, testing feature vectors, training target vector, and testing target vector
+        X_trains, X_tests, y_trains, y_tests = {}, {}, {}, {}
+        # Get train and test indices
+        for i in range(len(train_test_indices)):
+            train_index, test_index = train_test_indices[i]
+            X_trains[i], X_tests[i], y_trains[i], y_tests[i] = X[train_index], X[test_index], y[train_index], y[test_index]
 
         # Declare the Data object
-        data = Data.Data(X, y)
+        data = Data.Data(X, y, X_trains, X_tests, y_trains, y_tests)
 
         return data
 

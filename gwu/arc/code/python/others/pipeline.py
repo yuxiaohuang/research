@@ -2,15 +2,12 @@
 
 import sys
 import os
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import Setting
+import matplotlib.pyplot as plt
+import copy
 
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import LeaveOneOut
-from sklearn.model_selection import cross_val_score
 from joblib import Parallel, delayed
 from sklearn import tree
 from subprocess import check_call
@@ -75,67 +72,153 @@ def train_test_eval(setting, names, data, clf_name):
     classifier = setting.classifiers[clf_name]
 
     if clf_name == 'RandomForestClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
     elif clf_name == 'AdaBoostClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
+        clf = classifier(random_state=setting.random_state)
     elif clf_name == 'MLPClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
+        clf = classifier(random_state=setting.random_state)
     elif clf_name == 'KNeighborsClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(n_jobs=setting.n_jobs))])
+        clf = classifier(n_jobs=setting.n_jobs)
     elif clf_name == 'GaussianNB':
-        pipe_clf = Pipeline([('clf',  classifier())])
+        clf = classifier()
     elif clf_name == 'DecisionTreeClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
+        clf = classifier(random_state=setting.random_state)
     elif clf_name == 'LogisticRegression':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
     elif clf_name == 'GaussianProcessClassifier':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state, n_jobs=setting.n_jobs))])
+        clf = classifier(random_state=setting.random_state, n_jobs=setting.n_jobs)
     elif clf_name == 'SVC':
-        pipe_clf = Pipeline([('clf',  classifier(random_state=setting.random_state))])
+        clf = classifier(random_state=setting.random_state)
 
-    # Get cv for cross_val_score
-    cv = StratifiedKFold(n_splits=min(min(np.bincount(data.y)), setting.n_splits), random_state=setting.random_state) if data.X.shape[0] > setting.min_samples_interaction else LeaveOneOut()
+    # The cross validation scores
+    scores = np.zeros(setting.n_splits)
 
-    # Get the cross validation scores
-    scores = cross_val_score(estimator=pipe_clf,
-                             X=data.X,
-                             y=data.y,
-                             cv=cv,
-                             n_jobs=setting.n_jobs)
+    # For each split
+    for i in range(setting.n_splits):
+        # Fit clf
+        clf.fit(data.X_trains[i], data.y_trains[i])
 
-    # Refit clf on the whole data
-    pipe_clf.fit(data.X, data.y)
+        # Update scores
+        scores[i] = clf.score(data.X_tests[i], data.y_tests[i])
+
+        if (setting.feature_importance_fig_dir is not None
+            and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
+            # Plot the feature importance figures
+            plot_feature_importance_fig(setting, names, clf, clf_name, str(i))
+
+        if (setting.decision_tree_fig_dir is not None
+            and (isinstance(clf, setting.classifiers['DecisionTreeClassifier']) is True)):
+            # Plot the decision tree figures
+            plot_decision_tree_fig(setting, names, clf, clf_name, str(i))
 
     # Evaluate clf
-    eval(setting, names, pipe_clf.named_steps['clf'], scores, clf_name)
+    eval(setting, scores, clf_name)
+
+    if (setting.feature_importance_fig_dir is not None
+        and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
+        # Refit clf on the whole data
+        clf.fit(data.X, data.y)
+
+        # Plot the feature importance figures
+        plot_feature_importance_fig(setting, names, clf, clf_name, 'all')
+
+    if (setting.decision_tree_fig_dir is not None
+        and (isinstance(clf, setting.classifiers['DecisionTreeClassifier']) is True)):
+        # Refit clf on the whole data
+        clf.fit(data.X, data.y)
+
+        # Plot the decision tree figures
+        plot_decision_tree_fig(setting, names, clf, clf_name, 'all')
 
 
-def eval(setting, names, clf, scores, clf_name):
+def plot_feature_importance_fig(setting, names, clf, clf_name, name):
+    """
+    Plot the feature importance figures
+
+    Parameters
+    ----------
+    setting : the Setting object
+    names : the Names object
+    clf : the classifier
+    clf_name: the name of the classifier
+    name : the number of split or 'all'
+    """
+
+    setting.set_plt()
+
+    # Get the directory of the feature importance figure
+    feature_importance_fig_dir = setting.feature_importance_fig_dir + clf_name + '/'
+    # Get the pathname of the feature importance figure
+    feature_importance_fig = (
+    feature_importance_fig_dir + name + '/' + setting.feature_importance_fig_name + setting.feature_importance_fig_type)
+
+    # Make directory
+    directory = os.path.dirname(feature_importance_fig)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Get the feature importances
+    importances = clf.feature_importances_
+
+    # Convert the importances into one-dimensional 1darray with corresponding df column names as axis labels
+    f_importances = pd.Series(importances, names.features)
+
+    # Sort the array in descending order of the importances
+    f_importances.sort_values(ascending=False, inplace=True)
+
+    # Make the bar plot from f_importances top 20
+    f_importances[:20 if f_importances.size > 20 else f_importances.size].plot(kind='bar', figsize=(20, 10), rot=90, fontsize=30)
+
+    plt.xlabel('Feature', fontsize=30)
+    plt.ylabel('Importance', fontsize=30)
+    plt.tight_layout()
+    plt.savefig(feature_importance_fig)
+
+
+def plot_decision_tree_fig(setting, names, clf, clf_name, name):
+    """
+    Plot the decision tree figures
+
+    Parameters
+    ----------
+    setting : the Setting object
+    names : the Names object
+    clf : the classifier
+    clf_name: the name of the classifier
+    name : the number of split or 'all'
+    """
+
+    setting.set_plt()
+
+    # Get the directory of the decision tree figure
+    decision_tree_fig_dir = setting.decision_tree_fig_dir + clf_name + '/'
+    # Get the pathname of the decision tree figure
+    decision_tree_fig = (decision_tree_fig_dir + name + '/' + setting.decision_tree_fig_name + '.dot')
+
+    # Make directory
+    directory = os.path.dirname(decision_tree_fig)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Get the dot file
+    tree.export_graphviz(clf, out_file=decision_tree_fig, feature_names=names.features)
+
+    # Get the pdf file
+    check_call(['dot', '-Tpdf', decision_tree_fig, '-o', decision_tree_fig.replace('.dot', setting.decision_tree_fig_type)])
+
+
+def eval(setting, scores, clf_name):
     """
     Evaluate the classifier
     :param setting: the Setting object
-    :param names: the Names object
-    :param clf: the classifier
     :param scores: the cross validation scores
     :param clf_name: the name of the classifier
     :return:
     """
 
-    setting.set_plt()
-
     if setting.score_file_dir is not None:
         # Write the score file
         write_score_file(setting, scores, clf_name)
-
-    if (setting.feature_importance_fig_dir is not None
-        and (isinstance(clf, setting.classifiers['RandomForestClassifier']) is True)):
-        # Plot the feature importance figures
-        plot_feature_importance_fig(setting, names, clf, clf_name)
-
-    if (setting.decision_tree_fig_dir is not None
-        and (isinstance(clf, setting.classifiers['DecisionTreeClassifier']) is True)):
-        # Plot the decision tree figures
-        plot_decision_tree_fig(setting, names, clf, clf_name)
 
 
 def write_score_file(setting, scores, clf_name):
@@ -174,76 +257,6 @@ def write_score_file(setting, scores, clf_name):
         f.write("The list of the cross validation scores: " + '\n')
         for i in range(len(scores)):
             f.write(str(i + 1) + ', ' + str(round(scores[i], 2)) + '\n')
-
-
-def plot_feature_importance_fig(setting, names, clf, clf_name):
-    """
-    Plot the feature importance figures
-
-    Parameters
-    ----------
-    setting : the Setting object
-    names : the Names object
-    clf : the classifier
-    clf_name: the name of the classifier
-    """
-
-    # Get the directory of the feature importance figure
-    feature_importance_fig_dir = setting.feature_importance_fig_dir + clf_name + '/'
-    # Get the pathname of the feature importance figure
-    feature_importance_fig = (
-    feature_importance_fig_dir + setting.feature_importance_fig_name + setting.feature_importance_fig_type)
-
-    # Make directory
-    directory = os.path.dirname(feature_importance_fig)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Get the feature importances
-    importances = clf.feature_importances_
-
-    # Convert the importances into one-dimensional 1darray with corresponding df column names as axis labels
-    f_importances = pd.Series(importances, names.features)
-
-    # Sort the array in descending order of the importances
-    f_importances.sort_values(ascending=False, inplace=True)
-
-    # Make the bar plot from f_importances_top_k
-    f_importances.plot(kind='bar', figsize=(20, 10), rot=45, fontsize=30)
-
-    plt.xlabel('Feature', fontsize=30)
-    plt.ylabel('Importance', fontsize=30)
-    plt.tight_layout()
-    plt.savefig(feature_importance_fig)
-
-
-def plot_decision_tree_fig(setting, names, clf, clf_name):
-    """
-    Plot the decision tree figures
-
-    Parameters
-    ----------
-    setting : the Setting object
-    names : the Names object
-    clf : the classifier
-    clf_name: the name of the classifier
-    """
-
-    # Get the directory of the decision tree figure
-    decision_tree_fig_dir = setting.decision_tree_fig_dir + clf_name + '/'
-    # Get the pathname of the decision tree figure
-    decision_tree_fig = (decision_tree_fig_dir + setting.decision_tree_fig_name + '.dot')
-
-    # Make directory
-    directory = os.path.dirname(decision_tree_fig)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Get the dot file
-    tree.export_graphviz(clf, out_file=decision_tree_fig, feature_names=names.features)
-
-    # Get the pdf file
-    check_call(['dot', '-Tpdf', decision_tree_fig, '-o', decision_tree_fig.replace('.dot', setting.decision_tree_fig_type)])
 
 
 if __name__ == "__main__":

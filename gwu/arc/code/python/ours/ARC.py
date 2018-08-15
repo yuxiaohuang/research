@@ -12,10 +12,7 @@ class ARC:
     Principle Interaction Analysis
     """
     
-    def __init__(self, clf, min_samples_importance=30, min_samples_interaction=30, random_state=0):
-        # The baseline classifier
-        self.clf = clf
-
+    def __init__(self, min_samples_importance=30, min_samples_interaction=30, random_state=0):
         # The minimum number of samples required for calculating importance
         self.min_samples_importance = min_samples_importance
         
@@ -37,10 +34,6 @@ class ARC:
         X : the feature vector
         y : the target vector
         """
-
-        if self.clf is not None:
-            # Fit the baseline classifier
-            self.clf.fit(X, y)
 
         # The distribution of each class
         self.dist = {}
@@ -484,7 +477,7 @@ class ARC:
         
         return C
 
-    def predict(self, X):
+    def predict(self, X, clf):
         """
         Predict the class of each sample in X
 
@@ -499,7 +492,7 @@ class ARC:
         """
 
         # Predict the class of each sample in X using the baseline classifier
-        y_pred = self.clf.predict(X)
+        y_pred = clf.predict(X)
 
         # For each sample
         for i in range(y_pred.shape[0]):
@@ -509,7 +502,6 @@ class ARC:
                     # Update the class of the sample
                     y_pred[i] = class_
                     break
-
 
         return y_pred
 
@@ -537,32 +529,17 @@ class ARC:
 
         return False
 
-    def score(self, X, y, sample_weight=None):
+    def score(self, X, y, clf, sample_weight=None):
         """
-        The code is from sklearn:
-        https://github.com/scikit-learn/scikit-learn/blob/f0ab589f/sklearn/base.py#L324
-
-        Returns the mean accuracy on the given test data and labels.
-
-        In multi-label classification, this is the subset accuracy
-        which is a harsh metric since you require for each sample that
-        each label set be correctly predicted.
-
         Parameters
         ----------
-        X : array-like, shape = (n_samples, n_features)
-            Test samples.
-
-        y : array-like, shape = (n_samples) or (n_samples, n_outputs)
-            True labels for X.
-
-        sample_weight : array-like, shape = [n_samples], optional
-            Sample weights.
+        X : the feature vector
+        y : the target vector
+        clf : the baseline classifier
 
         Returns
-        -------
-        score : float
-            Mean accuracy of self.predict(X) wrt. y.
+        ----------
+        The mean accuracy
         """
 
-        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+        return accuracy_score(y, self.predict(X, clf), sample_weight=sample_weight)
