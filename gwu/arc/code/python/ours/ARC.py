@@ -22,9 +22,6 @@ class ARC:
         # The random_state
         self.random_state = random_state
         
-        # Set random seed
-        np.random.RandomState(seed=self.random_state)
-        
     def fit(self, X, y):
         """
         Detect the interactions for each class label
@@ -34,6 +31,9 @@ class ARC:
         X : the feature vector
         y : the target vector
         """
+
+        # Set random number generator
+        self.rng = np.random.RandomState(seed=self.random_state)
 
         # The distribution of each class
         self.dist = {}
@@ -468,7 +468,7 @@ class ARC:
             return C
         
         # Get random_c
-        random_idx = np.random.randint(low=0, high=len(C))
+        random_idx = self.rng.randint(low=0, high=len(C))
         random_c = C[random_idx]
         # Remove random_c from C
         C.remove(random_c)
