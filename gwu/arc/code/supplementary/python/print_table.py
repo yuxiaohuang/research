@@ -16,33 +16,6 @@ def print_table(result_dir, p_val, table_file):
     # Get the score file of ours
     files_ours = [file_others.replace('others', 'ours') for file_others in files_others]
 
-    # The dictionary of datasets
-    #     datasets = {'audiology' : 'audiology',
-    #                 'balance-scale' : 'balance-scale',
-    #                 'adult-stretch' : 'balloon (adult-stretch)',
-    #                 'adult+stretch' : 'balloon (adult+stretch)',
-    #                 'yellow-small' : 'balloon (yellow-small)',
-    #                 'yellow-small+adult-stretch' : 'balloon (yellow-small+adult-stretch)',
-    #                 'breast-cancer-wisconsin' : 'breast-cancer-wisconsin',
-    #                 'car' : 'car',
-    #                 'connect-4' : 'connect-4',
-    #                 'hayes-roth' : 'hayes-roth',
-    #                 'king-rook-vs-king-pawn' : 'king-rook-vs-king-pawn',
-    #                 'lenses' : 'lenses',
-    #                 'lymphography' : 'lymphography',
-    #                 'monks-1' : 'monks-problems (monks-1)',
-    #                 'monks-2' : 'monks-problems (monks-2)',
-    #                 'monks-3' : 'monks-problems (monks-3)',
-    #                 'mushroom' : 'mushroom',
-    #                 'nursery' : 'nursery',
-    #                 'poker' : 'poker',
-    #                 'primary-tumor' : 'primary-tumor',
-    #                 'soybean-large' : 'soybean (large)',
-    #                 'soybean-small' : 'soybean (small)',
-    #                 'SPECT' : 'SPECT',
-    #                 'tic-tac-toe' : 'tic-tac-toe',
-    #                 'voting-records' : 'voting-records'}
-
     datasets = {'audiology': '1',
                 'balance-scale': '2',
                 'adult-stretch': '3',
@@ -69,17 +42,6 @@ def print_table(result_dir, p_val, table_file):
                 'tic-tac-toe': '24',
                 'voting-records': '25'}
 
-    # The dictionary of methods
-    #     methods = {'AdaBoostClassifier' : 'AdaBoost',
-    #               'DecisionTreeClassifier' : 'Decision Tree',
-    #               'GaussianNB' : 'Gaussian Naive Bayes',
-    #               'GaussianProcessClassifier' : 'Gaussian Process',
-    #               'KNeighborsClassifier' : 'KNN',
-    #               'LogisticRegression' : 'Logistic Regression',
-    #               'MLPClassifier' : 'Multi-layer Perceptron',
-    #               'RandomForestClassifier' : 'Random Forest',
-    #               'SVC' : 'Support Vector Machine'}
-
     methods = {'AdaBoostClassifier': 'AB',
                'DecisionTreeClassifier': 'DT',
                'GaussianNB': 'GNB',
@@ -99,7 +61,7 @@ def print_table(result_dir, p_val, table_file):
     with open(table_file, 'w') as f:
         # Table content
         # Write the methods
-        content = '\t' + '&' + '\t&'.join([methods[method] for method in sorted(methods.keys())]) + '\\\\'
+        content = '\t' + '&' + '\t&'.join(['\phantom{0.0}' + methods[method] for method in sorted(methods.keys())]) + '\\\\'
         f.write(content + '\n')
 
         for dataset in datasets.keys():
@@ -132,13 +94,13 @@ def print_table(result_dir, p_val, table_file):
                     dif = round(float(mean_others) - float(mean_ours), 2)
 
                     if dif < 0:
-                        score = format(float(mean_others), '.2f') + ' + ' + str(
-                            format(abs(dif), '.2f')) + ' $\\triangle$'
+                        score = format(float(mean_others), '.2f') + ' $+$ ' + str(
+                            format(abs(dif), '.2f')) + ' $\\vartriangle$'
                     elif dif > 0:
-                        score = format(float(mean_others), '.2f') + ' - ' + str(
+                        score = format(float(mean_others), '.2f') + ' $-$ ' + str(
                             format(abs(dif), '.2f')) + ' $\\triangledown$'
                     else:
-                        score = format(float(mean_others), '.2f') + ' + 0.00'
+                        score = format(float(mean_others), '.2f') + ' $+$ 0.00'
 
                     if (float(std_others) + float(std_ours)) != 0:
                         # significance test
@@ -151,15 +113,15 @@ def print_table(result_dir, p_val, table_file):
                                                                  equal_var=False)
 
                         if statistic < 0 and pvalue < p_val:
-                            score = score.replace('triangle', 'blacktriangle')
+                            score = score.replace('vartriangle', 'blacktriangle')
                         elif statistic > 0 and pvalue < p_val:
-                            score = score.replace('triangledown', 'blacktriangledown')
+                            score = score.replace('triangledown$', 'blacktriangledown')
                 elif (mean_others is not None
                       and std_others is not None
                       and nobs_others is not None):
-                    score = mean_others + ' $\pm$ NA'
+                    score = format(float(mean_others), '.2f') + ' $+$ '
                 else:
-                    score = 'NA $\pm$ NA'
+                    score = '\phantom{0.00} $+$'
 
                 scores.append(score)
 
