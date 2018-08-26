@@ -1,5 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Run script for printing table###-----------------------------------------------------------------------------------------
-
-python /home/yuxiaohuang/research/gwu/arc/code/supplementary/python/print_table.py /home/yuxiaohuang/research/gwu/arc/result/ 0.01 /home/yuxiaohuang/research/gwu/arc/result/supplementary/table_file.txt
-

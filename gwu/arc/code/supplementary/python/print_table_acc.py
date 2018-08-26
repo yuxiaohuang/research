@@ -6,8 +6,11 @@ import glob
 from scipy.stats import ttest_ind_from_stats
 
 
-def print_table(result_dir, p_val, table_file):
-    """Print table"""
+def print_table_acc():
+    """
+    Print table (accuracy)
+    :return:
+    """
 
     files = glob.glob(result_dir + '**/*.txt', recursive=True)
     # Get the score file of others
@@ -116,6 +119,12 @@ def print_table(result_dir, p_val, table_file):
                             score = score.replace('vartriangle', 'blacktriangle')
                         elif statistic > 0 and pvalue < p_val:
                             score = score.replace('triangledown$', 'blacktriangledown')
+                    else:
+                        if float(mean_others) < float(mean_ours):
+                            score = score.replace('vartriangle', 'blacktriangle')
+                        elif float(mean_others) > float(mean_ours):
+                            score = score.replace('triangledown$', 'blacktriangledown')
+
                 elif (mean_others is not None
                       and std_others is not None
                       and nobs_others is not None):
@@ -130,7 +139,14 @@ def print_table(result_dir, p_val, table_file):
 
 
 def get_score_file(files, dataset, method):
-    """Get the score file containing keywords dataset and method"""
+    """
+    Get the score file containing keywords dataset and method
+    :param files: the score files
+    :param dataset: the name of the dataset
+    :param method: the name of the method
+    :return: the score file containing keywords dataset and method
+             if no such file, return None
+    """
 
     for file in files:
         if os.path.exists(file) and dataset in file and method in file:
@@ -140,7 +156,11 @@ def get_score_file(files, dataset, method):
 
 
 def get_mean_std(file):
-    """Get mean and std"""
+    """
+    Get mean and std
+    :param file: the score file
+    :return: mean and std
+    """
 
     with open(file, 'r') as f:
         # Read the file
@@ -167,7 +187,11 @@ def get_mean_std(file):
 
 
 def get_nobs(file):
-    """Get nobs"""
+    """
+    Get nobs
+    :param file: the score file
+    :return: nobs
+    """
 
     with open(file, 'r') as f:
         # Read the file
@@ -200,5 +224,5 @@ if __name__ == "__main__":
     # Get the pathname of the table file
     table_file = sys.argv[3]
 
-    # Print table
-    print_table(result_dir, p_val, table_file)
+    # Print table (accuracy)
+    print_table_acc()
