@@ -21,6 +21,7 @@ def print_table_data():
     global n_feature_after_removing_excluded
     global n_condition
     global combined
+    global missing
     global k_fold
 
     # Add setting_dir folder
@@ -66,6 +67,8 @@ def print_table_data():
                     # Update dataset_long
                     if combined is True:
                         dataset_long += ' $+$'
+                    if missing is True:
+                        dataset_long += ' $?$'
 
                     content += ('\t' + '&'
                                 + dataset_long + '\t' + '&'
@@ -84,6 +87,7 @@ def print_table_data():
                     n_feature_after_removing_excluded = 0
                     n_condition = 0
                     combined = False
+                    missing = False
                     k_fold = 0
 
 def match_data_names():
@@ -284,6 +288,10 @@ def get_data(data_files, setting, names):
     df = df.replace(names.place_holder_for_missing_vals, np.NaN)
     # Impute missing values using the mode
     for column in df.columns:
+        if np.NaN in list(df[column]):
+            # Update missing
+            global missing
+            missing = True
         df[column].fillna(df[column].mode()[0], inplace=True)
 
     # Get the feature vector
@@ -403,6 +411,7 @@ if __name__ == "__main__":
     n_feature_after_removing_excluded = 0
     n_condition = 0
     combined = False
+    missing = False
     k_fold = 0
 
     # The list of datasets
