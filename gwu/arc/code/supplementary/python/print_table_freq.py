@@ -6,7 +6,7 @@ import glob
 from scipy.stats import ttest_ind_from_stats
 
 
-def print_table_acc():
+def print_table_freq():
     """
     Print table (accuracy)
     :return:
@@ -64,13 +64,22 @@ def print_table_acc():
     with open(table_file, 'w') as f:
         # Table content
         # Write the methods
-        content = 'No.' + '\t' + '&' + '\t&'.join(['\phantom{0.0}' + methods[method] for method in sorted(methods.keys())]) + '\\\\'
+        content = 'Freq.' + '\t' + '&' + '\t&'.join([methods[method] for method in sorted(methods.keys())]) + '\\\\'
         f.write(content + '\n')
 
-        for dataset in datasets.keys():
-            content = datasets[dataset] + '\t' + '&'
-            scores = []
+        # The dictionaries
+        non_sig_up_plus_sig_ups = {}
+        sig_ups = {}
+        non_sig_down_plus_sig_downs = {}
+        sig_downs = {}
 
+        for method in sorted(methods.keys()):
+            non_sig_up_plus_sig_ups[method] = 0
+            sig_ups[method] = 0
+            non_sig_down_plus_sig_downs[method] = 0
+            sig_downs[method] = 0
+
+        for dataset in datasets.keys():
             for method in sorted(methods.keys()):
                 dataset_method_score_file_others = get_score_file(files_others, dataset, method)
                 dataset_method_score_file_ours = get_score_file(files_ours, dataset, method)
@@ -97,13 +106,9 @@ def print_table_acc():
                     dif = round(float(mean_others) - float(mean_ours), 2)
 
                     if dif < 0:
-                        score = format(float(mean_others), '.2f') + ' $+$ ' + str(
-                            format(abs(dif), '.2f')) + ' $\\vartriangle$'
+                        non_sig_up_plus_sig_ups[method] += 1
                     elif dif > 0:
-                        score = format(float(mean_others), '.2f') + ' $-$ ' + str(
-                            format(abs(dif), '.2f')) + ' $\\triangledown$'
-                    else:
-                        score = format(float(mean_others), '.2f') + ' $+$ 0.00'
+                        non_sig_down_plus_sig_downs[method] += 1
 
                     if (float(std_others) + float(std_ours)) != 0:
                         # significance test
@@ -116,20 +121,38 @@ def print_table_acc():
                                                                  equal_var=False)
 
                         if statistic < 0 and pvalue < p_val:
-                            score = score.replace('vartriangle', 'blacktriangle')
+                            sig_ups[method] += 1
                         elif statistic > 0 and pvalue < p_val:
-                            score = score.replace('triangledown$', 'blacktriangledown')
+                            sig_downs[method] += 1
+                    else:
+                        if float(mean_others) < float(mean_ours):
+                            sig_ups[method] += 1
+                        elif float(mean_others) > float(mean_ours):
+                            sig_downs[method] += 1
 
-                elif (mean_others is not None
-                      and std_others is not None
-                      and nobs_others is not None):
-                    score = format(float(mean_others), '.2f') + ' $+$ '
+        symbols = ['$\\vartriangle$ $+$ $\\blacktriangle$',
+                   '$\\triangledown$ $+$ $\\blacktriangledown$',
+                   '$\\blacktriangle$',
+                   '$\\blacktriangledown$']
+
+        for i in range(len(symbols)):
+            content = symbols[i] + '\t&'
+            # The list of frequencies
+            freqs = []
+
+            for method in sorted(methods.keys()):
+                if i == 0:
+                    freq = round(non_sig_up_plus_sig_ups[method] / 25, 2)
+                elif i == 1:
+                    freq = round(non_sig_down_plus_sig_downs[method] / 25, 2)
+                elif i == 2:
+                    freq = round(sig_ups[method] / 25, 2)
                 else:
-                    score = '\phantom{0.00} $+$'
+                    freq = round(sig_downs[method] / 25, 2)
 
-                scores.append(score)
+                freqs.append(format(freq, '.2f'))
 
-            content += '\t&'.join(scores) + '\\\\'
+            content += '\t&'.join(freqs) + '\\\\'
             f.write(content + '\n')
 
 
@@ -224,4 +247,4 @@ if __name__ == "__main__":
     table_file = sys.argv[3]
 
     # Print table (accuracy)
-    print_table_acc()
+    print_table_freq()

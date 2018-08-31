@@ -12,12 +12,9 @@ class ARC:
     Principle Interaction Analysis
     """
     
-    def __init__(self, min_samples_importance=30, min_samples_interaction=30, random_state=0):
+    def __init__(self, min_samples_importance=30, random_state=0):
         # The minimum number of samples required for calculating importance
         self.min_samples_importance = min_samples_importance
-        
-        # The minimum number of samples required for an interaction
-        self.min_samples_interaction = min_samples_interaction
         
         # The random_state
         self.random_state = random_state

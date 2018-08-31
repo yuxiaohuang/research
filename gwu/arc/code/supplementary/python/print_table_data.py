@@ -15,6 +15,14 @@ def print_table_data():
     :return:
     """
 
+    global n_sample_input
+    global n_sample_afer_oversampling
+    global n_feature_excluded
+    global n_feature_after_removing_excluded
+    global n_condition
+    global combined
+    global k_fold
+
     # Add setting_dir folder
     sys.path.append(setting_dir)
     # Import the Setting module
@@ -31,7 +39,14 @@ def print_table_data():
     # Write the table file
     with open(table_file, 'w') as f:
         # Write the header
-        content = 'No.' + '\t' + '&' + 'Name' + '\t' + '&' + '\#Sample' + '\t' + '&' + '\#Feature' + '\t' + '&' + '\#Condition' + '\\\\'
+        content = ('No.' + '\t' + '&'
+                   + 'Name' + '\t' + '&'
+                   + '\#S (input)' + '\t' + '&'
+                   + '\#S (added)' + '\t' + '&'
+                   + '\#F (input)' + '\t' + '&'
+                   + '\#F (removed)' + '\t' + '&'
+                   + '\#C' + '\t' + '&'
+                   + '\#Fold' + '\\\\')
         f.write(content + '\n')
 
         for i in range(len(datasets)):
@@ -44,12 +59,32 @@ def print_table_data():
             dataset_long = datasets[i][1]
 
             for data_files, names_file in data_names:
-                if dataset_short in names_file:
+                if dataset_short == os.path.basename(names_file).split('.')[0]:
                     # Data preprocessing: get the Setting, Names, and Data object
                     get_setting_names_data(data_files, names_file, '', Setting)
 
-                    content += '\t' + '&' + dataset_long + '\t' + '&' + str(n_sample) + '\t' + '&' + str(n_feature) + '\t' + '&' + str(n_condition) + '\\\\'
+                    # Update dataset_long
+                    if combined is True:
+                        dataset_long += ' $+$'
+
+                    content += ('\t' + '&'
+                                + dataset_long + '\t' + '&'
+                                + str(n_sample_input) + '\t' + '&'
+                                + str(n_sample_afer_oversampling - n_sample_input) + '\t' + '&'
+                                + str(n_feature_excluded + n_feature_after_removing_excluded) + '\t' + '&'
+                                + str(n_feature_excluded) + '\t' + '&'
+                                + str(n_condition) + '\t' + '&'
+                                + str(k_fold) + '\\\\')
                     f.write(content + '\n')
+
+                    # Initialize gLobal variable
+                    n_sample_input = 0
+                    n_sample_afer_oversampling = 0
+                    n_feature_excluded = 0
+                    n_feature_after_removing_excluded = 0
+                    n_condition = 0
+                    combined = False
+                    k_fold = 0
 
 def match_data_names():
     """
@@ -192,6 +227,9 @@ def get_para_vals(names, para_name, vals):
         names.target = str(vals[0])
     elif para_name == 'exclude_features':
         names.exclude_features = [str(val) for val in vals]
+        # Update n_feature_excluded
+        global n_feature_excluded
+        n_feature_excluded = len(names.exclude_features)
     elif para_name == 'categorical_features':
         names.categorical_features = [str(val) for val in vals]
 
@@ -208,28 +246,51 @@ def get_data(data_files, setting, names):
     if len(data_files) == 1:
         data_file = data_files[0]
 
-        # Get X and y
-        X, y = get_X_y(data_file, names)
+        # Get data frame
+        df = get_df(data_file, names)
     elif len(data_files) == 2:
         training_data_file = data_files[0] if 'train' in data_files[0] else data_files[1]
         testing_data_file = data_files[0] if 'test' in data_files[0] else data_files[1]
 
-        # Get X_train and y_train
-        X_train, y_train = get_X_y(training_data_file, names)
+        # Get data frame for training
+        df_train = get_df(training_data_file, names)
 
-        # Get X_test and y_test
-        X_test, y_test = get_X_y(testing_data_file, names)
+        # Get data frame for testing
+        df_test = get_df(testing_data_file, names)
 
-        # Combine training and testing data
-        X = pd.concat([X_train, X_test])
-        y = pd.concat([y_train, y_test])
+        # Combine training and testing data frame
+        df = pd.concat([df_train, df_test])
+
+        # Update combined
+        global combined
+        combined = True
     else:
         print("Wrong number of data files!")
         exit(1)
 
-    # Update n_feature
-    global n_feature
-    n_feature = X.shape[1]
+    # Update n_sample_input
+    global n_sample_input
+    n_sample_input = df.shape[0]
+
+    if len(names.exclude_features) > 0:
+        # Remove features that should be excluded
+        df = df.drop(names.exclude_features, axis=1)
+
+    # Update n_feature_after_removing_excluded
+    global n_feature_after_removing_excluded
+    n_feature_after_removing_excluded = df.shape[1]
+
+    # Replace missing_representation with NaN
+    df = df.replace(names.place_holder_for_missing_vals, np.NaN)
+    # Impute missing values using the mode
+    for column in df.columns:
+        df[column].fillna(df[column].mode()[0], inplace=True)
+
+    # Get the feature vector
+    X = df[names.features]
+
+    # Get the target vector
+    y = df[names.target]
 
     # Encode X and y
     X, y = encode_X_y(X, y, setting, names)
@@ -248,12 +309,12 @@ def get_data(data_files, setting, names):
         ros = RandomOverSampler(random_state=setting.random_state)
         X, y = ros.fit_sample(X, y)
 
-    # Update n_sample
-    global n_sample
-    n_sample = X.shape[0]
+    # Update n_sample_afer_oversampling
+    global n_sample_afer_oversampling
+    n_sample_afer_oversampling = X.shape[0]
 
     # Cross validation using StratifiedKFold or LeaveOneOut
-    if X.shape[0] > max(setting.min_samples_importance, setting.min_samples_interaction):
+    if X.shape[0] > setting.min_samples_importance:
         cv = StratifiedKFold(n_splits=min(min(np.bincount(y)), setting.n_splits), random_state=setting.random_state)
     else:
         cv = LeaveOneOut()
@@ -263,6 +324,10 @@ def get_data(data_files, setting, names):
 
     # Update the number of splits
     setting.n_splits = len(train_test_indices)
+
+    # Update k_fold
+    global k_fold
+    k_fold = setting.n_splits
 
     # Add code_dir folder
     sys.path.append(code_dir)
@@ -274,12 +339,12 @@ def get_data(data_files, setting, names):
 
     return data
 
-def get_X_y(data_file, names):
+def get_df(data_file, names):
     """
-    Get X and y
+    Get data frame
     :param data_file: the pathname of the data file
     :param names: the Names object
-    :return: the feature and target vector
+    :return: the data frame
     """
 
     # Load data
@@ -288,28 +353,13 @@ def get_X_y(data_file, names):
     else:
         df = pd.read_csv(data_file, header=names.header, sep=names.sep)
 
-    # Replace '/' with '_'
-    df = df.replace('/', '_')
-
-    # Replace missing_representation with NaN
-    df = df.replace(names.place_holder_for_missing_vals, np.NaN)
-    # Remove rows that contain missing values
-    df = df.dropna(axis=0)
-
     # Get df.columns
     df.columns = list(names.columns)
 
-    if len(names.exclude_features) > 0:
-        # Remove features that should be excluded
-        df = df.drop(names.exclude_features, axis=1)
+    # Replace '/' with '_'
+    df = df.replace('/', '_')
 
-    # Get the feature vector
-    X = df[names.features]
-
-    # Get the target vector
-    y = df[names.target]
-
-    return [X, y]
+    return df
 
 def encode_X_y(X, y, setting, names):
     """
@@ -347,12 +397,16 @@ if __name__ == "__main__":
     table_file = sys.argv[4]
 
     # GLobal variable
-    n_sample = 0
-    n_feature = 0
+    n_sample_input = 0
+    n_sample_afer_oversampling = 0
+    n_feature_excluded = 0
+    n_feature_after_removing_excluded = 0
     n_condition = 0
+    combined = False
+    k_fold = 0
 
     # The list of datasets
-    datasets = [['audiology', 'audiology'],
+    datasets = [['audiology', 'audiology (standardized)'],
                 ['balance-scale', 'balance-scale'],
                 ['adult-stretch', 'balloon (adult-stretch)'],
                 ['adult+stretch', 'balloon (adult+stretch)'],
@@ -362,21 +416,21 @@ if __name__ == "__main__":
                 ['car', 'car'],
                 ['connect-4', 'connect-4'],
                 ['hayes-roth', 'hayes-roth'],
-                ['king-rook-vs-king-pawn', 'king-rook-vs-king-pawn'],
+                ['kr-vs-kp', 'king-rook-vs-king-pawn'],
                 ['lenses', 'lenses'],
                 ['lymphography', 'lymphography'],
                 ['monks-1', 'monks-problems (monks-1)'],
                 ['monks-2', 'monks-problems (monks-2)'],
                 ['monks-3', 'monks-problems (monks-3)'],
-                ['mushroom', 'mushroom'],
+                ['agaricus-lepiota', 'mushroom'],
                 ['nursery', 'nursery'],
-                ['poker', 'poker'],
+                ['poker-hand', 'poker'],
                 ['primary-tumor', 'primary-tumor'],
                 ['soybean-large', 'soybean (large)'],
                 ['soybean-small', 'soybean (small)'],
                 ['SPECT', 'SPECT'],
                 ['tic-tac-toe', 'tic-tac-toe'],
-                ['voting-records', 'voting-records']]
+                ['house-votes-84', 'voting-records']]
 
     # Print table (data)
     print_table_data()

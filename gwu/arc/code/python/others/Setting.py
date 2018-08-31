@@ -34,9 +34,6 @@ class Setting:
         # The minimum number of samples required for calculating importance
         self.min_samples_importance = 30
 
-        # The minimum number of samples required for an interaction
-        self.min_samples_interaction = 30
-
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
 

@@ -181,24 +181,39 @@ class DataPreprocessing():
         if len(data_files) == 1:
             data_file = data_files[0]
 
-            # Get X and y
-            X, y = self.get_X_y(data_file, names)
+            # Get data frame
+            df = self.get_df(data_file, names)
         elif len(data_files) == 2:
             training_data_file = data_files[0] if 'train' in data_files[0] else data_files[1]
             testing_data_file = data_files[0] if 'test' in data_files[0] else data_files[1]
 
-            # Get X_train and y_train
-            X_train, y_train = self.get_X_y(training_data_file, names)
+            # Get data frame for training
+            df_train = self.get_df(training_data_file, names)
 
-            # Get X_test and y_test
-            X_test, y_test = self.get_X_y(testing_data_file, names)
+            # Get data frame for testing
+            df_test = self.get_df(testing_data_file, names)
 
-            # Combine training and testing data
-            X = pd.concat([X_train, X_test])
-            y = pd.concat([y_train, y_test])
+            # Combine training and testing data frame
+            df = pd.concat([df_train, df_test])
         else:
             print("Wrong number of data files!")
             exit(1)
+
+        if len(names.exclude_features) > 0:
+            # Remove features that should be excluded
+            df = df.drop(names.exclude_features, axis=1)
+
+        # Replace missing_representation with NaN
+        df = df.replace(names.place_holder_for_missing_vals, np.NaN)
+        # Impute missing values using the mode
+        for column in df.columns:
+            df[column].fillna(df[column].mode()[0], inplace=True)
+
+        # Get the feature vector
+        X = df[names.features]
+
+        # Get the target vector
+        y = df[names.target]
 
         # Encode X and y
         X, y = self.encode_X_y(X, y, setting, names)
@@ -214,7 +229,7 @@ class DataPreprocessing():
             X, y = ros.fit_sample(X, y)
 
         # Cross validation using StratifiedKFold or LeaveOneOut
-        if X.shape[0] > max(setting.min_samples_importance, setting.min_samples_interaction):
+        if X.shape[0] > setting.min_samples_importance:
             cv = StratifiedKFold(n_splits=min(min(np.bincount(y)), setting.n_splits), random_state=setting.random_state)
         else:
             cv = LeaveOneOut()
@@ -230,12 +245,12 @@ class DataPreprocessing():
 
         return data
 
-    def get_X_y(self, data_file, names):
+    def get_df(self, data_file, names):
         """
-        Get X and y
+        Get data frame
         :param data_file: the pathname of the data file
         :param names: the Names object
-        :return: the feature and target vector
+        :return: the data frame
         """
 
         # Load data
@@ -244,28 +259,13 @@ class DataPreprocessing():
         else:
             df = pd.read_csv(data_file, header=names.header, sep=names.sep)
 
-        # Replace '/' with '_'
-        df = df.replace('/', '_')
-
-        # Replace missing_representation with NaN
-        df = df.replace(names.place_holder_for_missing_vals, np.NaN)
-        # Remove rows that contain missing values
-        df = df.dropna(axis=0)
-
         # Get df.columns
         df.columns = list(names.columns)
 
-        if len(names.exclude_features) > 0:
-            # Remove features that should be excluded
-            df = df.drop(names.exclude_features, axis=1)
+        # Replace '/' with '_'
+        df = df.replace('/', '_')
 
-        # Get the feature vector
-        X = df[names.features]
-
-        # Get the target vector
-        y = df[names.target]
-
-        return [X, y]
+        return df
 
     def encode_X_y(self, X, y, setting, names):
         """
@@ -405,12 +405,6 @@ class DataPreprocessing():
         ###--------------------------------------------------------------------------------------------------------
 
         min_samples_importance = """ + str(setting.min_samples_importance) + """
-
-        ###--------------------------------------------------------------------------------------------------------
-        ### The minimum number of samples required for an interaction
-        ###--------------------------------------------------------------------------------------------------------
-
-        min_samples_interaction = """ + str(setting.min_samples_interaction) + """
 
         ###--------------------------------------------------------------------------------------------------------
         ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)

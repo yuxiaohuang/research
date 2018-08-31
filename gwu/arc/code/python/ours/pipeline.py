@@ -64,7 +64,6 @@ def pipeline(dp, data_files, names_file, result_dir):
         train_index, test_index = data.train_test_indices[i]
         # Declare the ARC object
         arc = ARC.ARC(setting.min_samples_importance if data.X.shape[0] > setting.min_samples_importance else 1,
-                      setting.min_samples_interaction if data.X.shape[0] > setting.min_samples_interaction else 1,
                       setting.random_state)
         # Fit arc
         arc.fit(data.X[train_index], data.y[train_index])
