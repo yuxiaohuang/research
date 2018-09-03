@@ -438,7 +438,7 @@ if __name__ == "__main__":
                 ['soybean-large', 'soybean (large)'],
                 ['soybean-small', 'soybean (small)'],
                 ['SPECT', 'SPECT'],
-                ['tic-tac-toe', 'tic-tac-toe'],
+                ['tic-tac-toe', 'tic-tac-toe endgame'],
                 ['house-votes-84', 'voting-records']]
 
     # Print table (data)
