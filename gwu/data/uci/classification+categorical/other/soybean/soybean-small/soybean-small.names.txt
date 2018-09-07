@@ -1,0 +1,52 @@
+
+###--------------------------------------------------------------------------------------------------------
+### Some names of the dataset
+###--------------------------------------------------------------------------------------------------------
+
+###--------------------------------------------------------------------------------------------------------
+### The header, None by default
+###--------------------------------------------------------------------------------------------------------
+
+header = 
+
+###--------------------------------------------------------------------------------------------------------
+### The delimiter
+###--------------------------------------------------------------------------------------------------------
+    
+delim_whitespace = 
+
+###--------------------------------------------------------------------------------------------------------
+### The separator
+###--------------------------------------------------------------------------------------------------------
+        
+sep = 
+
+###--------------------------------------------------------------------------------------------------------
+### The place holder for missing values, '?' by default
+###--------------------------------------------------------------------------------------------------------
+
+place_holder_for_missing_vals = 
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) columns, must be specified
+###--------------------------------------------------------------------------------------------------------
+
+columns = date, plant-stand, precip, temp, hail, crop-hist, area-damaged, severity, seed-tmt, germination, plant-growth, leaves, leafspots-halo, leafspots-marg, leafspot-size, leaf-shread, leaf-malf, leaf-mild, stem, lodging, stem-cankers, canker-lesion, fruiting-bodies, external decay, mycelium, int-discolor, sclerotia, fruit-pods, fruit spots, seed, mold-growth, seed-discolor, seed-size, shriveling, roots, target
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) target, must be specified
+###--------------------------------------------------------------------------------------------------------
+
+target = target
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) features that should be excluded, empty by default
+###--------------------------------------------------------------------------------------------------------
+
+exclude_features = 
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) categorical features, empty by default
+###--------------------------------------------------------------------------------------------------------
+
+categorical_features = date, plant-stand, precip, temp, hail, crop-hist, area-damaged, severity, seed-tmt, germination, plant-growth, leaves, leafspots-halo, leafspots-marg, leafspot-size, leaf-shread, leaf-malf, leaf-mild, stem, lodging, stem-cankers, canker-lesion, fruiting-bodies, external decay, mycelium, int-discolor, sclerotia, fruit-pods, fruit spots, seed, mold-growth, seed-discolor, seed-size, shriveling, roots
