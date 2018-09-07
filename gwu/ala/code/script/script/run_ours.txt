@@ -1,7 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Run script for our algorithms###-----------------------------------------------------------------------------------------
-
-mkdir -p /home/yuxiaohuang/research/gwu/ala/result/ours/
-
-(time /home/yuxiaohuang/research/gwu/ala/code/script/script/ours.txt) 2> /home/yuxiaohuang/research/gwu/ala/result/ours/time.txt
-

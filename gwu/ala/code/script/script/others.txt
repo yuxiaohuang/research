@@ -1,4 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Pipeline for other algorithms###-----------------------------------------------------------------------------------------
-
-python /home/yuxiaohuang/research/gwu/ala/code/python/others/pipeline.py /home/yuxiaohuang/research/gwu/ala/data/ /home/yuxiaohuang/research/gwu/ala/result/others/ /home/yuxiaohuang/research/gwu/ala/code/python/
