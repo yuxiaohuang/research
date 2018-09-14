@@ -1,0 +1,5 @@
+###-----------------------------------------------------------------------------------------
+### Run script for printing table (data)###-----------------------------------------------------------------------------------------
+
+python /home/yuxiaohuang/research/gwu/pia/code/supplementary/python/print_table_data.py /home/yuxiaohuang/research/gwu/pia/data/ /home/yuxiaohuang/research/gwu/pia/code/python/ /home/yuxiaohuang/research/gwu/pia/code/python/ours/ /home/yuxiaohuang/research/gwu/pia/result/supplementary/table_file_data.txt
+

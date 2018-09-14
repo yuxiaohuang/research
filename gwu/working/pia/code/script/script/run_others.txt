@@ -1,0 +1,7 @@
+###-----------------------------------------------------------------------------------------
+### Run script for other algorithms###-----------------------------------------------------------------------------------------
+
+mkdir -p /home/yuxiaohuang/research/gwu/pia/result/others/
+
+(time /home/yuxiaohuang/research/gwu/pia/code/script/script/others.txt) 2> /home/yuxiaohuang/research/gwu/pia/result/others/time.txt
+
