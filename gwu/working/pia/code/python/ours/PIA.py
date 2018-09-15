@@ -491,7 +491,7 @@ class PIA:
         The transformed X
         """
 
-        # Get the principle interactions (comprised of more than one conditions)
+        # Get the principle interactions (comprised of more than one condition)
         Is = [I for class_ in sorted(self.pis.keys()) for I in self.pis[class_] if len(I) > 1]
 
         # The X comprised of the value of the principle interactions

@@ -118,7 +118,7 @@ def print_table_acc():
                         if statistic < 0 and pvalue < p_val:
                             score = score.replace('vartriangle', 'blacktriangle')
                         elif statistic > 0 and pvalue < p_val:
-                            score = score.replace('triangledown$', 'blacktriangledown')
+                            score = score.replace('triangledown', 'blacktriangledown')
 
                 elif (mean_others is not None
                       and std_others is not None
