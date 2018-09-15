@@ -1,12 +1,11 @@
 # Please cite the following paper when using the code
 
 import numpy as np
+import random
+import copy
 from numpy import prod
 from scipy import stats
 
-from sklearn.metrics import accuracy_score
-import random
-import copy
 
 class PIA:
     """
@@ -77,12 +76,12 @@ class PIA:
         """
             
         # Do, while one of the following three requirements is met
-        # 1. C is sufficient
+        # 1. C is principle
         # 2. add_best returns [C, True]
         # 3. remove_worst returns [C, True]
         while True:
-            # If C is sufficient
-            if self.sufficient(X, y, class_, C) is True:
+            # If C is principle
+            if self.principle(X, y, class_, C) is True:
                 # Remove the unnecessary conditions from C
                 C = self.remove_unnecessary(X, y, class_, C)
 
@@ -113,7 +112,7 @@ class PIA:
                 # Initialize the conjunction
                 C = []
                     
-            # If C is not sufficient
+            # If C is not principle
             else:
                 C, success = self.add_best(X, y, class_, C)
                 
@@ -126,9 +125,9 @@ class PIA:
                         if len(C) == 0:
                             break
                 
-    def sufficient(self, X, y, class_, C):
+    def principle(self, X, y, class_, C):
         """
-        The sufficient condition
+        The principle constraint
         
         Parameters
         ----------
@@ -139,16 +138,16 @@ class PIA:
         
         Returns
         ----------    
-        True : if the sufficient condition is met
+        True : if the principle constraint is met
         False : otherwise
         """
         
-        # Check if P(class_ | C) == 1
+        # Check if P(class_ | C) >> P(class_)
         return self.sig(X, y, class_, C, [])
     
     def sig(self, X, y, class_, C, xs):
         """
-        Check if P(class_ | C and not xs) == 1
+        Check if P(class_ | C) >> P(class_)
         
         Parameters
         ----------
@@ -160,15 +159,16 @@ class PIA:
         
         Returns
         ----------    
-        True : if P(class_ | C and not xs) == 1
+        True : if P(class_ | C) >> P(class_)
         False : otherwise
         """
 
+        # If there are no sufficient samples
+        if len(self.dist[class_]) < self.min_samples_principle:
+            return False
+
         # Get C \setminus xs
-        C_setminus_xs = list(C)
-        for x in xs:
-            if x in C_setminus_xs:
-                C_setminus_xs.remove(x)
+        C_setminus_xs = [c for c in C if c not in xs]
         # Get the samples where C_setminus_xs is true
         C_setminus_xs_samples = self.get_samples(X, C_setminus_xs)
         # Get the samples where xs is false
@@ -178,12 +178,18 @@ class PIA:
         # Get the distribution where C_setminus_xs is true and xs is false
         dist_C_setminus_xs_and_not_xs = [1 if class_ == y[i] else 0 for i in C_setminus_xs_and_not_xs_samples]
 
-        # If there are no sufficient samples, xs cannot be missing, return False
+        # If there are no sufficient samples
         if len(dist_C_setminus_xs_and_not_xs) < self.min_samples_principle:
             return False
 
-        return True if np.mean(dist_C_setminus_xs_and_not_xs) == 1 else False
-    
+        # significance test
+        statistic, p_val = stats.ttest_ind(dist_C_setminus_xs_and_not_xs, self.dist[class_], equal_var=False)
+
+        if statistic > 0 and p_val < self.p_val_principle:
+            return True
+        else:
+            return False
+
     def get_samples(self, X, C):
         """
         Get the samples where every condition in C is true
@@ -253,7 +259,7 @@ class PIA:
                 C_setminus_c = [c_importance[0] for c_importance in c_importances_sorted if c_importance[0] != c]
                 
                 # If c is not necessary
-                if self.sufficient(X, y, class_, C_setminus_c) is True:
+                if self.principle(X, y, class_, C_setminus_c) is True:
                     # Remove c from C
                     C.remove(c)
                     break
@@ -309,18 +315,14 @@ class PIA:
         """ 
         
         # Get C_and_c
-        C_and_c = list(C)
-        if c not in C_and_c:
-            C_and_c.append(c)
+        C_and_c = list(C) if c not in C else list(C) + list([c])
         # Get the samples where C_and_c is true
         C_and_c_samples = self.get_samples(X, C_and_c)
         # Get the distribution of class_ where C_and_c is true
         dist_C_and_c = [1 if class_ == y[i] else 0 for i in C_and_c_samples]
         
         # Get C \setminus c
-        C_setminus_c = list(C)
-        if c in C_setminus_c:
-            C_setminus_c.remove(c)
+        C_setminus_c = [x for x in C if x != c]
         # Get the samples where C_setminus_c is true
         C_setminus_c_samples = self.get_samples(X, C_setminus_c)     
         # Get the samples where c is false
