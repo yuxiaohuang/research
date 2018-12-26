@@ -1,0 +1,7 @@
+###-----------------------------------------------------------------------------------------
+### Run script for our algorithms###-----------------------------------------------------------------------------------------
+
+mkdir -p /home/yuxiaohuang/research/gwu/fid/result/lrbin/
+
+(time /home/yuxiaohuang/research/gwu/fid/code/script/script/lrbin.txt) 2> /home/yuxiaohuang/research/gwu/fid/result/lrbin/time.txt
+
