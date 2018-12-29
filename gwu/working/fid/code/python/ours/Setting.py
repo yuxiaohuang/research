@@ -26,6 +26,12 @@ class Setting:
         # The percentage of the number of bins out of the number of unique value of a feature
         self.bin_num_percent = 1
 
+        # The minimum number of bins
+        self.min_bin_num = 1
+
+        # The maximum number of bins
+        self.max_bin_num = 100
+
         # The learning rate
         self.eta = 1
 

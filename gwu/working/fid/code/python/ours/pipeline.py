@@ -55,6 +55,8 @@ def pipeline_one_dataset(dp, data_files, names_file):
     pipe_fid = Pipeline([('scaler', setting.scaler),
                          ('fid', FID.FID(setting.max_iter,
                                          setting.bin_num_percent,
+                                         setting.min_bin_num,
+                                         setting.max_bin_num,
                                          setting.eta,
                                          setting.random_state,
                                          setting.n_jobs))])
@@ -114,7 +116,7 @@ def plot_prob_dists_fig(setting, names, X, fid):
     # Set plt
     setting.set_plt()
 
-    for class_ in fid.classes:
+    for class_ in sorted(fid.weights.keys()):
         # Get the original value of class_ before the encoding
         class_ori = str(setting.encoder.inverse_transform(class_))
 
@@ -173,9 +175,9 @@ def write_prob_dists_file(setting, names, X, fid):
 
     with open(prob_dists_file, 'w') as f:
         # Write header
-        f.write("class, xj, xij, pij" + '\n')
+        f.write("Class, Feature, Value, Probability" + '\n')
 
-        for class_ in fid.classes:
+        for class_ in sorted(fid.weights.keys()):
             # Get the original value of class_ before the encoding
             class_ori = str(setting.encoder.inverse_transform(class_))
 
