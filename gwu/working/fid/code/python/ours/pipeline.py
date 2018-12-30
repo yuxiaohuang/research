@@ -63,11 +63,11 @@ def pipeline_one_dataset(dp, data_files, names_file):
 
     # Hyperparameter tuning using GridSearchCV
     gs = GridSearchCV(estimator=pipe_fid,
-                      param_grid=[{'fid__bin_num_percent': [0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 1],
-                                   'fid__eta': [10 ** i for i in range(-3, 4)]}],
+                      param_grid=[{'fid__bin_num_percent': setting.bin_num_percents,
+                                   'fid__eta': setting.etas}],
                       scoring='accuracy',
                       n_jobs=setting.n_jobs,
-                      cv=StratifiedKFold(n_splits=5,
+                      cv=StratifiedKFold(n_splits=setting.n_splits,
                                          random_state=setting.random_state))
     gs.fit(data.X, data.y)
 

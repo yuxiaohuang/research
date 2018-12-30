@@ -26,6 +26,9 @@ class Setting:
         # The percentage of the number of bins out of the number of unique value of a feature
         self.bin_num_percent = 1
 
+        # The grid of percentages of the number of bins out of the number of unique value of a feature
+        self.bin_num_percents = [10 ** i for i in range(-3, 1)]
+
         # The minimum number of bins
         self.min_bin_num = 1
 
@@ -34,6 +37,9 @@ class Setting:
 
         # The learning rate
         self.eta = 1
+
+        # The grid of learning rates
+        self.etas = [10 ** i for i in range(-3, 1)]
 
         # The random state
         self.random_state = 0

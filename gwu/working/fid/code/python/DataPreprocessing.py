@@ -114,20 +114,48 @@ class DataPreprocessing():
                             # Get the string on the right-hand side of '='
                             str_right = spamreader[i][1]
 
-                            # Split the string into strings
-                            strs = str_right.split(",")
+                            if para_name == 'combine_classes':
+                                # Split the string into groups of new-old classes
+                                groups = [group.strip() for group in str_right.split(';')
+                                          if len(group.strip()) > 0]
 
-                            # Get the (non-empty) value
-                            vals = [str.strip() for str in strs if len(str.strip()) > 0]
+                                # If groups is not empty
+                                if len(groups) > 0:
+                                    # Get the combine_classes dictionary
+                                    combine_classes = {}
 
-                            # If vals is not empty
-                            if len(vals) > 0:
-                                vals = [float(val) if val.isdigit() is True else val for val in vals]
-                                self.get_para_vals(names, para_name, vals)
+                                    for group in groups:
+                                        # Split the group into new and old classes
+                                        new_old_classes = [new_old_class.strip() for new_old_class in group.split(':')
+                                                           if len(new_old_class.strip()) > 0]
+
+                                        # If there are both new and old classes
+                                        if len(new_old_classes) == 2:
+                                            # Get the new class
+                                            new_class = new_old_classes[0]
+
+                                            # Get the old classes
+                                            old_classes = [old_class.strip() for old_class in new_old_classes[1].split(',')
+                                                           if len(old_class.strip()) > 0]
+
+                                            # Update the combine_classes dictionary
+                                            combine_classes[new_class] = old_classes
+
+                                    self.get_para_vals(names, para_name, combine_classes)
+                            else:
+                                # Split the string into values
+                                vals = [str_.strip() for str_ in str_right.split(',')
+                                        if len(str_.strip()) > 0]
+
+                                # If vals is not empty
+                                if len(vals) > 0:
+                                    vals = [float(val) if val.isdigit() is True else val for val in vals]
+                                    self.get_para_vals(names, para_name, vals)
+
 
         # Get the features
-        names.features = [feature for feature in names.columns if (feature != names.target
-                                                                and feature not in names.exclude_features)]
+        names.features = [feature for feature in names.columns
+                          if (feature != names.target and feature not in names.exclude_features)]
 
         return names
 
@@ -152,6 +180,8 @@ class DataPreprocessing():
             names.columns = [str(val) for val in vals]
         elif para_name == 'target':
             names.target = str(vals[0])
+        elif para_name == 'combine_classes':
+            names.combine_classes = vals
         elif para_name == 'exclude_features':
             names.exclude_features = [str(val) for val in vals]
         elif para_name == 'categorical_features':
@@ -240,6 +270,13 @@ class DataPreprocessing():
 
         # Get the target vector
         y = df[names.target]
+
+        # If there are classes that should be combined
+        if len(names.combine_classes.keys()) > 0:
+            for new_class in names.combine_classes.keys():
+                old_classes = names.combine_classes[new_class]
+                for old_class in old_classes:
+                    y = y.replace(to_replace=old_class, value=new_class)
 
         return [X, y]
 

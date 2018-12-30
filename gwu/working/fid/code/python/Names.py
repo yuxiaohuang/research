@@ -23,6 +23,9 @@ class Names:
         # The (name of the) target
         self.target = None
 
+        # The (name of the) classes that should be combined
+        self.combine_classes = {}
+
         # The (name of the) features that should be excluded
         self.exclude_features = []
 
@@ -41,5 +44,6 @@ class Names:
                            'place_holder_for_missing_vals',
                            'columns',
                            'target',
+                           'combine_classes',
                            'exclude_features',
                            'categorical_features']
