@@ -276,6 +276,8 @@ class FID(BaseEstimator, ClassifierMixin):
         Update the weight matrices
         :param X: the feature matrix
         :param rows: the dictionary of rows
+        :param W0: the weight matrix
+        :param W1: the weight matrix
         :param P: the probability matrix
         :param L: the cost matrix
         :return: the weight matrices

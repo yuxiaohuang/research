@@ -130,10 +130,10 @@ def plot_prob_dists_fig(setting, names, X, fid):
             # Get the probabilities
             pijs = [round(fid.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(fid.prob_dists[class_][j].keys()))]
 
-            # Get the pandas series
+            # Get the pandas dataframe
             df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Importance'])
 
-            # Plot the histogram of the series
+            # Plot the histogram
             df.plot(x=xj_name,
                     y='Importance',
                     kind='bar',

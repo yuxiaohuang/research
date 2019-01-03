@@ -1,4 +1,4 @@
 ###-----------------------------------------------------------------------------------------
 ### Run script for all algorithms###-----------------------------------------------------------------------------------------
 
-/home/yuxiaohuang/research/gwu/ala/code/script/run_all.txt
+/home/yuxiaohuang/research/gwu/fid/code/script/run_all.txt

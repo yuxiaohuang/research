@@ -223,7 +223,7 @@ class DataPreprocessing():
         X, y = self.encode_X_y(X, y, setting, names)
 
         # Update the name of features
-        names.features = X.columns
+        names.features = np.array(X.columns)
         # Transform X from dataframe into numpy array
         X = X.values
 
