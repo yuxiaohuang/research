@@ -65,7 +65,7 @@ def pipeline_one_dataset(dp, data_files, names_file):
     gs = GridSearchCV(estimator=pipe_lrbin,
                       param_grid=[{'lrbin__bin_num_percent': setting.bin_num_percents,
                                    'lrbin__eta': setting.etas}],
-                      scoring='accuracy',
+                      scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
                       cv=StratifiedKFold(n_splits=setting.n_splits,
                                          random_state=setting.random_state))

@@ -28,6 +28,9 @@ class Setting:
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
 
+        # The scoring metric for hyperparameter tuning using GridSearchCV
+        self.scoring = 'accuracy'
+
         # The dictionary of classifiers
         self.classifiers = ({'RandomForestClassifier': RandomForestClassifier(random_state=self.random_state,
                                                                               n_jobs=self.n_jobs),
@@ -37,14 +40,11 @@ class Setting:
         # The dictionary of parameter grids
         self.param_grids = ({'RandomForestClassifier': [{'RandomForestClassifier__n_estimators': [10 ** i for i in range(1, 4)],
                                                          'RandomForestClassifier__criterion': ['gini', 'entropy'],
-                                                         'RandomForestClassifier__min_samples_split': [max(2, 10 ** i) for i in range(0, 4)],
-                                                         'RandomForestClassifier__min_samples_leaf': [10 ** i for i in range(0, 4)],
-                                                         'RandomForestClassifier__max_features': ['auto', 'log2'],
-                                                         'RandomForestClassifier__bootstrap': ['True', 'False'],
-                                                         'RandomForestClassifier__oob_score': ['True', 'False'],
-                                                         'RandomForestClassifier__warm_start': ['True', 'False']}],
-                             'LogisticRegression': [{'LogisticRegression__tol': [10 ** i for i in range(-5, 1)],
-                                                     'LogisticRegression__C': [10 ** i for i in range(-5, 1)],
+                                                         'RandomForestClassifier__min_samples_split': [max(2, 10 ** i) for i in range(0, 3)],
+                                                         'RandomForestClassifier__min_samples_leaf': [10 ** i for i in range(0, 3)],
+                                                         'RandomForestClassifier__max_features': ['auto', 'log2']}],
+                             'LogisticRegression': [{'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
                                                      'LogisticRegression__solver': ['newton-cg',
                                                                                     'lbfgs',
                                                                                     'liblinear',
@@ -52,8 +52,8 @@ class Setting:
                                                                                     'saga'],
                                                      'LogisticRegression__max_iter': [10 ** i for i in range(1, 4)],
                                                      'LogisticRegression__multi_class': ['ovr']},
-                                                    {'LogisticRegression__tol': [10 ** i for i in range(-5, 1)],
-                                                     'LogisticRegression__C': [10 ** i for i in range(-5, 1)],
+                                                    {'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
                                                      'LogisticRegression__solver': ['newton-cg',
                                                                                     'lbfgs',
                                                                                     'sag',

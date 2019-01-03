@@ -72,7 +72,7 @@ def pipeline_one_dataset_one_classifier(setting, names, data, clf_name):
     # Hyperparameter tuning using GridSearchCV
     gs = GridSearchCV(estimator=pipe_clf,
                       param_grid=setting.param_grids[clf_name],
-                      scoring='accuracy',
+                      scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
                       cv=StratifiedKFold(n_splits=setting.n_splits,
                                          random_state=setting.random_state))
@@ -141,7 +141,7 @@ def plot_prob_dists_fig(setting, names, X, y, clf, clf_name):
         os.makedirs(directory)
 
     # Get the dictionary of probability distribution
-    prob_dists = get_prob_dists(X, clf)
+    prob_dists = get_prob_dists(X, clf, clf_name)
 
     for class_ in range(len(np.unique(y))):
         # Get the original value of class_ before the encoding
@@ -184,11 +184,12 @@ def plot_prob_dists_fig(setting, names, X, y, clf, clf_name):
             plt.savefig(prob_dists_fig)
 
 
-def get_prob_dists(X, clf):
+def get_prob_dists(X, clf, clf_name):
     """
     Get the dictionary of probability distribution
     :param X: the feature matrix
     :param clf: the classifier
+    :param clf_name: the name of the classifier
     :return: the dictionary of probability distribution
     """
 
@@ -197,14 +198,15 @@ def get_prob_dists(X, clf):
     for j in range(X.shape[1]):
         # Get the jth feature
         Xj = np.zeros(X.shape)
-        Xj[:, j] = X[:, j]
+        # Standardize the data
+        Xj[:, j] = clf.named_steps['StandardScaler'].fit_transform(X)[:, j]
 
         # Get the unique value and the corresponding index of the jth feature
         xijs, idxs = np.unique(X[:, j], return_index=True)
 
         for i in idxs:
             # Get the probability of each class
-            probs = clf.predict_proba(Xj[i, :].reshape(1, -1)).ravel()
+            probs = clf.named_steps[clf_name].predict_proba(Xj[i, :].reshape(1, -1)).ravel()
 
             for class_ in range(len(probs)):
                 # Get the probability
@@ -244,7 +246,7 @@ def write_prob_dists_file(setting, names, X, y, clf, clf_name):
         os.makedirs(directory)
 
     # Get the dictionary of probability distribution
-    prob_dists = get_prob_dists(X, clf)
+    prob_dists = get_prob_dists(X, clf, clf_name)
 
     with open(prob_dists_file, 'w') as f:
         # Write header

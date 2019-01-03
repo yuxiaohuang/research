@@ -47,6 +47,9 @@ class Setting:
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
 
+        # The scoring metric for hyperparameter tuning using GridSearchCV
+        self.scoring = 'accuracy'
+
         # The pathname of the probability distribution figure directory
         self.prob_dists_fig_dir = result_dir + 'prob_dists_fig/'
 
