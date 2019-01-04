@@ -199,7 +199,7 @@ def get_prob_dists(X, clf, clf_name):
         # Get the jth feature
         Xj = np.zeros(X.shape)
         # Standardize the data
-        Xj[:, j] = clf.named_steps['StandardScaler'].fit_transform(X)[:, j]
+        Xj[:, j] = clf.named_steps['scaler'].fit_transform(X)[:, j]
 
         # Get the unique value and the corresponding index of the jth feature
         xijs, idxs = np.unique(X[:, j], return_index=True)
@@ -300,12 +300,19 @@ def plot_feature_importances_fig(setting, names, clf, clf_name):
     df.plot(x='Feature',
             y='Importance',
             kind='bar',
+            yticks=[0, 0.25, 0.5, 0.75, 1],
+            ylim=(0, 1),
             figsize=(20, 10),
             legend=False,
             color='b')
 
+    # Set the x-axis label
+    plt.xlabel('Feature')
     # Set the y-axis label
     plt.ylabel('Importance')
+
+    # Hide X label
+    plt.axes().xaxis.label.set_visible(False)
 
     if len(names.features) > 50:
         plt.tick_params(labelbottom='off')

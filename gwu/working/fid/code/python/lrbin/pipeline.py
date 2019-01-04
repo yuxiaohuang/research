@@ -131,11 +131,11 @@ def plot_prob_dists_fig(setting, names, X, lrbin):
             pijs = [round(lrbin.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(lrbin.prob_dists[class_][j].keys()))]
 
             # Get the pandas dataframe
-            df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Importance'])
+            df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Probability'])
 
             # Plot the histogram
             df.plot(x=xj_name,
-                    y='Importance',
+                    y='Probability',
                     kind='bar',
                     figsize=(20, 10),
                     title=class_ori,
@@ -145,7 +145,7 @@ def plot_prob_dists_fig(setting, names, X, lrbin):
             # Set the x-axis label
             plt.xlabel(xj_name)
             # Set the y-axis label
-            plt.ylabel('Importance')
+            plt.ylabel('Probability')
 
             if len(xijs_ori) > 50:
                 plt.tick_params(labelbottom='off')
