@@ -65,7 +65,7 @@ def pipeline_one_dataset(dp, data_files, names_file):
     gs = GridSearchCV(estimator=pipe_fid,
                       param_grid=[{'fid__bin_num_percent': setting.bin_num_percents,
                                    'fid__eta': setting.etas}],
-                      scoring='accuracy',
+                      scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
                       cv=StratifiedKFold(n_splits=setting.n_splits,
                                          random_state=setting.random_state))
@@ -130,13 +130,15 @@ def plot_prob_dists_fig(setting, names, X, fid):
             # Get the probabilities
             pijs = [round(fid.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(fid.prob_dists[class_][j].keys()))]
 
-            # Get the pandas series
+            # Get the pandas dataframe
             df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Importance'])
 
-            # Plot the histogram of the series
+            # Plot the histogram
             df.plot(x=xj_name,
                     y='Importance',
                     kind='bar',
+                    yticks=[0, 0.25, 0.5, 0.75, 1],
+                    ylim=(0, 1),
                     figsize=(20, 10),
                     title=class_ori,
                     legend=False,

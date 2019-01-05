@@ -5,19 +5,13 @@ import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.svm import SVC
 
 class Setting:
     """The Setting class"""
 
-    def __init__(self, data_file, result_dir):
+    def __init__(self, names_file, result_dir):
 
         # The label encoder
         self.encoder = LabelEncoder()
@@ -31,55 +25,86 @@ class Setting:
         # The random state
         self.random_state = 0
 
-        # The maximum number of iterations
-        self.max_iter = 100
-
-        # The minimum number of samples in each bin
-        self.min_samples_bin = 1
-
-        # The value of C
-        self.C = 1
-
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
 
+        # The scoring metric for hyperparameter tuning using GridSearchCV
+        self.scoring = 'accuracy'
+
         # The dictionary of classifiers
-        self.classifiers = ({'RandomForestClassifier': RandomForestClassifier,
-                             'AdaBoostClassifier': AdaBoostClassifier,
-                             'MLPClassifier': MLPClassifier,
-                             'KNeighborsClassifier': KNeighborsClassifier,
-                             'GaussianNB': GaussianNB,
-                             'DecisionTreeClassifier': DecisionTreeClassifier,
-                             'LogisticRegression': LogisticRegression,
-                             'GaussianProcessClassifier': GaussianProcessClassifier,
-                             'SVC': SVC})
+        self.classifiers = ({'RandomForestClassifier': RandomForestClassifier(random_state=self.random_state,
+                                                                              n_jobs=self.n_jobs),
+                             'LogisticRegression': LogisticRegression(random_state=self.random_state,
+                                                                      n_jobs=self.n_jobs)})
+
+        # The dictionary of parameter grids
+        self.param_grids = ({'RandomForestClassifier': [{'RandomForestClassifier__n_estimators': [10 ** i for i in range(1, 4)],
+                                                         'RandomForestClassifier__criterion': ['gini', 'entropy'],
+                                                         'RandomForestClassifier__min_samples_split': [max(2, 10 ** i) for i in range(0, 3)],
+                                                         'RandomForestClassifier__min_samples_leaf': [10 ** i for i in range(0, 3)],
+                                                         'RandomForestClassifier__max_features': ['auto', 'log2']}],
+                             'LogisticRegression': [{'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
+                                                     'LogisticRegression__solver': ['newton-cg',
+                                                                                    'lbfgs',
+                                                                                    'liblinear',
+                                                                                    'sag',
+                                                                                    'saga'],
+                                                     'LogisticRegression__max_iter': [10 ** i for i in range(1, 4)],
+                                                     'LogisticRegression__multi_class': ['ovr']},
+                                                    {'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
+                                                     'LogisticRegression__solver': ['newton-cg',
+                                                                                    'lbfgs',
+                                                                                    'sag',
+                                                                                    'saga'],
+                                                     'LogisticRegression__max_iter': [10 ** i for i in range(1, 4)],
+                                                     'LogisticRegression__multi_class': ['multinomial']}]})
 
         # The pathname of the probability distribution figure directory
-        self.prob_dist_fig_dir = result_dir + 'prob_dist_fig/'
+        self.prob_dists_fig_dir = result_dir + 'prob_dists_fig/'
 
         # The name of the probability distribution figure
-        self.prob_dist_fig_name = os.path.basename(data_file).split('.')[0]
+        self.prob_dists_fig_name = os.path.basename(names_file).split('.')[0]
 
         # The type of the probability distribution figure
-        self.prob_dist_fig_type = '.pdf'
+        self.prob_dists_fig_type = '.pdf'
 
         # The pathname of the probability distribution file directory
-        self.prob_dist_file_dir = result_dir + 'prob_dist_file/'
+        self.prob_dists_file_dir = result_dir + 'prob_dists_file/'
 
         # The name of the probability distribution file
-        self.prob_dist_file_name = os.path.basename(data_file).split('.')[0]
+        self.prob_dists_file_name = os.path.basename(names_file).split('.')[0]
 
         # The type of the probability distribution file
-        self.prob_dist_file_type = '.csv'
+        self.prob_dists_file_type = '.csv'
 
-        # The pathname of the score file directory
-        self.score_file_dir = result_dir + 'score_file/'
+        # The pathname of the feature importances figure directory
+        self.feature_importances_fig_dir = result_dir + 'feature_importances_fig/'
 
-        # The name of the score file
-        self.score_file_name = os.path.basename(data_file).split('.')[0]
+        # The name of the feature importances figure
+        self.feature_importances_fig_name = os.path.basename(names_file).split('.')[0]
 
-        # The type of the score file
-        self.score_file_type = '.txt'
+        # The type of the feature importances figure
+        self.feature_importances_fig_type = '.pdf'
+
+        # The pathname of the feature importances file directory
+        self.feature_importances_file_dir = result_dir + 'feature_importances_file/'
+
+        # The name of the feature importances file
+        self.feature_importances_file_name = os.path.basename(names_file).split('.')[0]
+
+        # The type of the feature importances file
+        self.feature_importances_file_type = '.csv'
+
+        # The pathname of the cv results file directory
+        self.cv_results_file_dir = result_dir + 'cv_results_file/'
+
+        # The name of the cv_results file
+        self.cv_results_file_name = os.path.basename(names_file).split('.')[0]
+
+        # The type of the cv_results file
+        self.cv_results_file_type = '.csv'
 
     def set_plt(self):
         """

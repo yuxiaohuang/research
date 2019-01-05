@@ -1,333 +1,364 @@
 # Please cite the following paper when using the code
 
 
-# Modules
-import pandas as pd
 import numpy as np
-import math
 
-from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
+from sklearn.base import BaseEstimator, ClassifierMixin
 
-
-class LrBin:
+class LRBin(BaseEstimator, ClassifierMixin):
     """
-    The LrBin classifier
+    The LRBin classifier
     """
 
-    def __init__(self, max_iter=100, min_samples_bin=1, C=1, n_jobs=-1):
+    def __init__(self, max_iter=100, bin_num_percent=1, min_bin_num=1, max_bin_num=100, eta=1, random_state=0, n_jobs=-1):
         # The maximum number of iteration, 100 by default
-        self.max_iter_ = max_iter
+        self.max_iter = max_iter
 
-        # The minimum number of samples in each bin, 1 by default
-        self.min_samples_bin_ = min_samples_bin
+        # The percentage of the number of bins out of the number of unique value of a feature, 1 by default
+        self.bin_num_percent = bin_num_percent
 
-        # C, 1 by default
-        self.C_ = C
+        # The minimum number of bins
+        self.min_bin_num = min_bin_num
+
+        # The maximum number of bins
+        self.max_bin_num = max_bin_num
+
+        # The learning rate, 1 by default
+        self.eta = eta
+
+        # The random state, 0 by default
+        self.random_state = random_state
 
         # The number of jobs to run in parallel, -1 by default (all CPUs are used)
-        self.n_jobs_ = n_jobs
+        self.n_jobs = n_jobs
 
         # The dictionary of bins
-        self.bins_ = {}
+        self.bins = {}
 
-        # The dictionary of weights (u)
-        self.ws_ = {}
+        # The dictionary of weights
+        self.weights = {}
 
-        # The dictionary of probabilities
-        self.pis_ = {}
-
-        # The dictionary of probability distribution
-        self.prob_dist_dict_ = {}
+        # The dictionary of probability distributions
+        self.prob_dists = {}
 
     def fit(self, X, y):
         """
-        Train the ALA classifier
-        :param X: the feature vector
+        Fit the FID model
+        :param X: the feature matrix
         :param y: the target vector
+        :return:
+        """
+
+        # Get the random number generator
+        rgen = np.random.RandomState(seed=self.random_state)
+
+        # Initialize the dictionaries
+        self.init_dicts()
+
+        # Get the dictionary of bins
+        self.get_bins(X)
+
+        # Get the dictionary of rows
+        rows = self.get_rows(X)
+
+        # Gradient descent for each class of the target
+        # Set backend="threading" to share memory between parent and threads
+        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X, y, class_, rgen, rows)
+                                                          for class_ in sorted(np.unique(y)))
+
+    def init_dicts(self):
+        """
+        # Initialize the dictionaries
         :return:
         """
 
         # The dictionary of bins
-        self.bins_ = {}
+        self.bins = {}
 
-        # Initialize the dictionary of bins
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            if j == 0:
-                self.bins_[j] = [1, 1]
-            else:
-                # Get the unique values of xj
-                xus = np.unique(X[:, j - 1])
-                # Get the bin number
-                bin_num = len(xus) / (len(xus) // 10 + self.min_samples_bin_)
-                # Get the bins
-                out, bins = pd.cut(X[:, j - 1], bin_num, retbins=True)
-                self.bins_[j] = bins
+        # The dictionary of weights
+        self.weights = {}
 
-        # The dictionary of weights (u)
-        self.ws_ = {}
+        # The dictionary of probability distributions
+        self.prob_dists = {}
 
-        # The dictionary of probabilities
-        self.pis_ = {}
-
-        # The dictionary of probability distribution
-        self.prob_dist_dict_ = {}
-
-        # Minimizing the cost function using (batch) gradient descent
-        self.gradient_descent_all(X, y)
-
-        # Get the dictionary of probability distribution
-        self.get_prob_dist_dict_(X)
-
-    def gradient_descent_all(self, X, y):
+    def get_bins(self, X):
         """
-        Minimizing the cost function using (batch) gradient descent
-        :param X: the feature vector
-        :param y: the target vector
+        Get the dictionary of bins
+        :param X: the feature matrix
         :return:
         """
 
-        for _ in range(self.max_iter_):
-            # Gradient descent for each unique value of the target
-            # Set backend="threading" to share memory between parent and threads
-            # Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
-            #                                                    for yu in np.unique(y))
-            Parallel(n_jobs=self.n_jobs_, backend="threading")(delayed(self.gradient_descent_one)(X, y, yu)
-                                                               for yu in np.unique(y))
+        for j in range(X.shape[1]):
+            # Get the number of unique value of the jth feature
+            xijs_num = len(np.unique(X[:, j]))
 
-    def gradient_descent_one(self, X, y, yu):
+            # Get the bin number (must be in [self.min_bin_num, min(self.max_bin_num, xijs_num)])
+            bin_num = np.clip(int(self.bin_num_percent * xijs_num),
+                              self.min_bin_num,
+                              min(self.max_bin_num, xijs_num))
+
+            # Get the hist and bin_edges
+            hist, bin_edges = np.histogram(X[:, j], bins=bin_num)
+
+            # Remove empty bins
+            self.bins[j] = np.hstack((bin_edges[:1], bin_edges[np.where(hist != 0)[0] + 1]))
+
+    def get_rows(self, X):
         """
-        Minimizing the cost function using (batch) gradient descent
-        :param X: the feature vector
-        :param y: the target vector
-        :param y: a unique value of the target
-        :return:
+        Get the dictionary of rows
+        :param X: the feature matrix
+        :return: the dictionary of rows
         """
 
-        if yu not in self.ws_.keys():
-            self.ws_[yu] = {}
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            if j not in self.ws_[yu].keys():
-                self.ws_[yu][j] = {}
-            for bin in range(len(self.bins_[j]) - 1):
-                if bin not in self.ws_[yu][j].keys():
-                    self.ws_[yu][j][bin] = [0, 0]
+        rows = {}
 
-        # Get pis for yu
-        self.get_pis(X, yu)
+        for j in range(X.shape[1]):
+            rows[j] = {}
 
-        # For each xj
-        for j in range(X.shape[1] + 1):
-            # For each row
             for i in range(X.shape[0]):
-                # Get fi
-                fi = 1 if y[i] == yu else 0
+                # Get the bin where X[i, j] belongs
+                if X[i, j] >= max(self.bins[j]):
+                    # Put X[i, j] to the last bin
+                    bin = len(self.bins[j]) - 2
+                elif X[i, j] <= min(self.bins[j]):
+                    # Put X[i, j] to the first bin
+                    bin = 0
+                else:
+                    # Put X[i, j] to the first bin where X[i, j] is smaller than the upper bound of the bin
+                    bin = np.where(X[i, j] < self.bins[j])[0][0] - 1
 
-                # Get pi
-                pi = self.pis_[yu][i]
+                if bin not in rows[j].keys():
+                    rows[j][bin] = []
+                rows[j][bin].append(i)
 
-                # Get xij
-                xij = 1 if j == 0 else X[i][j - 1]
+        return rows
 
-                # Get the bin xij falls into
-                bin = self.get_bin(xij, j)
-
-                # Get delta_u
-                # self.ws_[yu][j][bin][0] += (fi - pi) * 1 / self.C_
-                self.ws_[yu][j][bin][1] += (fi - pi) * xij / self.C_
-
-    def get_pis(self, X, yu):
+    def gradient_descent(self, X, y, class_, rgen, rows):
         """
-        Get the minimum of all ujs for each row i
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :return: the minimum of all ujs for each row i
-        """
-
-        self.pis_[yu] = {}
-
-        # For each row
-        for i in range(X.shape[0]):
-            zi = 0
-            # For each xj
-            for j in range(X.shape[1] + 1):
-                # Get xij
-                xij = 1 if j == 0 else X[i][j - 1]
-
-                # Get the bin xij falls into
-                bin = self.get_bin(xij, j)
-
-                # Get wj
-                wj0 = self.ws_[yu][j][bin][0]
-                wj1 = self.ws_[yu][j][bin][1]
-
-                # Update zi
-                zi += wj0 + wj1 * xij
-
-            # Get pi
-            pi = self.sigmoid(zi)
-
-            # Update pis
-            self.pis_[yu][i] = pi
-
-    def get_pij(self, X, yu, i, j):
-        """
-        Get pij
-        :param X: the feature vector
-        :param yu: an unique value of y
-        :param i: row i
-        :param j: the jth feature
-        :return: pij
+        Minimize the cost function using (batch) gradient descent for one class
+        :param X: the feature matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param rgen: the random number generator
+        :param rows: the dictionary of rows
+        :return:
         """
 
-        # Get xij
-        xij = 1 if j == 0 else X[i][j - 1]
+        # Initialize the weight dictionary
+        self.init_weights(X, class_, rgen, rows)
 
-        # Get the bin xij falls into
-        bin = self.get_bin(xij, j)
+        # Initialize the weight matrices
+        W0, W1 = self.get_W(X, class_, rows)
 
-        # Get wj
-        wj0 = self.ws_[yu][j][bin][0]
-        wj1 = self.ws_[yu][j][bin][1]
+        # Get the indicator vector
+        I = self.get_I(y, class_)
 
-        # Update zi
-        zij = wj0 + wj1 * xij
+        for _ in range(self.max_iter):
+            # Get the probability vector
+            P = self.get_P(X, W0, W1)
 
-        # Get pij
-        pij = self.sigmoid(zij)
+            # Update the weight matrices
+            W0, W1 = self.update_W(X, rows, W0, W1, I, P)
 
-        return pij
+        # Get the dictionary of weights
+        self.get_weights(X, class_, rows, W0, W1)
 
-    def sigmoid(self, z):
+        # Get the dictionary of probability distributions
+        self.get_prob_dists(X, class_, W0, W1)
+
+    def init_weights(self, X, class_, rgen, rows):
         """
-        Get the sigmoid of z
-        :param z: the sum of w * x
-        :return: the sigmoid of z
-        """
-
-        if z < 0:
-            return 1 - 1 / (1 + math.exp(z))
-        return 1 / (1 + math.exp(-z))
-
-    def get_bin(self, xij, j):
-        """
-        Get the bin for xij
-        :param xij: the value of xj in row i
-        :param j: the jth feature
-        :return: the bin for xij
+        Initialize the weight dictionary
+        :param X: the feature matrix
+        :param class_: a class of the target
+        :param rgen: the random number generator
+        :param rows: the dictionary of rows
+        :return:
         """
 
-        for idx in range(1, len(self.bins_[j])):
-            if xij <= self.bins_[j][idx]:
-                return idx - 1
+        self.weights[class_] = {}
 
-        return len(self.bins_[j]) - 2
+        for j in range(X.shape[1]):
+            self.weights[class_][j] = {}
 
-    def predict_proba(self, X):
+            for bin in rows[j].keys():
+                r0, r1 = rgen.normal(loc=0.0, scale=0.01, size=2)
+                self.weights[class_][j][bin] = [r0, r1]
+
+    def get_W(self, X, class_, rows):
         """
-        Predict the probability of each class of each sample
-        :param X: the feature vector
-        :return: the (class, probability) pairs for each sample in X
-                 sorted in descending order of the probability
+        Get the weight matrices
+        :param X: the feature matrix
+        :param class_: a class of the target
+        :param rows: the dictionary of rows
+        :return: the weight matrices
         """
 
-        # Initialize (class, probability) pairs for all samples
-        yu_probs_all = []
+        W0, W1 = np.zeros(X.shape), np.zeros(X.shape)
 
-        # For each unique value of the target
-        for yu in self.pis_.keys():
-            self.get_pis(X, yu)
+        for j in range(X.shape[1]):
+            for bin in rows[j].keys():
+                # Get the is such that X[i, j] belongs to bin
+                is_ = rows[j][bin]
+                W0[is_, j], W1[is_, j] = self.weights[class_][j][bin]
 
-        # For each row
-        for i in range(X.shape[0]):
-            # Initialize (class, probability) pairs for each sample
-            yu_probs_each = []
+        return [W0, W1]
 
-            # For each unique value of the target
-            for yu in self.pis_.keys():
-                # Get pi
-                pi = self.pis_[yu][i]
+    def get_I(self, y, class_):
+        """
+        Get the indicator vector
+        :param y: the target vector
+        :param class_: a class of the target
+        :return: the indicator vector
+        """
 
-                # Update yu_probs_each
-                yu_probs_each.append([yu, pi])
+        I = np.zeros(len(y))
+        I[np.where(y == class_)] = 1
 
-            # Sort yu_probs_each in descending order of the probability
-            yu_probs_each = sorted(yu_probs_each, key=lambda x: x[1], reverse=True)
+        return I
 
-            # Update yu_probs_all
-            yu_probs_all.append(yu_probs_each)
+    def get_P(self, X, W0, W1):
+        """
+        Get the probability vector
+        :param X: the feature matrix
+        :param W0: the weight matrix
+        :param W1: the weight matrix
+        :return: the probability vector
+        """
 
-        return yu_probs_all
+        # Get the net input matrix
+        Z = self.get_Z(X, W0, W1)
+
+        return 1. / (1. + np.exp(-np.clip(Z, -250, 250)))
+
+    def get_Z(self, X, W0, W1):
+        """
+        Get the net input matrix
+        :param X: the feature matrix
+        :param W0: the weight matrix
+        :param W1: the weight matrix
+        :return: the net input matrix
+        """
+
+        return np.sum(np.multiply(X, W1) + W0, axis=1)
+
+    def update_W(self, X, rows, W0, W1, I, P):
+        """
+        Update the weight matrices
+        :param X: the feature matrix
+        :param rows: the dictionary of rows
+        :param W0: the weight matrix
+        :param W1: the weight matrix
+        :param I: the indicator vector
+        :param P: the probability vector
+        :return: the weight matrices
+        """
+
+        # Get the weight update matrices
+        delta_W0, delta_W1 = self.get_delta_W(X, I, P)
+
+        for j in range(X.shape[1]):
+            for bin in rows[j].keys():
+                # Get the is such that X[i, j] belongs to bin
+                is_ = rows[j][bin]
+                W0[is_, j] += np.sum(delta_W0[is_, j])
+                W1[is_, j] += np.sum(delta_W1[is_, j])
+
+        return [W0, W1]
+
+    def get_delta_W(self, X, I, P):
+        """
+        Get the weight update matrices
+        :param X: the feature matrix
+        :param I: the indicator vector
+        :param P: the probability vector
+        :return: the weight update matrices
+        """
+
+        delta_W0 = np.multiply((I - P).reshape(-1, 1), np.ones(X.shape))
+        delta_W1 = np.multiply(delta_W0, X)
+
+        return [delta_W0 * self.eta, delta_W1 * self.eta]
+
+    def get_weights(self, X, class_, rows, W0, W1):
+        """
+        Get the dictionary of weights
+        :param X: the feature matrix
+        :param class_: a class of the target
+        :param rows: the dictionary of rows
+        :param W0: the weight matrix
+        :param W1: the weight matrix
+        :return:
+        """
+
+        for j in range(X.shape[1]):
+            for bin in rows[j].keys():
+                # Get the first i such that X[i, j] belongs to bin
+                i = rows[j][bin][0]
+                w0, w1 = W0[i, j], W1[i, j]
+                self.weights[class_][j][bin] = [w0, w1]
+
+    def get_prob_dists(self, X, class_, W0, W1):
+        """
+        Get the dictionary of probability distributions
+        :param X: the feature matrix
+        :param class_: a class of the target
+        :param W0: the weight matrix
+        :param W1: the weight matrix
+        :return:
+        """
+
+        self.prob_dists[class_] = {}
+
+        for j in range(X.shape[1]):
+            self.prob_dists[class_][j] = {}
+
+            # Get the jth feature
+            Xj = np.zeros(X.shape)
+            Xj[:, j] = X[:, j]
+
+            # Get the probability vector
+            P = self.get_P(Xj, W0, W1)
+
+            for i in range(X.shape[0]):
+                self.prob_dists[class_][j][X[i, j]] = P[i]
 
     def predict(self, X):
         """
-        Predict the class of each sample
-        :param X: the feature vector
-        :return: the class of each sample in X
+        Get the predicted class matrix
+        :param X: the feature matrix
+        :return: the predicted class matrix
         """
 
-        # Get (class, probability) pairs for all samples
-        yu_probs_all = self.predict_proba(X)
+        # Get the predicted probability vector
+        PP = self.predict_proba(X)
 
-        # Get y_pred (the predicted classes)
-        y_pred = [yu_probs_each[0][0] for yu_probs_each in yu_probs_all]
+        return np.array([sorted(self.weights.keys())[k] for k in np.argmax(PP, axis=1)])
 
-        return np.asarray(y_pred)
-
-    def get_prob_dist_dict_(self, X):
+    def predict_proba(self, X):
         """
-        Get the dictionary of probability distribution
-        :param X: the feature vector
-        :return:
+        Get the predicted probability vector
+        :param X: the feature matrix
+        :return: the predicted probability vector
         """
 
-        self.prob_dist_dict_ = {}
+        # Get the dictionary of rows
+        rows = self.get_rows(X)
 
-        # For each unique value of the target
-        for yu in self.ws_.keys():
-            self.prob_dist_dict_[yu] = {}
-            # For each xj
-            for j in range(X.shape[1] + 1):
-                self.prob_dist_dict_[yu][j] = {}
+        PP = np.zeros((X.shape[0], len(sorted(self.weights.keys()))))
 
-                # Get the unique value and the corresponding index of xj
-                xus, idxs = (np.unique([1], return_index=True) if j == 0
-                             else np.unique(X[:, j - 1], return_index=True))
+        for k in range(len(sorted(self.weights.keys()))):
+            # Get the class
+            class_ = sorted(self.weights.keys())[k]
 
-                # For each index
-                for idx in idxs:
-                    pij = self.get_pij(X, yu, idx, j)
-                    xij = 1 if j == 0 else X[idx, j - 1]
-                    self.prob_dist_dict_[yu][j][xij] = pij
+            # Get the weight matrices
+            W0, W1 = self.get_W(X, class_, rows)
 
-    def score(self, X, y, sample_weight=None):
-        """
-        The code is from sklearn:
-        https://github.com/scikit-learn/scikit-learn/blob/f0ab589f/sklearn/base.py#L324
+            # Get the probability vector
+            P = self.get_P(X, W0, W1)
 
-        Returns the mean accuracy on the given test data and labels.
+            # Get the probabilities of the class
+            PP[:, k] = P
 
-        In multi-label classification, this is the subset accuracy
-        which is a harsh metric since you require for each sample that
-        each label set be correctly predicted.
-
-        Parameters
-        ----------
-        X : array-like, shape = (n_samples, n_features)
-            Test samples.
-
-        y : array-like, shape = (n_samples) or (n_samples, n_outputs)
-            True labels for X.
-
-        sample_weight : array-like, shape = [n_samples], optional
-            Sample weights.
-
-        Returns
-        -------
-        score : float
-            Mean accuracy of self.predict(X) wrt. y.
-        """
-
-        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+        return PP

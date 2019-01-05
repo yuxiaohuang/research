@@ -6,232 +6,219 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import Setting
-import LrBin
+import LRBin
 
 from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import cross_val_score
 from joblib import Parallel, delayed
 
+import warnings
+warnings.filterwarnings("ignore")
 
-def get_result_from_data(data_dir, result_dir, dp_dir):
+
+def pipeline_all_datasets():
     """
-    Get result from data
-    :param data_dir: the pathname of the data directory
-    :param result_dir: the pathname of the result directory
-    :param dp_dir: the pathname of the DataPreprocessing module directory
+    The pipeline for all data sets
     :return:
     """
 
     # Add code_dir folder
     sys.path.append(dp_dir)
 
-    # Import the DataPreprocessing module
+    # Import DataPreprocessing module
     import DataPreprocessing
-    # Get the DataPreprocessing object
     dp = DataPreprocessing.DataPreprocessing(data_dir)
 
-    # Match data file with names file
+    # Match data files with names file
     data_names = dp.match_data_names()
 
-    # The parallel pipelines for data preprocessing, train, test, and evaluate the LrBin classifier
-    # n_jobs = -1 indicates (all CPUs are used)
+    # The pipeline for each data set (in parallel)
     # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
-    Parallel(n_jobs=-1)(delayed(pipeline)(dp, data_file, names_file, result_dir)
-                        for data_file, names_file in data_names)
+    Parallel(n_jobs=-1)(delayed(pipeline_one_dataset)(dp, data_files, names_file)
+                        for data_files, names_file in data_names)
 
 
-def pipeline(dp, data_files, names_file, result_dir):
+def pipeline_one_dataset(dp, data_files, names_file):
     """
-    The pipeline for data preprocessing, train, test, and evaluate the LrBin classifier
+    The pipeline for one data set
     :param dp: the DataPreprocessing module
     :param data_files: the pathname of the data files
     :param names_file: the pathname of the names file
-    :param result_dir: the pathname of the result directory
     :return:
     """
 
     # Data preprocessing: get the Setting, Names, and Data object
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
 
-    # Train, test, and evaluate the LrBin classifier
-    train_test_eval(setting, names, data)
+    # Get the sklearn pipeline
+    pipe_lrbin = Pipeline([('scaler', setting.scaler),
+                           ('lrbin', LRBin.LRBin(setting.max_iter,
+                                                 setting.bin_num_percent,
+                                                 setting.min_bin_num,
+                                                 setting.max_bin_num,
+                                                 setting.eta,
+                                                 setting.random_state,
+                                                 setting.n_jobs))])
+
+    # Hyperparameter tuning using GridSearchCV
+    gs = GridSearchCV(estimator=pipe_lrbin,
+                      param_grid=[{'lrbin__bin_num_percent': setting.bin_num_percents,
+                                   'lrbin__eta': setting.etas}],
+                      scoring=setting.scoring,
+                      n_jobs=setting.n_jobs,
+                      cv=StratifiedKFold(n_splits=setting.n_splits,
+                                         random_state=setting.random_state))
+    gs.fit(data.X, data.y)
+
+    # Get the results
+    get_results(setting, names, data, gs)
 
 
-def train_test_eval(setting, names, data):
+def get_results(setting, names, data, gs):
     """
-    Train, test, and evaluate the LrBin classifier
+    Get the results
     :param setting: the Setting object
     :param names: the Names object
     :param data: the Data object
+    :param gs: the GridSearchCV object
     :return:
     """
 
-    # Declare the LrBin classifier
-    pipe_LrBin = Pipeline([('scaler', setting.scaler),
-                         ('LrBin', LrBin.LrBin(setting.max_iter, setting.min_samples_bin, setting.C))])
-
-    # Get the cross validation scores
-    scores = cross_val_score(estimator=pipe_LrBin,
-                             X=data.X,
-                             y=data.y,
-                             cv=StratifiedKFold(n_splits=setting.n_splits, random_state=setting.random_state),
-                             n_jobs=setting.n_jobs)
-
-    # Refit LrBin on the whole data
-    pipe_LrBin.fit(data.X, data.y)
-
-    # Evaluate LrBin
-    eval(setting, names, data, pipe_LrBin.named_steps['LrBin'], scores)
-
-
-def eval(setting, names, data, LrBin, scores):
-    """
-    Evaluate the LrBin classifier
-    :param setting: the Setting object
-    :param names: the Names object
-    :param data: the Data object
-    :param LrBin: the LrBin classifier
-    :param scores: the cross validation scores
-    :return:
-    """
-
-    setting.set_plt()
-
-    if setting.score_file_dir is not None:
-        # Write the score file
-        write_score_file(setting, scores)
-
-    if setting.prob_dist_fig_dir is not None:
+    if setting.prob_dists_fig_dir is not None:
         # Plot the probability distribution figures
-        plot_prob_dist_fig(setting, names, data.X, LrBin)
+        plot_prob_dists_fig(setting, names, data.X, gs.best_estimator_.named_steps['lrbin'])
 
-    if setting.prob_dist_file_dir is not None:
+    if setting.prob_dists_file_dir is not None:
         # Write the probability distribution file
-        write_prob_dist_file(setting, names, data.X, LrBin)
+        write_prob_dists_file(setting, names, data.X, gs.best_estimator_.named_steps['lrbin'])
+
+    if setting.cv_results_file_dir is not None:
+        # Write the cv results file
+        write_cv_results_file(setting, gs.cv_results_)
 
 
-def write_score_file(setting, scores):
-    """
-    Write the score file
-    :param setting: the Setting object
-    :param scores: the cross validation scores
-    :return:
-    """
-
-    # Make directory
-    directory = os.path.dirname(setting.score_file_dir)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    score_file = setting.score_file_dir + setting.score_file_name + setting.score_file_type
-
-    with open(score_file, 'w') as f:
-        # Write the mean of the cross validation scores
-        f.write("The mean of the cross validation scores: " + str(round(np.mean(scores), 2)) + '\n')
-
-        # Write the std of the cross validation scores
-        f.write("The std of the cross validation scores: " + str(round(np.std(scores), 2)) + '\n')
-
-        # Write the min of the cross validation scores
-        f.write("The min of the cross validation scores: " + str(round(min(scores), 2)) + '\n')
-
-        # Write the max of the cross validation scores
-        f.write("The max of the cross validation scores: " + str(round(max(scores), 2)) + '\n')
-
-
-def plot_prob_dist_fig(setting, names, X, LrBin):
+def plot_prob_dists_fig(setting, names, X, lrbin):
     """
     Plot the probability distribution figures.
     :param setting: the Setting object
     :param names: the Names object
-    :param X: the feature vector
-    :param LrBin: the LrBin classifier
+    :param X: the feature matrix
+    :param lrbin: the lrbin model
     :return:
     """
 
     # Make directory
-    directory = os.path.dirname(setting.prob_dist_fig_dir)
+    directory = os.path.dirname(setting.prob_dists_fig_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # For each unique value of the target
-    for yu in sorted(LrBin.prob_dist_dict_.keys()):
-        # Get the original value of yu
-        yu_orig = str(setting.encoder.inverse_transform(yu))
+    # Set plt
+    setting.set_plt()
 
-        # For each xj
-        for j in sorted(LrBin.prob_dist_dict_[yu].keys()):
-            xijs = sorted(LrBin.prob_dist_dict_[yu][j].keys())
-            pijs = [round(LrBin.prob_dist_dict_[yu][j][xij], 20) for xij in xijs]
-            xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
-            xijs_orig = [round(xij_orig, 2) for xij_orig in xijs_orig]
+    for class_ in sorted(lrbin.weights.keys()):
+        # Get the original value of class_ before the encoding
+        class_ori = str(setting.encoder.inverse_transform(class_))
 
-            # Get the pandas series
-            df = pd.DataFrame(list(zip(xijs_orig, pijs)), columns=['Feature value', 'Probability'])
+        for j in sorted(lrbin.prob_dists[class_].keys()):
+            # Get the name of the jth feature
+            xj_name = names.features[j]
 
-            xj = 'x0' if j == 0 else names.features[j - 1]
+            # Get the original value of the jth feature before the scaling
+            xijs_ori = [round(xij_ori, 2) for xij_ori in np.unique(sorted(X[:, j]))]
 
-            # Plot the histogram of the series
-            df.plot(x='Feature value',
+            # Get the probabilities
+            pijs = [round(lrbin.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(lrbin.prob_dists[class_][j].keys()))]
+
+            # Get the pandas dataframe
+            df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Probability'])
+
+            # Plot the histogram
+            df.plot(x=xj_name,
                     y='Probability',
                     kind='bar',
+                    yticks=[0, 0.25, 0.5, 0.75, 1],
+                    ylim=(0, 1),
                     figsize=(20, 10),
-                    title=('P(' + yu_orig + ' | ' + xj + ')'),
+                    title=class_ori,
                     legend=False,
                     color='b')
 
             # Set the x-axis label
-            plt.xlabel("Feature value")
+            plt.xlabel(xj_name)
             # Set the y-axis label
-            plt.ylabel("Probability")
+            plt.ylabel('Probability')
 
-            if len(xijs_orig) > 50:
+            if len(xijs_ori) > 50:
                 plt.tick_params(labelbottom='off')
 
             plt.tight_layout()
-            prob_dist_fig = (setting.prob_dist_fig_dir + setting.prob_dist_fig_name + '_' + yu_orig + '_' + xj
-                             + setting.prob_dist_fig_type)
-            plt.savefig(prob_dist_fig)
+            prob_dists_fig = (setting.prob_dists_fig_dir + setting.prob_dists_fig_name + '_' + class_ori + '_' + xj_name
+                             + setting.prob_dists_fig_type)
+            plt.savefig(prob_dists_fig)
 
 
-def write_prob_dist_file(setting, names, X, LrBin):
+def write_prob_dists_file(setting, names, X, lrbin):
     """
     Write the probability distribution file
     :param setting: the Setting object
     :param names: the Names object
-    :param X: the feature vector
-    :param LrBin: the LrBin classifier
+    :param X: the feature matrix
+    :param lrbin: the lrbin model
     :return:
     """
 
     # Make directory
-    directory = os.path.dirname(setting.prob_dist_file_dir)
+    directory = os.path.dirname(setting.prob_dists_file_dir)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    prob_dist_file = setting.prob_dist_file_dir + setting.prob_dist_file_name + setting.prob_dist_file_type
+    prob_dists_file = setting.prob_dists_file_dir + setting.prob_dists_file_name + setting.prob_dists_file_type
 
-    with open(prob_dist_file, 'w') as f:
+    with open(prob_dists_file, 'w') as f:
         # Write header
-        f.write("yu, xj, xij, pij" + '\n')
+        f.write("Class, Feature, Value, Probability" + '\n')
 
-        # For each unique value of the target
-        for yu in sorted(LrBin.prob_dist_dict_.keys()):
-            # Get the original value of yu
-            yu_orig = str(setting.encoder.inverse_transform(yu))
+        for class_ in sorted(lrbin.weights.keys()):
+            # Get the original value of class_ before the encoding
+            class_ori = str(setting.encoder.inverse_transform(class_))
 
-            # For each xj
-            for j in sorted(LrBin.prob_dist_dict_[yu].keys()):
-                xj = 'x0' if j == 0 else names.features[j - 1]
-                xijs = sorted(LrBin.prob_dist_dict_[yu][j].keys())
-                pijs = [LrBin.prob_dist_dict_[yu][j][xij] for xij in xijs]
-                xijs_orig = [1] if j == 0 else np.unique(sorted(X.iloc[:, j - 1]))
+            for j in sorted(lrbin.prob_dists[class_].keys()):
+                # Get the name of the jth feature
+                xj_name = names.features[j]
+
+                # Get the original value of the jth feature before the scaling
+                xijs_ori = [round(xij_ori, 2) for xij_ori in np.unique(sorted(X[:, j]))]
+
+                # Get the probabilities
+                pijs = [round(lrbin.prob_dists[class_][j][xij], 5) for xij in
+                        np.unique(sorted(lrbin.prob_dists[class_][j].keys()))]
 
                 for idx in range(len(pijs)):
                     pij = pijs[idx]
-                    xij_orig = xijs_orig[idx]
-                    f.write(yu_orig + ', ' + xj + ', ' + str(xij_orig) + ', ' + str(pij) + '\n')
+                    xij_ori = xijs_ori[idx]
+                    f.write(class_ori + ', ' + xj_name + ', ' + str(xij_ori) + ', ' + str(pij) + '\n')
+
+
+def write_cv_results_file(setting, cv_results):
+    """
+    Write the cv results file
+    :param setting: the Setting object
+    :param cv_results: the cv results
+    :return:
+    """
+
+    # Make directory
+    directory = os.path.dirname(setting.cv_results_file_dir)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    cv_results_file = setting.cv_results_file_dir + setting.cv_results_file_name + setting.cv_results_file_type
+
+    # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
+    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
+
+    cv_results.to_csv(path_or_buf=cv_results_file)
 
 
 if __name__ == "__main__":
@@ -244,5 +231,5 @@ if __name__ == "__main__":
     # Get the pathname of the DataPreprocessing module directory
     dp_dir = sys.argv[3]
 
-    # Get result from data
-    get_result_from_data(data_dir, result_dir, dp_dir)
+    # The pipeline for all data sets
+    pipeline_all_datasets()

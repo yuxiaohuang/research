@@ -20,56 +20,62 @@ class Setting:
         # The scaler
         self.scaler = StandardScaler()
 
-        # The random state
-        self.random_state = 0
-
         # The maximum number of iterations
         self.max_iter = 100
 
-        # The minimum number of samples in each bin
-        self.min_samples_bin = 1
+        # The percentage of the number of bins out of the number of unique value of a feature
+        self.bin_num_percent = 1
 
-        # The value of C
-        self.C = 1
+        # The grid of percentages of the number of bins out of the number of unique value of a feature
+        self.bin_num_percents = [10 ** i for i in range(-3, 1)]
+
+        # The minimum number of bins
+        self.min_bin_num = 1
+
+        # The maximum number of bins
+        self.max_bin_num = 100
+
+        # The learning rate
+        self.eta = 1
+
+        # The grid of learning rates
+        self.etas = [10 ** i for i in range(-3, 1)]
+
+        # The random state
+        self.random_state = 0
 
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
         self.n_jobs = -1
 
-        # The pathname of the parameter file directory
-        self.parameter_file_dir = result_dir + 'parameter_file/'
-
-        # The name of the parameter file
-        self.parameter_file_name = os.path.basename(names_file).split('.')[0]
-
-        # The type of the parameter_file
-        self.parameter_file_type = '.txt'
+        # The scoring metric for hyperparameter tuning using GridSearchCV
+        self.scoring = 'accuracy'
 
         # The pathname of the probability distribution figure directory
-        self.prob_dist_fig_dir = result_dir + 'prob_dist_fig/'
+        self.prob_dists_fig_dir = result_dir + 'prob_dists_fig/'
 
         # The name of the probability distribution figure
-        self.prob_dist_fig_name = os.path.basename(names_file).split('.')[0]
+        self.prob_dists_fig_name = os.path.basename(names_file).split('.')[0]
 
         # The type of the probability distribution figure
-        self.prob_dist_fig_type = '.pdf'
+        self.prob_dists_fig_type = '.pdf'
 
         # The pathname of the probability distribution file directory
-        self.prob_dist_file_dir = result_dir + 'prob_dist_file/'
+        self.prob_dists_file_dir = result_dir + 'prob_dists_file/'
 
         # The name of the probability distribution file
-        self.prob_dist_file_name = os.path.basename(names_file).split('.')[0]
+        self.prob_dists_file_name = os.path.basename(names_file).split('.')[0]
 
         # The type of the probability distribution file
-        self.prob_dist_file_type = '.csv'
+        self.prob_dists_file_type = '.csv'
 
-        # The pathname of the score file directory
-        self.score_file_dir = result_dir + 'score_file/'
+        # The pathname of the cv results file directory
+        self.cv_results_file_dir = result_dir + 'cv_results_file/'
 
-        # The name of the score file
-        self.score_file_name = os.path.basename(names_file).split('.')[0]
+        # The name of the cv_results file
+        self.cv_results_file_name = os.path.basename(names_file).split('.')[0]
 
-        # The type of the score file
-        self.score_file_type = '.txt'
+        # The type of the cv_results file
+        self.cv_results_file_type = '.csv'
 
     def set_plt(self):
         """
