@@ -50,7 +50,7 @@ class Setting:
                                                                                     'liblinear',
                                                                                     'sag',
                                                                                     'saga'],
-                                                     'LogisticRegression__max_iter': [10 ** i for i in range(1, 4)],
+                                                     'LogisticRegression__max_iter': [50 * i for i in range(1, 5)],
                                                      'LogisticRegression__multi_class': ['ovr']},
                                                     {'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
                                                      'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
@@ -58,7 +58,7 @@ class Setting:
                                                                                     'lbfgs',
                                                                                     'sag',
                                                                                     'saga'],
-                                                     'LogisticRegression__max_iter': [10 ** i for i in range(1, 4)],
+                                                     'LogisticRegression__max_iter': [50 * i for i in range(1, 5)],
                                                      'LogisticRegression__multi_class': ['multinomial']}]})
 
         # The pathname of the probability distribution figure directory
@@ -105,6 +105,15 @@ class Setting:
 
         # The type of the cv_results file
         self.cv_results_file_type = '.csv'
+
+        # The pathname of the best_params file directory
+        self.best_params_file_dir = result_dir + 'best_params_file/'
+
+        # The name of the best_params file
+        self.best_params_file_name = os.path.basename(names_file).split('.')[0]
+
+        # The type of the best_params file
+        self.best_params_file_type = '.csv'
 
     def set_plt(self):
         """

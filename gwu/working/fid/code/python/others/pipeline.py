@@ -119,6 +119,10 @@ def get_results(setting, names, data, gs, clf_name):
         # Write the cv results file
         write_cv_results_file(setting, gs.cv_results_, clf_name)
 
+    if setting.best_params_file_dir is not None:
+        # Write the best hyperparameters file
+        write_best_params_file(setting, gs.best_params_, clf_name)
+
 
 def plot_prob_dists_fig(setting, names, X, y, clf, clf_name):
     """
@@ -165,6 +169,8 @@ def plot_prob_dists_fig(setting, names, X, y, clf, clf_name):
             df.plot(x=xj_name,
                     y='Probability',
                     kind='bar',
+                    yticks=[0, 0.25, 0.5, 0.75, 1],
+                    ylim=(0, 1),
                     figsize=(20, 10),
                     title=class_ori,
                     legend=False,
@@ -285,7 +291,7 @@ def plot_feature_importances_fig(setting, names, clf, clf_name):
 
     # Get the directory of the feature importances figure
     feature_importances_fig_dir = setting.feature_importances_fig_dir + clf_name + '/'
-    # Get the pathname of the probability distribution file
+    # Get the pathname of the feature importances file
     feature_importances_fig = feature_importances_fig_dir + setting.feature_importances_fig_name + setting.feature_importances_fig_type
 
     # Make directory
@@ -333,7 +339,7 @@ def write_feature_importances_file(setting, names, clf, clf_name):
 
     # Get the directory of the feature importances file
     feature_importances_file_dir = setting.feature_importances_file_dir + clf_name + '/'
-    # Get the pathname of the probability distribution file
+    # Get the pathname of the feature importances file
     feature_importances_file = feature_importances_file_dir + setting.feature_importances_file_name + setting.feature_importances_file_type
 
     # Make directory
@@ -356,9 +362,9 @@ def write_cv_results_file(setting, cv_results, clf_name):
     :return:
     """
 
-    # Get the directory of the feature importances file
+    # Get the directory of the cv results file
     cv_results_file_dir = setting.cv_results_file_dir + clf_name + '/'
-    # Get the pathname of the probability distribution file
+    # Get the pathname of the cv results
     cv_results_file = cv_results_file_dir + setting.cv_results_file_name + setting.cv_results_file_type
 
     # Make directory
@@ -370,6 +376,28 @@ def write_cv_results_file(setting, cv_results, clf_name):
     cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
+
+
+def write_best_params_file(setting, best_params, clf_name):
+    """
+    Write the best hyperparameters file
+    :param setting: the Setting object
+    :param best_params: the best hyperparameters
+    :param clf_name: the name of the classifier
+    :return:
+    """
+
+    # Get the directory of the best hyperparameters file
+    best_params_file_dir = setting.best_params_file_dir + clf_name + '/'
+    # Get the pathname of the best hyperparameters file
+    best_params_file = best_params_file_dir + setting.best_params_file_name + setting.best_params_file_type
+
+    # Make directory
+    directory = os.path.dirname(best_params_file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    pd.Series(best_params).to_csv(path=best_params_file)
 
 
 if __name__ == "__main__":
