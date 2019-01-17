@@ -23,6 +23,9 @@ class Setting:
         # The maximum number of iterations
         self.max_iter = 100
 
+        # The grid of maximum number of iterations
+        self.max_iters = [50 * i for i in range(1, 5)]
+
         # The percentage of the number of bins out of the number of unique value of a feature
         self.bin_num_percent = 1
 
@@ -76,6 +79,15 @@ class Setting:
 
         # The type of the cv_results file
         self.cv_results_file_type = '.csv'
+
+        # The pathname of the best_params file directory
+        self.best_params_file_dir = result_dir + 'best_params_file/'
+
+        # The name of the best_params file
+        self.best_params_file_name = os.path.basename(names_file).split('.')[0]
+
+        # The type of the best_params file
+        self.best_params_file_type = '.csv'
 
     def set_plt(self):
         """

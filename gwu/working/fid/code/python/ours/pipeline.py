@@ -63,7 +63,8 @@ def pipeline_one_dataset(dp, data_files, names_file):
 
     # Hyperparameter tuning using GridSearchCV
     gs = GridSearchCV(estimator=pipe_fid,
-                      param_grid=[{'fid__bin_num_percent': setting.bin_num_percents,
+                      param_grid=[{'fid__max_iter': setting.max_iters,
+                                   'fid__bin_num_percent': setting.bin_num_percents,
                                    'fid__eta': setting.etas}],
                       scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
@@ -96,6 +97,10 @@ def get_results(setting, names, data, gs):
     if setting.cv_results_file_dir is not None:
         # Write the cv results file
         write_cv_results_file(setting, gs.cv_results_)
+
+    if setting.best_params_file_dir is not None:
+        # Write the best hyperparameters file
+        write_best_params_file(setting, gs.best_params_)
 
 
 def plot_prob_dists_fig(setting, names, X, fid):
@@ -219,6 +224,24 @@ def write_cv_results_file(setting, cv_results):
     cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
+
+
+def write_best_params_file(setting, best_params):
+    """
+    Write the best hyperparameters file
+    :param setting: the Setting object
+    :param best_params: the best hyperparameters
+    :return:
+    """
+
+    # Make directory
+    directory = os.path.dirname(setting.best_params_file_dir)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    best_params_file = setting.best_params_file_dir + setting.best_params_file_name + setting.best_params_file_type
+
+    pd.DataFrame.from_dict(best_params).to_csv(path_or_buf=best_params_file)
 
 
 if __name__ == "__main__":
