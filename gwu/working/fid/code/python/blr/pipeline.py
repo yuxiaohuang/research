@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import Setting
-import LRBin
+import BLR
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -52,8 +52,8 @@ def pipeline_one_dataset(dp, data_files, names_file):
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
 
     # Get the sklearn pipeline
-    pipe_lrbin = Pipeline([('scaler', setting.scaler),
-                           ('lrbin', LRBin.LRBin(setting.max_iter,
+    pipe_blr = Pipeline([('scaler', setting.scaler),
+                           ('blr', BLR.BLR(setting.max_iter,
                                                  setting.bin_num_percent,
                                                  setting.min_bin_num,
                                                  setting.max_bin_num,
@@ -62,10 +62,10 @@ def pipeline_one_dataset(dp, data_files, names_file):
                                                  setting.n_jobs))])
 
     # Hyperparameter tuning using GridSearchCV
-    gs = GridSearchCV(estimator=pipe_lrbin,
-                      param_grid=[{'lrbin__max_iter': setting.max_iters,
-                                   'lrbin__bin_num_percent': setting.bin_num_percents,
-                                   'lrbin__eta': setting.etas}],
+    gs = GridSearchCV(estimator=pipe_blr,
+                      param_grid=[{'blr__max_iter': setting.max_iters,
+                                   'blr__bin_num_percent': setting.bin_num_percents,
+                                   'blr__eta': setting.etas}],
                       scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
                       cv=StratifiedKFold(n_splits=setting.n_splits,
@@ -88,11 +88,11 @@ def get_results(setting, names, data, gs):
 
     if setting.prob_dists_fig_dir is not None:
         # Plot the probability distribution figures
-        plot_prob_dists_fig(setting, names, data.X, gs.best_estimator_.named_steps['lrbin'])
+        plot_prob_dists_fig(setting, names, data.X, gs.best_estimator_.named_steps['blr'])
 
     if setting.prob_dists_file_dir is not None:
         # Write the probability distribution file
-        write_prob_dists_file(setting, names, data.X, gs.best_estimator_.named_steps['lrbin'])
+        write_prob_dists_file(setting, names, data.X, gs.best_estimator_.named_steps['blr'])
 
     if setting.cv_results_file_dir is not None:
         # Write the cv results file
@@ -103,13 +103,13 @@ def get_results(setting, names, data, gs):
         write_best_params_file(setting, gs.best_params_)
 
 
-def plot_prob_dists_fig(setting, names, X, lrbin):
+def plot_prob_dists_fig(setting, names, X, blr):
     """
     Plot the probability distribution figures.
     :param setting: the Setting object
     :param names: the Names object
     :param X: the feature matrix
-    :param lrbin: the lrbin model
+    :param blr: the blr model
     :return:
     """
 
@@ -121,11 +121,11 @@ def plot_prob_dists_fig(setting, names, X, lrbin):
     # Set plt
     setting.set_plt()
 
-    for class_ in sorted(lrbin.weights.keys()):
+    for class_ in sorted(blr.weights.keys()):
         # Get the original value of class_ before the encoding
         class_ori = str(setting.encoder.inverse_transform(class_))
 
-        for j in sorted(lrbin.prob_dists[class_].keys()):
+        for j in sorted(blr.prob_dists[class_].keys()):
             # Get the name of the jth feature
             xj_name = names.features[j]
 
@@ -133,7 +133,7 @@ def plot_prob_dists_fig(setting, names, X, lrbin):
             xijs_ori = [round(xij_ori, 2) for xij_ori in np.unique(sorted(X[:, j]))]
 
             # Get the probabilities
-            pijs = [round(lrbin.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(lrbin.prob_dists[class_][j].keys()))]
+            pijs = [round(blr.prob_dists[class_][j][xij], 5) for xij in np.unique(sorted(blr.prob_dists[class_][j].keys()))]
 
             # Get the pandas dataframe
             df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Probability'])
@@ -163,13 +163,13 @@ def plot_prob_dists_fig(setting, names, X, lrbin):
             plt.savefig(prob_dists_fig)
 
 
-def write_prob_dists_file(setting, names, X, lrbin):
+def write_prob_dists_file(setting, names, X, blr):
     """
     Write the probability distribution file
     :param setting: the Setting object
     :param names: the Names object
     :param X: the feature matrix
-    :param lrbin: the lrbin model
+    :param blr: the blr model
     :return:
     """
 
@@ -182,13 +182,13 @@ def write_prob_dists_file(setting, names, X, lrbin):
 
     with open(prob_dists_file, 'w') as f:
         # Write header
-        f.write("Class, Feature, Value, Probability" + '\n')
+        f.write("Class,Feature,Value,Probability" + '\n')
 
-        for class_ in sorted(lrbin.weights.keys()):
+        for class_ in sorted(blr.weights.keys()):
             # Get the original value of class_ before the encoding
             class_ori = str(setting.encoder.inverse_transform(class_))
 
-            for j in sorted(lrbin.prob_dists[class_].keys()):
+            for j in sorted(blr.prob_dists[class_].keys()):
                 # Get the name of the jth feature
                 xj_name = names.features[j]
 
@@ -196,13 +196,13 @@ def write_prob_dists_file(setting, names, X, lrbin):
                 xijs_ori = [round(xij_ori, 2) for xij_ori in np.unique(sorted(X[:, j]))]
 
                 # Get the probabilities
-                pijs = [round(lrbin.prob_dists[class_][j][xij], 5) for xij in
-                        np.unique(sorted(lrbin.prob_dists[class_][j].keys()))]
+                pijs = [round(blr.prob_dists[class_][j][xij], 5) for xij in
+                        np.unique(sorted(blr.prob_dists[class_][j].keys()))]
 
                 for idx in range(len(pijs)):
                     pij = pijs[idx]
                     xij_ori = xijs_ori[idx]
-                    f.write(class_ori + ', ' + xj_name + ', ' + str(xij_ori) + ', ' + str(pij) + '\n')
+                    f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
 
 
 def write_cv_results_file(setting, cv_results):

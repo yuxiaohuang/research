@@ -6,9 +6,9 @@ import numpy as np
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-class LRBin(BaseEstimator, ClassifierMixin):
+class BLR(BaseEstimator, ClassifierMixin):
     """
-    The LRBin classifier
+    The BLR (Binarized Logistic Regression) classifier
     """
 
     def __init__(self, max_iter=100, bin_num_percent=1, min_bin_num=1, max_bin_num=100, eta=1, random_state=0, n_jobs=-1):

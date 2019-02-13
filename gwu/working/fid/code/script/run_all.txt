@@ -3,7 +3,7 @@
 
 count=0;
 
-n_jobs=$(nproc);
+n_jobs=10;
 
 for file in /home/yuxiaohuang/research/gwu/fid/code/script/script/run*.txt;         
     do $file &

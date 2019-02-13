@@ -182,7 +182,7 @@ def write_prob_dists_file(setting, names, X, fid):
 
     with open(prob_dists_file, 'w') as f:
         # Write header
-        f.write("Class, Feature, Value, Probability" + '\n')
+        f.write("Class,Feature,Value,Probability" + '\n')
 
         for class_ in sorted(fid.weights.keys()):
             # Get the original value of class_ before the encoding
@@ -202,7 +202,7 @@ def write_prob_dists_file(setting, names, X, fid):
                 for idx in range(len(pijs)):
                     pij = pijs[idx]
                     xij_ori = xijs_ori[idx]
-                    f.write(class_ori + ', ' + xj_name + ', ' + str(xij_ori) + ', ' + str(pij) + '\n')
+                    f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
 
 
 def write_cv_results_file(setting, cv_results):

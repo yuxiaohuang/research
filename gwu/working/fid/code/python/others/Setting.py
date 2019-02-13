@@ -26,7 +26,7 @@ class Setting:
         self.random_state = 0
 
         # The number of jobs to run in parallel, -1 indicates (all CPUs are used)
-        self.n_jobs = -1
+        self.n_jobs = 1
 
         # The scoring metric for hyperparameter tuning using GridSearchCV
         self.scoring = 'accuracy'

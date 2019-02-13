@@ -256,7 +256,7 @@ def write_prob_dists_file(setting, names, X, y, clf, clf_name):
 
     with open(prob_dists_file, 'w') as f:
         # Write header
-        f.write("Class, Feature, Value, Probability" + '\n')
+        f.write("Class,Feature,Value,Probability" + '\n')
 
         for class_ in range(len(np.unique(y))):
             # Get the original value of class_ before the encoding
@@ -276,7 +276,7 @@ def write_prob_dists_file(setting, names, X, y, clf, clf_name):
                 for idx in range(len(pijs)):
                     pij = pijs[idx]
                     xij_ori = xijs_ori[idx]
-                    f.write(class_ori + ', ' + xj_name + ', ' + str(xij_ori) + ', ' + str(pij) + '\n')
+                    f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
 
 
 def plot_feature_importances_fig(setting, names, clf, clf_name):
