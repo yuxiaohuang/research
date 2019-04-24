@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
+
+python -W ignore /home/yuxiaohuang/research/gwu/fid/code/python/blr/pipeline.py /home/yuxiaohuang/research/gwu/fid/data/ /home/yuxiaohuang/research/gwu/fid/result/blr/ /home/yuxiaohuang/research/gwu/fid/code/python/
