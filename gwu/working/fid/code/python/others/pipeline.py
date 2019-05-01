@@ -373,7 +373,18 @@ def write_cv_results_file(setting, cv_results, clf_name):
         os.makedirs(directory)
 
     # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
-    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
+    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['mean_test_score',
+                                                                    'std_test_score',
+                                                                    'mean_train_score',
+                                                                    'std_train_score',
+                                                                    'mean_fit_time',
+                                                                    'std_fit_time'],
+                                                                ascending=[False,
+                                                                           True,
+                                                                           False,
+                                                                           True,
+                                                                           True,
+                                                                           True])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
 

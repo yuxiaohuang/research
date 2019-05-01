@@ -12,18 +12,21 @@ class FID(BaseEstimator, ClassifierMixin):
     The FID model
     """
 
-    def __init__(self, max_iter=100, bin_num_percent=1, min_bin_num=1, max_bin_num=100, eta=1, random_state=0, n_jobs=10):
+    def __init__(self, max_iter=100, bin_num_percent=1, min_bin_num=1, max_bin_num=100, feature_percent=1, eta=1, random_state=0, n_jobs=10):
         # The maximum number of iteration, 100 by default
         self.max_iter = max_iter
 
         # The percentage of the number of bins out of the number of unique value of a feature, 1 by default
         self.bin_num_percent = bin_num_percent
 
-        # The minimum number of bins
+        # The minimum number of bins, 1 by default
         self.min_bin_num = min_bin_num
 
-        # The maximum number of bins
+        # The maximum number of bins, 100 by default
         self.max_bin_num = max_bin_num
+
+        # The percentage of features whose importance should be considered, 1 by default
+        self.feature_percent = feature_percent
 
         # The learning rate, 1 by default
         self.eta = eta
@@ -163,7 +166,7 @@ class FID(BaseEstimator, ClassifierMixin):
             L = self.get_L(X, P, I)
 
             # Update the weight matrices
-            W0, W1 = self.update_W(X, rows, W0, W1, P, I, L)
+            W0, W1 = self.update_W(X, rows, W0, W1, P, L)
 
         # Get the dictionary of weights
         self.get_weights(X, class_, rows, W0, W1)
@@ -258,11 +261,13 @@ class FID(BaseEstimator, ClassifierMixin):
 
         # Get the complement of the probability matrix
         Q = self.get_Q(X, P)
+        # Sort the columns in ascending order
+        Q.sort(axis=1)
 
-        # Get the exponent matrix
-        E = self.get_E(Q)
+        # Get the number of features whose importance should be considered
+        feature_num = np.clip(int(self.feature_percent * X.shape[1]), a_min=1, a_max=X.shape[1])
 
-        return E - I
+        return np.prod(Q[:, :feature_num], axis=1).reshape(-1, 1) - I
 
     def get_Q(self, X, P):
         """
@@ -274,16 +279,7 @@ class FID(BaseEstimator, ClassifierMixin):
 
         return np.ones(X.shape) - P
 
-    def get_E(self, Q):
-        """
-        Get the exponent matrix
-        :param Q: the complement of the probability matrix
-        :return: the exponent matrix
-        """
-
-        return np.exp(np.clip(np.sum(np.log(np.clip(Q, a_min=np.exp(-250), a_max=np.exp(250))), axis=1), a_min=-250, a_max=250)).reshape(-1, 1)
-
-    def update_W(self, X, rows, W0, W1, P, I, L):
+    def update_W(self, X, rows, W0, W1, P, L):
         """
         Update the weight matrices
         :param X: the feature matrix
@@ -297,7 +293,7 @@ class FID(BaseEstimator, ClassifierMixin):
         """
 
         # Get the weight update matrices
-        delta_W0, delta_W1 = self.get_delta_W(X, P, I, L)
+        delta_W0, delta_W1 = self.get_delta_W(X, P, L)
 
         for j in range(X.shape[1]):
             for bin in rows[j].keys():
@@ -308,17 +304,16 @@ class FID(BaseEstimator, ClassifierMixin):
 
         return [W0, W1]
 
-    def get_delta_W(self, X, P, I, L):
+    def get_delta_W(self, X, P, L):
         """
         Get the weight update matrices
         :param X: the feature matrix
         :param P: the probability matrix
-        :param I: the indicator vector
         :param L: the cost matrix
         :return: the weight update matrices
         """
 
-        delta_W0 = np.multiply(P, np.multiply(L, L + I))
+        delta_W0 = np.multiply(L, P)
         delta_W1 = np.multiply(delta_W0, X)
 
         return [delta_W0 * self.eta, delta_W1 * self.eta]
@@ -398,8 +393,13 @@ class FID(BaseEstimator, ClassifierMixin):
 
             # Get the complement of the probability matrix
             Q = self.get_Q(X, P)
+            # Sort the columns in ascending order
+            Q.sort(axis=1)
+
+            # Get the number of features whose importance should be considered
+            feature_num = np.clip(int(self.feature_percent * X.shape[1]), a_min=1, a_max=X.shape[1])
 
             # Get the probabilities of the class
-            PP[:, k] = np.ones(X.shape[0]) - Q.min(axis=1)
+            PP[:, k] = np.ones(X.shape[0]) - np.prod(Q[:, :feature_num], axis=1).reshape(-1)
 
         return PP

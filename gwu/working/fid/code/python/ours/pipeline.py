@@ -65,6 +65,7 @@ def pipeline_one_dataset(dp, data_files, names_file):
     gs = GridSearchCV(estimator=pipe_fid,
                       param_grid=[{'fid__max_iter': setting.max_iters,
                                    'fid__bin_num_percent': setting.bin_num_percents,
+                                   'fid__feature_percent': setting.feature_percents,
                                    'fid__eta': setting.etas}],
                       scoring=setting.scoring,
                       n_jobs=setting.n_jobs,
@@ -221,7 +222,18 @@ def write_cv_results_file(setting, cv_results):
     cv_results_file = setting.cv_results_file_dir + setting.cv_results_file_name + setting.cv_results_file_type
 
     # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
-    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
+    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['mean_test_score',
+                                                                    'std_test_score',
+                                                                    'mean_train_score',
+                                                                    'std_train_score',
+                                                                    'mean_fit_time',
+                                                                    'std_fit_time'],
+                                                                ascending=[False,
+                                                                           True,
+                                                                           False,
+                                                                           True,
+                                                                           True,
+                                                                           True])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
 

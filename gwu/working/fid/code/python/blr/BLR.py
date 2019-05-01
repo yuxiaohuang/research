@@ -279,7 +279,7 @@ class BLR(BaseEstimator, ClassifierMixin):
         delta_W0 = np.multiply((I - P).reshape(-1, 1), np.ones(X.shape))
         delta_W1 = np.multiply(delta_W0, X)
 
-        return [delta_W0 * self.eta, delta_W1 * self.eta]
+        return [delta_W0 * self.eta * 2 / X.shape[0], delta_W1 * self.eta * 2 / X.shape[0]]
 
     def get_weights(self, X, class_, rows, W0, W1):
         """
