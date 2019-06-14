@@ -1,0 +1,7 @@
+###-----------------------------------------------------------------------------------------
+### Run script for our algorithms###-----------------------------------------------------------------------------------------
+
+mkdir -p /home/yuxiaohuang/research/gwu/mcmcfid/result/ours/
+
+(time /home/yuxiaohuang/research/gwu/mcmcfid/code/script/script/ours.txt) 2> /home/yuxiaohuang/research/gwu/mcmcfid/result/ours/time.txt
+

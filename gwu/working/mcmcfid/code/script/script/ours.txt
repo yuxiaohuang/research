@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
+
+python /home/yuxiaohuang/research/gwu/mcmcfid/code/python/ours/pipeline.py /home/yuxiaohuang/research/gwu/mcmcfid/data/ /home/yuxiaohuang/research/gwu/mcmcfid/result/ours/ /home/yuxiaohuang/research/gwu/mcmcfid/code/python/
