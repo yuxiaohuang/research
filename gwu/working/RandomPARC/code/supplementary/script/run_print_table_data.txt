@@ -1,0 +1,5 @@
+###-----------------------------------------------------------------------------------------
+### Run script for printing table (data)###-----------------------------------------------------------------------------------------
+
+python ./arc/code/supplementary/python/print_table_data.py ./arc/data/ ./arc/code/python/ ./arc/code/python/ours/ ./arc/result/supplementary/table_file_data.txt
+

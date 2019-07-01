@@ -1,0 +1,13 @@
+###-----------------------------------------------------------------------------------------
+### Run scripts for all algorithms ###-----------------------------------------------------------------------------------------
+
+count=0;
+
+n_jobs=1;
+
+for file in ./RandomPARC/code/script/script/run*.txt;         
+    do $file &
+    let count+=1
+    [[ $((count % n_jobs)) -eq 0 ]] && wait
+done
+
