@@ -3,7 +3,7 @@
 import numpy as np
 
 from joblib import Parallel, delayed
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
 
 
 class RandomPARC(BaseEstimator, ClassifierMixin):
@@ -12,15 +12,15 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     """
     
     def __init__(self,
-                 base=None,
-                 n_iter=2,
-                 min_support=0,
+                 gs_base,
+                 n_iter=10,
+                 min_support=0.2,
                  min_confidence=1,
                  max_conds=10,
                  random_state=0,
-                 n_jobs=1):
-        # The base classifier
-        self.base = base
+                 n_jobs=10):
+        # The GridSearchCV of the base classifier
+        self.gs_base = gs_base
 
         # The number of iterations for searching for the rules
         self.n_iter = n_iter
@@ -70,18 +70,13 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def fit(self, X, y):
         """
         The fit function for all classes
-        :param X:
-        :param y:
+        :param X: the condition matrix
+        :param y: the target vector
         :return:
         """
-        """
-        
-        
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        """
+
+        # # Hyperparameter tuning
+        # self.gs_base.fit(X, y)
 
         # Initialization for all classes
         self.init(X, y)
@@ -94,11 +89,9 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def init(self, X, y):
         """
         Initialization for all classes
-
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
+        :param X: the condition matrix
+        :param y: the target vector
+        :return:
         """
 
         # The maximum number of conditions to consider when searching for the rules
@@ -135,12 +128,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def fit_one_class(self, X, y, class_):
         """
         The fit function for one class
-        
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :return:
         """
 
         # Initialization for one class
@@ -154,10 +145,8 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def init_one_class(self, class_):
         """
         Initialization for one class
-
-        Parameters
-        ----------
-        class_ : a class of the target
+        :param class_: a class of the target
+        :return:
         """
 
         # The rule
@@ -178,13 +167,11 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def greedy_search(self, X, y, class_, iter):
         """
         Greedy search
-
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         """
 
         # Initialization for one iteration
@@ -199,8 +186,6 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
 
                 # Update for one iteration
                 self.update_one_iter(y, class_, iter)
-
-                print('sig', class_, iter, self.sig_rules[class_])
             else:
                 # If no condition can be added
                 if self.add(X, y, class_, iter) is False:
@@ -211,12 +196,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def init_one_iter(self, y, class_, iter):
         """
         Initialization for one iteration
-
-        Parameters
-        ----------
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         """
 
         # The available samples
@@ -234,12 +217,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def init_rule(self, y, class_, iter):
         """
         Initialize a rule
-
-        Parameters
-        ----------
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         """
 
         # Get the conjunction
@@ -257,16 +238,11 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def significant(self, class_, iter):
         """
         Check whether the rule is significant
-
-        Parameters
-        ----------
-        class_ : a class of the target
-        iter: the current iteration
-        
-        Returns
-        ----------    
-        True : if the rule is significant
-        False : otherwise
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
+        True: if the rule is significant
+        False: otherwise
         """
 
         # Unpack the rule
@@ -276,11 +252,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         if len(C) == 0:
             return False
 
-        # print(C_samples, class_and_C_samples, self.min_support, self.min_confidence)
-
         # If the rule meets min_support and min_confidence
-        if (float(len(C_samples)) / self.m >= self.min_support
-                and float(len(class_and_C_samples)) / len(C_samples) >= self.min_confidence):
+        if (len(C_samples) > 0
+            and float(len(C_samples)) / self.m >= self.min_support
+            and float(len(class_and_C_samples)) / len(C_samples) >= self.min_confidence):
             return True
 
         return False
@@ -288,13 +263,11 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def prune(self, X, y, class_, iter):
         """
         Prune the rule by removing the unnecessary conditions
-
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         """
 
         # Repeat, until all the conditions in the rule are necessary
@@ -345,18 +318,12 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def get_c_importance(self, X, y, class_, iter, C):
         """
         Get the condition-importance pairs
-
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
-        C : a conjunction of conditions
-
-        Returns
-        ----------
-        The condition-importance pairs
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :param C: a conjunction of conditions
+        :return: the condition-importance pairs
         """
 
         # Get the importance of each condition
@@ -370,18 +337,12 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def get_importance(self, X, y, class_, iter, c):
         """
         Get the importance of condition c with respect to C
-
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter: the current iteration
-        c : a condition
-
-        Returns
-        ----------
-        The importance of condition c with respect to C
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :param c: a condition
+        :return: the importance of condition c with respect to C
         """
 
         # Unpack the rule
@@ -422,8 +383,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
             # Get the samples where both class_ and C_setminus_c are true but c is false
             class_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
 
-        if (float(len(C_and_c_samples)) / self.m >= self.min_support
-                and float(len(C_setminus_c_and_not_c_samples)) / self.m >= self.min_support):
+        if (len(C_and_c_samples) > 0
+            and len(C_setminus_c_and_not_c_samples) > 0
+            and float(len(C_and_c_samples)) / self.m >= self.min_support
+            and float(len(C_setminus_c_and_not_c_samples)) / self.m >= self.min_support):
             ratio_and_c = float(len(class_C_and_c_samples)) / len(C_and_c_samples)
             ratio_and_not_c = float(len(class_C_setminus_c_and_not_c_samples)) / len(C_setminus_c_and_not_c_samples)
             importance = ratio_and_c - ratio_and_not_c
@@ -435,18 +398,34 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def update_one_iter(self, y, class_, iter):
         """
         Update for one iteration
-
-        Parameters
-        ----------
-        class_ : a class of the target
-        iter: the current iteration
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         """
 
         # Unpack the rule
         C, C_samples, class_and_C_samples = self.rule[class_][iter]
 
+        # Get the support
+        support = float(len(C_samples)) / self.m
+
+        # Get the confidence
+        confidence = float(len(class_and_C_samples)) / len(C_samples)
+
         # Add the rule
-        self.sig_rules[class_].append(self.rule[class_][iter])
+        idx = 0
+        while idx < len(self.sig_rules[class_]):
+            # If the rule has the same conditions with a detected rule
+            if sorted(self.sig_rules[class_][idx][0]) == sorted(C):
+                # Update the supports and confidences
+                self.sig_rules[class_][idx][1] = np.append(self.sig_rules[class_][idx][1], support)
+                self.sig_rules[class_][idx][2] = np.append(self.sig_rules[class_][idx][2], confidence)
+                break
+            idx += 1
+        # If the rule does not have the same conditions with a detected rule
+        if idx == len(self.sig_rules[class_]):
+            self.sig_rules[class_].append([C, np.array([support]), np.array([confidence])])
 
         # Update the rule
         self.init_rule(y, class_, iter)
@@ -467,16 +446,11 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         1. c is not in C
         2. c has not been removed
         3. the importance of c with respect to C is not None
-        
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter : the current iteration
-        
-        Returns
-        ----------    
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         True : if c exists
         False : otherwise
         """
@@ -521,8 +495,6 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         # Update class_and_C_samples
         class_and_C_samples = C_samples[np.where(y[C_samples] == class_)]
 
-        print(C_samples, class_and_C_samples)
-
         # Update the rule
         self.rule[class_][iter] = [C, C_samples, class_and_C_samples]
                 
@@ -535,16 +507,11 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         1. c is in C
         2. the importance of c with respect to C_set_minus_c is not None
         If c does not exist, remove a random condition from C
-        
-        Parameters
-        ----------
-        X : the condition matrix
-        y : the target vector
-        class_ : a class of the target
-        iter : the current iteration
-        
-        Returns
-        ----------    
+        :param X: the condition matrix
+        :param y: the target vector
+        :param class_: a class of the target
+        :param iter: the current iteration
+        :return:
         True : if the rule is not empty after removing a condition
         False : otherwise
         """
@@ -556,7 +523,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
             return False
 
         # Get the condition-importance pairs
-        c_importance = self.get_c_importance(X, y, C)
+        c_importance = self.get_c_importance(X, y, class_, iter, C)
 
         # If both requirements 1 and 2 are met
         if len(c_importance) != 0:
@@ -567,7 +534,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
             c = c_importance_sorted[0][0]
         else:
             # Get the random condition
-            c = self.rng.choice(C, size=1, replace=False)
+            c = self.rng.choice(C, size=1, replace=False)[0]
 
         # Update C by removing c from C
         C = np.delete(C, np.where(C == c)[0])
@@ -592,19 +559,12 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def predict(self, X):
         """
         Predict the class of each sample in X
-
-        Parameters
-        ----------
-        X : the condition matrix
-
-        Returns
-        ----------
-        The predicted class of each sample in X
+        :param X: the condition matrix
+        :return: the predicted class of each sample in X
         """
 
-        # Predict the probability of each class (of each sample in X) using the baseline classifier
-
-        probabilities = self.base.predict_proba(X)
+        # Predict the probability of each class (of each sample in X) using the best base classifier
+        probabilities = self.gs_base.best_estimator_.predict_proba(X)
 
         for class_ in sorted(self.sig_rules.keys()):
             for rule in self.sig_rules[class_]:

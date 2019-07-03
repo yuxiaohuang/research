@@ -35,17 +35,19 @@ class Setting:
         self.random_state = 0
 
         # The number of jobs to run in parallel, -1 by default (all CPUs are used)
-        self.n_jobs = 1
+        self.n_jobs = 10
 
         # The name of RandomPARC
         self.name = 'RandomPARC'
 
         # The dictionary of classifiers
         self.classifiers = ({'RandomForestClassifier': RandomForestClassifier(random_state=self.random_state,
-                                                                              n_jobs=self.n_jobs),
-                             'LogisticRegression': LogisticRegression(random_state=self.random_state,
-                                                                      n_jobs=self.n_jobs),
-                             'GaussianNB': GaussianNB()})
+                                                                              n_jobs=self.n_jobs)
+            #,
+                             # 'LogisticRegression': LogisticRegression(random_state=self.random_state,
+                             #                                          n_jobs=self.n_jobs),
+                             # 'GaussianNB': GaussianNB()
+                             })
 
         # The dictionary of parameter grids
         self.param_grids = (
