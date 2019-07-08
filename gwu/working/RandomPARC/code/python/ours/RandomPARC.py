@@ -14,7 +14,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
     def __init__(self,
                  gs_base,
                  n_iter=10,
-                 min_support=0.2,
+                 min_support=0.1,
                  min_confidence=1,
                  max_conds=10,
                  random_state=0,
@@ -55,6 +55,9 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         # The detected significant rules
         self.sig_rules = None
 
+        # The random number generator
+        self.rng = None
+
         # The available samples
         self.avail_samples = None
 
@@ -63,9 +66,6 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
 
         # The removed conditions
         self.removed_conds = None
-
-        # The random number generator
-        self.rng = None
         
     def fit(self, X, y):
         """
@@ -95,8 +95,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         """
 
         # The maximum number of conditions to consider when searching for the rules
-        if self.max_conds > int(X.shape[1] ** 0.5):
-            self.max_conds = int(X.shape[1] ** 0.5)
+        self.max_conds = min(self.max_conds, X.shape[1])
 
         # The number of samples
         self.m = X.shape[0]
@@ -113,6 +112,9 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         # The detected significant rules
         self.sig_rules = {}
 
+        # The random number generator
+        self.rng = {}
+
         # The available samples
         self.avail_samples = {}
 
@@ -121,9 +123,6 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
 
         # The removed conditions
         self.removed_conds = {}
-
-        # The random number generator
-        self.rng = np.random.RandomState(seed=self.random_state)
               
     def fit_one_class(self, X, y, class_):
         """
@@ -153,7 +152,10 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         self.rule[class_] = {}
 
         # The detected significant rules
-        self.sig_rules[class_] = []
+        self.sig_rules[class_] = {}
+
+        # The random number generator
+        self.rng[class_] = {}
 
         # The available samples
         self.avail_samples[class_] = {}
@@ -202,11 +204,17 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         :return:
         """
 
+        # The detected significant rules
+        self.sig_rules[class_][iter] = []
+
+        # The random number generator
+        self.rng[class_][iter] = np.random.RandomState(seed=self.random_state + iter)
+
         # The available samples
         self.avail_samples[class_][iter] = np.array(range(self.m))
 
         # The available conditions
-        self.avail_conds[class_][iter] = self.rng.choice(self.n, size=self.max_conds, replace=False).astype(int)
+        self.avail_conds[class_][iter] = self.rng[class_][iter].choice(self.n, size=self.max_conds, replace=False).astype(int)
 
         # The removed conditions
         self.removed_conds[class_][iter] = {}
@@ -365,7 +373,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
             if len(C_setminus_c) == 0:
                 C_setminus_c_and_not_c_samples = avail_samples[np.where(X[avail_samples, c] == 0)]
             else:
-                C_setminus_c_and_not_c_samples = avail_samples[np.where(np.prod(X[avail_samples, C_setminus_c]) == 1
+                C_setminus_c_and_not_c_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C_setminus_c)]) == 1
                                                                         and X[avail_samples, c] == 0)]
 
             # Get the samples where both class_ and C_setminus_c are true but c is false
@@ -415,20 +423,17 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
 
         # Add the rule
         idx = 0
-        while idx < len(self.sig_rules[class_]):
+        while idx < len(self.sig_rules[class_][iter]):
             # If the rule has the same conditions with a detected rule
-            if sorted(self.sig_rules[class_][idx][0]) == sorted(C):
+            if sorted(self.sig_rules[class_][iter][idx][0]) == sorted(C):
                 # Update the supports and confidences
-                self.sig_rules[class_][idx][1] = np.append(self.sig_rules[class_][idx][1], support)
-                self.sig_rules[class_][idx][2] = np.append(self.sig_rules[class_][idx][2], confidence)
+                self.sig_rules[class_][iter][idx][1] = np.append(self.sig_rules[class_][iter][idx][1], support)
+                self.sig_rules[class_][iter][idx][2] = np.append(self.sig_rules[class_][iter][idx][2], confidence)
                 break
             idx += 1
         # If the rule does not have the same conditions with a detected rule
-        if idx == len(self.sig_rules[class_]):
-            self.sig_rules[class_].append([C, np.array([support]), np.array([confidence])])
-
-        # Update the rule
-        self.init_rule(y, class_, iter)
+        if idx == len(self.sig_rules[class_][iter]):
+            self.sig_rules[class_][iter].append([C, np.array([support]), np.array([confidence])])
 
         # Update the available samples
         self.avail_samples[class_][iter] = np.setdiff1d(self.avail_samples[class_][iter], C_samples)
@@ -438,6 +443,9 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
 
         # Clear the removed conditions
         self.removed_conds[class_][iter] = {}
+
+        # Update the rule
+        self.init_rule(y, class_, iter)
     
     def add(self, X, y, class_, iter):
         """
@@ -467,7 +475,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
                 continue
 
             # If requirement 2 is not met
-            if c in self.removed_conds.keys():
+            if c in self.removed_conds[class_][iter].keys():
                 continue
 
             # Add c to cs
@@ -534,7 +542,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
             c = c_importance_sorted[0][0]
         else:
             # Get the random condition
-            c = self.rng.choice(C, size=1, replace=False)[0]
+            c = self.rng[class_][iter].choice(C, size=1, replace=False)[0]
 
         # Update C by removing c from C
         C = np.delete(C, np.where(C == c)[0])
@@ -543,7 +551,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         avail_samples = self.avail_samples[class_][iter]
 
         # Update C_samples
-        C_samples = avail_samples[np.where(np.prod(X[avail_samples, C]) == 1)]
+        C_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C)]) == 1)]
 
         # Update class_and_C_samples
         class_and_C_samples = C_samples[np.where(y[C_samples] == class_)]
@@ -567,7 +575,7 @@ class RandomPARC(BaseEstimator, ClassifierMixin):
         probabilities = self.gs_base.best_estimator_.predict_proba(X)
 
         for class_ in sorted(self.sig_rules.keys()):
-            for rule in self.sig_rules[class_]:
+            for rule in self.sig_rules[class_][iter]:
                 # Unpack the rule
                 C, C_samples, class_and_C_samples = rule
 

@@ -227,10 +227,10 @@ class DataPreprocessing():
         # Transform X from dataframe into numpy array
         X = X.values
 
-        # Oversampling when y is imbalanced
-        if len(np.unique(np.unique(y, return_counts=True)[1])) != 1:
-            ros = RandomOverSampler(random_state=setting.random_state)
-            X, y = ros.fit_sample(X, y)
+        # # Oversampling when y is imbalanced
+        # if len(np.unique(np.unique(y, return_counts=True)[1])) != 1:
+        #     ros = RandomOverSampler(random_state=setting.random_state)
+        #     X, y = ros.fit_sample(X, y)
 
         data = Data.Data(X, y)
 

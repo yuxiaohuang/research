@@ -192,10 +192,31 @@ def write_sig_rule_file(setting, names, name, gs):
         # Write header
         f.write("Class,C,Mean_support,Mean_confidence,Std_support,Std_confidence,Number" + '\n')
 
-        for class_ in gs.named_steps[setting.name].sig_rules.keys():
-            for rule in gs.named_steps[setting.name].sig_rules[class_]:
+        for class_ in sorted(gs.named_steps[setting.name].sig_rules.keys()):
+            rules = []
+            for iter in sorted(gs.named_steps[setting.name].sig_rules[class_].keys()):
+                for rule in gs.named_steps[setting.name].sig_rules[class_][iter]:
+                    # Unpack the rule
+                    C, supports, confidences = rule
+
+                    # Add the rule
+                    idx = 0
+                    while idx < len(rules):
+                        # If the rule has the same conditions with a detected rule
+                        if sorted(rules[idx][0]) == sorted(C):
+                            # Update the supports and confidences
+                            rules[idx][1] = np.append(rules[idx][1], supports)
+                            rules[idx][2] = np.append(rules[idx][2], confidences)
+                            break
+                        idx += 1
+                    # If the rule does not have the same conditions with a detected rule
+                    if idx == len(rules):
+                        rules.append([C, supports, confidences])
+
+            for rule in rules:
                 # Unpack the rule
                 C, supports, confidences = rule
+
                 f.write(str(class_)
                         + ','
                         + ' & '.join(names.features[C])
