@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for other algorithms###-----------------------------------------------------------------------------------------
+
+python -W ignore ./FAIR/code/python/others/pipeline.py ./FAIR/data/ ./FAIR/result/others/ ./FAIR/code/python/
