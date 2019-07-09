@@ -27,7 +27,7 @@ class Setting:
         self.max_condss = [10]
 
         # The list of minimum support required by the rules
-        self.min_supports = [0]
+        self.min_supports = [0.01]
 
         # The list of minimum confidence required by the rules
         self.min_confidences = [1]
@@ -39,7 +39,7 @@ class Setting:
         self.n_jobs = 10
 
         # The name of RandomPARC
-        self.name = 'RandomPARC'
+        self.name = 'FAIR'
 
         # The label encoder
         self.encoder = LabelEncoder()

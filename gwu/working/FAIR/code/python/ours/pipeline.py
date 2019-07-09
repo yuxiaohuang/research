@@ -45,22 +45,35 @@ def pipeline_one_dataset(dp, data_files, names_file):
     :return:
     """
 
-    # Data preprocessing: get the Setting, Names, and Data object
+    # Get the Setting, Names, and Data object
     setting, names, data = dp.get_setting_names_data(data_files, names_file, result_dir, Setting)
 
-    # Get the combinations of min_support and min_confidence
+    # Get the combinations of [n_iter, max_conds, min_support, min_confidence]
+    combinations = get_combinations(setting)
+
+    # The pipeline for each combination (in parallel)
+    # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
+    Parallel(n_jobs=setting.n_jobs)(delayed(pipeline_one_combination)
+                                    (setting, names, data, combination)
+                                    for combination in combinations)
+
+
+def get_combinations(setting):
+    """
+    Get the combinations of [n_iter, max_conds, min_support, min_confidence]
+    :param setting: the Setting object
+    :return: the combinations of [n_iter, max_conds, min_support, min_confidence]
+    """
+
     combinations = []
+
     for n_iter in setting.n_iters:
         for max_conds in setting.max_condss:
             for min_support in setting.min_supports:
                 for min_confidence in setting.min_confidences:
                     combinations.append([n_iter, max_conds, min_support, min_confidence])
 
-    # The pipeline for each combination of min_support and min_confidence (in parallel)
-    # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
-    Parallel(n_jobs=setting.n_jobs)(delayed(pipeline_one_combination)
-                                    (setting, names, data, combination)
-                                    for combination in combinations)
+    return combinations
 
 
 def pipeline_one_combination(setting, names, data, combination):
@@ -69,10 +82,7 @@ def pipeline_one_combination(setting, names, data, combination):
     :param setting: the Setting object
     :param names: the Setting object
     :param data: the Data object
-    :param min_support: the minimum support required by the rules
-    :param min_confidence: the minimum confidence required by the rules
-
-    :param clf_name: the name of the classifier
+    :param combination: the combination of [n_iter, max_conds, min_support, min_confidence]
     :return:
     """
 
@@ -83,7 +93,9 @@ def pipeline_one_combination(setting, names, data, combination):
     pipe_fair = Pipeline([(setting.name, FAIR.FAIR(n_iter=n_iter,
                                                    max_conds=max_conds,
                                                    min_support=min_support,
-                                                   min_confidence=min_confidence))])
+                                                   min_confidence=min_confidence,
+                                                   random_state=setting.random_state,
+                                                   n_jobs=setting.n_jobs))])
 
     # Fit the sklearn pipeline for FAIR
     pipe_fair.fit(data.X, data.y)
@@ -96,9 +108,8 @@ def get_results(setting, names, pipe_fair):
     """
     Get the results
     :param setting: the Setting object
-    :param clf_name: the name of the classifier
-    :param gs_clf: the GridSearchCV object for the classifier
-    :param gs_RandomPARC: the GridSearchCV object for RandomPARC
+    :param names: the Setting object
+    :param pipe_fair: the sklearn pipeline for FAIR
     :return:
     """
 
@@ -111,8 +122,8 @@ def write_sig_rule_file(setting, names, pipe_fair):
     """
     Write the significant rule file
     :param setting: the Setting object
-    :param name: the name of the model
-    :param gs: the GridSearchCV object for the model
+    :param names: the Setting object
+    :param pipe_fair: the sklearn pipeline for FAIR
     :return:
     """
 
@@ -129,7 +140,9 @@ def write_sig_rule_file(setting, names, pipe_fair):
                          + '/')
 
     # Get the pathname of the significant rule file
-    sig_rule_file = sig_rule_file_dir + setting.sig_rule_file_name + setting.sig_rule_file_type
+    sig_rule_file = (sig_rule_file_dir
+                     + setting.sig_rule_file_name
+                     + setting.sig_rule_file_type)
 
     # Make directory
     directory = os.path.dirname(sig_rule_file)
@@ -141,26 +154,10 @@ def write_sig_rule_file(setting, names, pipe_fair):
         f.write("Class,C,Mean_support,Mean_confidence,Std_support,Std_confidence,Number" + '\n')
 
         for class_ in sorted(pipe_fair.named_steps[setting.name].sig_rules.keys()):
-            rules = []
-            for iter in sorted(pipe_fair.named_steps[setting.name].sig_rules[class_].keys()):
-                for rule in pipe_fair.named_steps[setting.name].sig_rules[class_][iter]:
-                    # Unpack the rule
-                    C, supports, confidences = rule
+            # Get the rules
+            rules = get_rules(setting, pipe_fair, class_)
 
-                    # Add the rule
-                    idx = 0
-                    while idx < len(rules):
-                        # If the rule has the same conditions with a detected rule
-                        if sorted(rules[idx][0]) == sorted(C):
-                            # Update the supports and confidences
-                            rules[idx][1] = np.append(rules[idx][1], supports)
-                            rules[idx][2] = np.append(rules[idx][2], confidences)
-                            break
-                        idx += 1
-                    # If the rule does not have the same conditions with a detected rule
-                    if idx == len(rules):
-                        rules.append([C, supports, confidences])
-
+            # Write the rules
             for rule in rules:
                 # Unpack the rule
                 C, supports, confidences = rule
@@ -179,6 +176,39 @@ def write_sig_rule_file(setting, names, pipe_fair):
                         + ','
                         + str(len(supports))
                         + '\n')
+
+
+def get_rules(setting, pipe_fair, class_):
+    """
+    Get the rules
+    :param setting: the Setting object
+    :param pipe_fair: the sklearn pipeline for FAIR
+    :param class_: a class of the target
+    :return: the rules
+    """
+
+    rules = []
+
+    for iter in sorted(pipe_fair.named_steps[setting.name].sig_rules[class_].keys()):
+        for rule in pipe_fair.named_steps[setting.name].sig_rules[class_][iter]:
+            # Unpack the rule
+            C, supports, confidences = rule
+
+            # Add the rule
+            idx = 0
+            while idx < len(rules):
+                # If the rule has the same conditions with a detected rule
+                if sorted(rules[idx][0]) == sorted(C):
+                    # Update the supports and confidences
+                    rules[idx][1] = np.append(rules[idx][1], supports)
+                    rules[idx][2] = np.append(rules[idx][2], confidences)
+                    break
+                idx += 1
+            # If the rule does not have the same conditions with a detected rule
+            if idx == len(rules):
+                rules.append([C, supports, confidences])
+
+    return rules
 
 
 if __name__ == "__main__":

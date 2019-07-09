@@ -288,7 +288,13 @@ class FAIR(BaseEstimator, ClassifierMixin):
             # Sort the condition-importance pairs in ascending order of importance
             c_importance_sorted = sorted(c_importance, key=lambda x: x[1], reverse=False)
 
-            for c, importance in c_importance_sorted:
+            # Get the conditions whose importance is not None
+            C_not_none = np.array([c for c, importance in c_importance_sorted])
+
+            # Get the conditions whose importance is None
+            C_none = np.setdiff1d(C, C_not_none)
+
+            for c in np.append(C_not_none, C_none):
                 # Remove c from c_importance_sorted
                 C_setminus_c = np.delete(C, np.where(C == c)[0])
 
@@ -296,7 +302,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
                 avail_samples = self.avail_samples[class_][iter]
 
                 # Get the samples where C_setminus_c is true
-                C_setminus_c_samples = avail_samples[np.where(np.prod(X[avail_samples, C_setminus_c]) == 1)]
+                C_setminus_c_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C_setminus_c)], axis=1) == 1)]
 
                 # Get the samples where both class_ and C_setminus_c are true
                 class_C_setminus_c_samples = C_setminus_c_samples[np.where(y[C_setminus_c_samples] == class_)]
@@ -366,8 +372,8 @@ class FAIR(BaseEstimator, ClassifierMixin):
             if len(C_setminus_c) == 0:
                 C_setminus_c_and_not_c_samples = avail_samples[np.where(X[avail_samples, c] == 0)]
             else:
-                C_setminus_c_and_not_c_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C_setminus_c)]) == 1
-                                                                        and X[avail_samples, c] == 0)]
+                C_setminus_c_and_not_c_samples = avail_samples[np.where((np.prod(X[np.ix_(avail_samples, C_setminus_c)], axis=1) == 1)
+                                                                        & (X[avail_samples, c] == 0))]
 
             # Get the samples where both class_ and C_setminus_c are true but c is false
             class_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
@@ -544,7 +550,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
         avail_samples = self.avail_samples[class_][iter]
 
         # Update C_samples
-        C_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C)]) == 1)]
+        C_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C)], axis=1) == 1)]
 
         # Update class_and_C_samples
         class_and_C_samples = C_samples[np.where(y[C_samples] == class_)]
@@ -556,30 +562,3 @@ class FAIR(BaseEstimator, ClassifierMixin):
         self.removed_conds[class_][iter][c] = 1
         
         return True
-
-    def predict(self, X):
-        """
-        Predict the class of each sample in X
-        :param X: the condition matrix
-        :return: the predicted class of each sample in X
-        """
-
-        # Predict the probability of each class (of each sample in X) using the best base classifier
-        probabilities = self.gs_base.best_estimator_.predict_proba(X)
-
-        for class_ in sorted(self.sig_rules.keys()):
-            for rule in self.sig_rules[class_][iter]:
-                # Unpack the rule
-                C, C_samples, class_and_C_samples = rule
-
-                # Get the samples where the rule fires
-                samples = np.where(np.prod(X[:, C] == 1))[0]
-
-                if len(samples) > 0:
-                    # Get the probability of the rule
-                    probability = float(len(class_and_C_samples)) / len(C_samples)
-
-                    # Update the probabilities
-                    probabilities[samples][class_] = max(probabilities[samples][class_], probability)
-
-        return np.argmax(probabilities, axis=1)
