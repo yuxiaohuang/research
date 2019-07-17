@@ -1,7 +1,7 @@
 ###-----------------------------------------------------------------------------------------
 ### Run script for our algorithms###-----------------------------------------------------------------------------------------
 
-mkdir -p ./FAIR/result/ours/
+mkdir -p /home/yuxiaohuang/research/gwu/FAIR/result/ours/
 
-(time ./FAIR/code/script/script/ours.txt) 2> ./FAIR/result/ours/time.txt
+(time /home/yuxiaohuang/research/gwu/FAIR/code/script/script/ours.txt) 2> /home/yuxiaohuang/research/gwu/FAIR/result/ours/time.txt
 

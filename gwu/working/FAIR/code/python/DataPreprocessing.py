@@ -8,8 +8,6 @@ import numpy as np
 import Names
 import Data
 
-from imblearn.over_sampling import RandomOverSampler
-
 class DataPreprocessing():
     """The Data Processing class"""
 
@@ -67,11 +65,15 @@ class DataPreprocessing():
         data_file = data_file.replace('.test', '')
 
         # Get the Setting object
-        # If data_file and names_file are in the same directory
-        if os.path.dirname(data_file) == os.path.dirname(names_file):
-            result_dir += os.path.basename(os.path.dirname(names_file)) + '/'
+        # If data_file and names_file are in ./data/current/
+        if os.path.basename(os.path.dirname(os.path.dirname(data_file))) == 'data':
+            result_dir += os.path.basename(os.path.dirname(data_file)) + '/'
+        # If data_file and names_file are in ./data/parent/current/
         else:
-            result_dir += os.path.basename(os.path.dirname(data_file)) + '/' + os.path.basename(os.path.dirname(names_file)) + '/'
+            result_dir += (os.path.basename(os.path.dirname(os.path.dirname(data_file)))
+                           + '/'
+                           + os.path.basename(os.path.dirname(data_file))
+                           + '/')
         setting = Setting.Setting(names_file, result_dir)
 
         # Get the Names object
@@ -152,10 +154,17 @@ class DataPreprocessing():
                                     vals = [float(val) if val.isdigit() is True else val for val in vals]
                                     self.get_para_vals(names, para_name, vals)
 
-
         # Get the features
         names.features = [feature for feature in names.columns
                           if (feature != names.target and feature not in names.exclude_features)]
+
+        # Get the continuous features
+        names.continuous_features = [feature for feature in names.features
+                                     if feature not in names.categorical_features]
+
+        # Update the bins for the features
+        if len(names.features_bins) == 1:
+            names.features_bins = names.features_bins * len(names.continuous_features)
 
         return names
 
@@ -180,12 +189,18 @@ class DataPreprocessing():
             names.columns = [str(val) for val in vals]
         elif para_name == 'target':
             names.target = str(vals[0])
+        elif para_name == 'continuous_target':
+            names.continuous_target = str(vals[0])
+        elif para_name == 'target_bins':
+            names.target_bins = int(vals[0])
         elif para_name == 'combine_classes':
             names.combine_classes = vals
         elif para_name == 'exclude_features':
             names.exclude_features = [str(val) for val in vals]
         elif para_name == 'categorical_features':
             names.categorical_features = [str(val) for val in vals]
+        elif para_name == 'features_bins':
+            names.features_bins = [int(val) for val in vals]
 
     def get_data(self, data_files, setting, names):
         """
@@ -219,6 +234,9 @@ class DataPreprocessing():
             print("Wrong number of data files!")
             exit(1)
 
+        # Discretize X and y
+        X, y = self.discretize_X_y(X, y, names)
+
         # Encode X and y
         X, y = self.encode_X_y(X, y, setting, names)
 
@@ -226,11 +244,6 @@ class DataPreprocessing():
         names.features = np.array(X.columns)
         # Transform X from dataframe into numpy array
         X = X.values
-
-        # # Oversampling when y is imbalanced
-        # if len(np.unique(np.unique(y, return_counts=True)[1])) != 1:
-        #     ros = RandomOverSampler(random_state=setting.random_state)
-        #     X, y = ros.fit_sample(X, y)
 
         data = Data.Data(X, y)
 
@@ -280,6 +293,30 @@ class DataPreprocessing():
 
         return [X, y]
 
+    def discretize_X_y(self, X, y, names):
+        """
+        Discretize the feature matrix and target vector
+        :param X: the feature matrix
+        :param y: the target vector
+        :param names: the Names object
+        :return: the discretized feature matrix and target vector
+        """
+
+        if len(names.continuous_features) > 0:
+            for j in range(len(names.continuous_features)):
+                # Get the hist and bin_edges
+                hist, bin_edges = np.histogram(X.loc[:, names.continuous_features[j]], bins=names.features_bins[j])
+                # Discretize the continuous features
+                X.loc[:, names.continuous_features[j]] = np.digitize(X.loc[:, names.continuous_features[j]], bins=bin_edges)
+
+        if names.continuous_target != None:
+            # Get the hist and bin_edges
+            hist, bin_edges = np.histogram(y, bins=names.target_bins)
+            # Discretize the target
+            y = np.digitize(y, bins=bin_edges)
+
+        return [X, y]
+
     def encode_X_y(self, X, y, setting, names):
         """
         Encode the feature matrix and target vector
@@ -293,6 +330,10 @@ class DataPreprocessing():
         # One-hot encoding on categorical features
         if len(names.categorical_features) > 0:
             X = pd.get_dummies(X, columns=names.categorical_features)
+
+        # One-hot encoding on continuous features
+        if len(names.continuous_features) > 0:
+            X = pd.get_dummies(X, columns=names.continuous_features)
 
         # Cast X to float
         X = X.astype(float)

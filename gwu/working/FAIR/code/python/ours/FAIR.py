@@ -3,7 +3,7 @@
 import numpy as np
 
 from joblib import Parallel, delayed
-from sklearn.base import BaseEstimator, ClassifierMixin, clone
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 class FAIR(BaseEstimator, ClassifierMixin):
@@ -12,12 +12,12 @@ class FAIR(BaseEstimator, ClassifierMixin):
     """
     
     def __init__(self,
-                 n_iter=10,
-                 min_support=0.1,
+                 n_iter=100,
+                 min_support=0,
                  min_confidence=1,
                  max_conds=10,
                  random_state=0,
-                 n_jobs=10):
+                 n_jobs=1):
         # The number of iterations for searching for the rules
         self.n_iter = n_iter
 
@@ -33,22 +33,22 @@ class FAIR(BaseEstimator, ClassifierMixin):
         # The random state
         self.random_state = random_state
 
-        # The number of jobs to run in parallel, -1 by default (all CPUs are used)
+        # The number of jobs to run in parallel, 10 by default
         self.n_jobs = n_jobs
 
-        # The number of samples
+        # The number of samples in the data
         self.m = None
 
-        # The number of conditions
+        # The number of conditions in the data
         self.n = None
 
-        # The class labels
+        # The class labels in the data
         self.classes = None
 
         # The rule
         self.rule = None
 
-        # The detected significant rules
+        # The detected significant rules (satisfying min_support and min_confidence)
         self.sig_rules = None
 
         # The random number generator
@@ -90,19 +90,19 @@ class FAIR(BaseEstimator, ClassifierMixin):
         # The maximum number of conditions to consider when searching for the rules
         self.max_conds = min(self.max_conds, X.shape[1])
 
-        # The number of samples
+        # The number of samples in the data
         self.m = X.shape[0]
 
-        # The number of conditions
+        # The number of conditions in the data
         self.n = X.shape[1]
 
-        # The class labels
+        # The class labels in the data
         self.classes = np.unique(y)
 
         # The rule
         self.rule = {}
 
-        # The detected significant rules
+        # The detected significant rules (satisfying min_support and min_confidence)
         self.sig_rules = {}
 
         # The random number generator
@@ -144,7 +144,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
         # The rule
         self.rule[class_] = {}
 
-        # The detected significant rules
+        # The detected significant rules (satisfying min_support and min_confidence)
         self.sig_rules[class_] = {}
 
         # The random number generator
@@ -172,7 +172,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
         # Initialization for one iteration
         self.init_one_iter(y, class_, iter)
 
-        # Repeat, until no significant rules (satisfying both min_support and min_confidence) can be found
+        # Repeat, until no significant rules (satisfying min_support and min_confidence) can be found
         while True:
             # If the rule is significant
             if self.significant(class_, iter) is True:
@@ -185,7 +185,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
                 # If no condition can be added
                 if self.add(X, y, class_, iter) is False:
                     # If the rule is empty after removing a condition
-                    if self.remove(X, y, class_, iter) is False:
+                    if self.remove(X, y, class_, iter) is True:
                         break
 
     def init_one_iter(self, y, class_, iter):
@@ -197,7 +197,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
         :return:
         """
 
-        # The detected significant rules
+        # The detected significant rules (satisfying min_support and min_confidence)
         self.sig_rules[class_][iter] = []
 
         # The random number generator
@@ -231,10 +231,10 @@ class FAIR(BaseEstimator, ClassifierMixin):
         C_samples = self.avail_samples[class_][iter]
 
         # Get the samples where both class_ and C are true
-        class_C_samples = C_samples[np.where(y[C_samples] == class_)]
+        class_and_C_samples = C_samples[np.where(y[C_samples] == class_)]
 
         # Get the rule
-        self.rule[class_][iter] = np.array([C, C_samples, class_C_samples])
+        self.rule[class_][iter] = np.array([C, C_samples, class_and_C_samples])
     
     def significant(self, class_, iter):
         """
@@ -253,10 +253,11 @@ class FAIR(BaseEstimator, ClassifierMixin):
         if len(C) == 0:
             return False
 
-        # If the rule meets min_support and min_confidence
-        if (len(C_samples) > 0
-            and float(len(C_samples)) / self.m >= self.min_support
-            and float(len(class_and_C_samples)) / len(C_samples) >= self.min_confidence):
+        # If the rule satisfies min_support and min_confidence
+        if ((len(C_samples) > self.min_support * self.m
+             or len(C_samples) == self.m)
+            and (len(class_and_C_samples) > self.min_confidence * len(C_samples)
+                 or len(class_and_C_samples) == len(C_samples))):
             return True
 
         return False
@@ -305,10 +306,10 @@ class FAIR(BaseEstimator, ClassifierMixin):
                 C_setminus_c_samples = avail_samples[np.where(np.prod(X[np.ix_(avail_samples, C_setminus_c)], axis=1) == 1)]
 
                 # Get the samples where both class_ and C_setminus_c are true
-                class_C_setminus_c_samples = C_setminus_c_samples[np.where(y[C_setminus_c_samples] == class_)]
+                class_and_C_setminus_c_samples = C_setminus_c_samples[np.where(y[C_setminus_c_samples] == class_)]
 
                 # Update the rule
-                self.rule[class_][iter] = [C_setminus_c, C_setminus_c_samples, class_C_setminus_c_samples]
+                self.rule[class_][iter] = [C_setminus_c, C_setminus_c_samples, class_and_C_setminus_c_samples]
 
                 # If the rule is still significant (i.e., c is not necessary)
                 if self.significant(class_, iter) is True:
@@ -360,7 +361,7 @@ class FAIR(BaseEstimator, ClassifierMixin):
             C_and_c_samples = C_samples
 
             # Get the samples where both class_ and C are true
-            class_C_and_c_samples = class_and_C_samples
+            class_and_C_and_c_samples = class_and_C_samples
 
             # Get C_setminus_c
             C_setminus_c = np.delete(C, np.where(C == c)[0])
@@ -376,26 +377,26 @@ class FAIR(BaseEstimator, ClassifierMixin):
                                                                         & (X[avail_samples, c] == 0))]
 
             # Get the samples where both class_ and C_setminus_c are true but c is false
-            class_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
+            class_and_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
         else:
             # Get the samples where both C and c are true
             C_and_c_samples = C_samples[np.where(X[C_samples, c] == 1)]
 
             # Get the samples where class_, C, and c are true
-            class_C_and_c_samples = C_and_c_samples[np.where(y[C_and_c_samples] == class_)]
+            class_and_C_and_c_samples = C_and_c_samples[np.where(y[C_and_c_samples] == class_)]
 
             # Get the samples where C is true and c is false
             C_setminus_c_and_not_c_samples = C_samples[np.where(X[C_samples, c] == 0)]
 
             # Get the samples where both class_ and C_setminus_c are true but c is false
-            class_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
+            class_and_C_setminus_c_and_not_c_samples = C_setminus_c_and_not_c_samples[np.where(y[C_setminus_c_and_not_c_samples] == class_)]
 
-        if (len(C_and_c_samples) > 0
-            and len(C_setminus_c_and_not_c_samples) > 0
-            and float(len(C_and_c_samples)) / self.m >= self.min_support
-            and float(len(C_setminus_c_and_not_c_samples)) / self.m >= self.min_support):
-            ratio_and_c = float(len(class_C_and_c_samples)) / len(C_and_c_samples)
-            ratio_and_not_c = float(len(class_C_setminus_c_and_not_c_samples)) / len(C_setminus_c_and_not_c_samples)
+        if ((len(C_and_c_samples) > self.min_support * self.m
+             or len(C_and_c_samples) == self.m)
+                and (len(C_setminus_c_and_not_c_samples) > self.min_support * self.m
+                     or len(C_setminus_c_and_not_c_samples) == self.m)):
+            ratio_and_c = float(len(class_and_C_and_c_samples)) / len(C_and_c_samples)
+            ratio_and_not_c = float(len(class_and_C_setminus_c_and_not_c_samples)) / len(C_setminus_c_and_not_c_samples)
             importance = ratio_and_c - ratio_and_not_c
         else:
             importance = None
@@ -527,13 +528,13 @@ class FAIR(BaseEstimator, ClassifierMixin):
         C, C_samples, class_and_C_samples = self.rule[class_][iter]
 
         if len(C) <= 1:
-            return False
+            return True
 
         # Get the condition-importance pairs
         c_importance = self.get_c_importance(X, y, class_, iter, C)
 
         # If both requirements 1 and 2 are met
-        if len(c_importance) != 0:
+        if len(c_importance) > 0:
             # Sort the condition-importance pairs in ascending order of importance
             c_importance_sorted = sorted(c_importance, key=lambda x: x[1], reverse=False)
 
@@ -560,5 +561,5 @@ class FAIR(BaseEstimator, ClassifierMixin):
 
         # Update the removed conditions
         self.removed_conds[class_][iter][c] = 1
-        
-        return True
+
+        return False

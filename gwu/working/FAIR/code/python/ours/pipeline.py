@@ -33,7 +33,7 @@ def pipeline_all_datasets():
     # The pipeline for each data set (in parallel)
     # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
     Parallel(n_jobs=10)(delayed(pipeline_one_dataset)(dp, data_files, names_file)
-                       for data_files, names_file in data_names)
+                        for data_files, names_file in data_names)
 
 
 def pipeline_one_dataset(dp, data_files, names_file):
@@ -53,8 +53,7 @@ def pipeline_one_dataset(dp, data_files, names_file):
 
     # The pipeline for each combination (in parallel)
     # Set backend="multiprocessing" (default) to prevent sharing memory between parent and threads
-    Parallel(n_jobs=setting.n_jobs)(delayed(pipeline_one_combination)
-                                    (setting, names, data, combination)
+    Parallel(n_jobs=setting.n_jobs)(delayed(pipeline_one_combination)(setting, names, data, combination)
                                     for combination in combinations)
 
 
@@ -78,9 +77,9 @@ def get_combinations(setting):
 
 def pipeline_one_combination(setting, names, data, combination):
     """
-    The pipeline for each combination of min_support and min_confidence
+    The pipeline for each combination of [n_iter, max_conds, min_support, min_confidence]
     :param setting: the Setting object
-    :param names: the Setting object
+    :param names: the Names object
     :param data: the Data object
     :param combination: the combination of [n_iter, max_conds, min_support, min_confidence]
     :return:
@@ -108,7 +107,7 @@ def get_results(setting, names, pipe_fair):
     """
     Get the results
     :param setting: the Setting object
-    :param names: the Setting object
+    :param names: the Names object
     :param pipe_fair: the sklearn pipeline for FAIR
     :return:
     """
@@ -122,7 +121,7 @@ def write_sig_rule_file(setting, names, pipe_fair):
     """
     Write the significant rule file
     :param setting: the Setting object
-    :param names: the Setting object
+    :param names: the Names object
     :param pipe_fair: the sklearn pipeline for FAIR
     :return:
     """

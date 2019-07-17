@@ -21,22 +21,22 @@ class Setting:
         # self.min_confidences = [0.1 * i for i in range(11)]
 
         # The list of number of iterations for searching for the rules
-        self.n_iters = [100]
+        self.n_iters = [10000]
 
         # The list of maximum number of conditions to consider when searching for the rules
         self.max_condss = [10]
 
         # The list of minimum support required by the rules
-        self.min_supports = [0.01]
+        self.min_supports = [10 ** -2]
 
         # The list of minimum confidence required by the rules
-        self.min_confidences = [1]
+        self.min_confidences = [0.9]
 
         # The random state
         self.random_state = 0
 
         # The number of jobs to run in parallel
-        self.n_jobs = 10
+        self.n_jobs = 1
 
         # The name of RandomPARC
         self.name = 'FAIR'
