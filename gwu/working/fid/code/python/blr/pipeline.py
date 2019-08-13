@@ -53,13 +53,13 @@ def pipeline_one_dataset(dp, data_files, names_file):
 
     # Get the sklearn pipeline
     pipe_blr = Pipeline([('scaler', setting.scaler),
-                           ('blr', BLR.BLR(setting.max_iter,
-                                                 setting.bin_num_percent,
-                                                 setting.min_bin_num,
-                                                 setting.max_bin_num,
-                                                 setting.eta,
-                                                 setting.random_state,
-                                                 setting.n_jobs))])
+                         ('blr', BLR.BLR(setting.max_iter,
+                                         setting.bin_num_percent,
+                                         setting.min_bin_num,
+                                         setting.max_bin_num,
+                                         setting.eta,
+                                         setting.random_state,
+                                         setting.n_jobs))])
 
     # Hyperparameter tuning using GridSearchCV
     gs = GridSearchCV(estimator=pipe_blr,
@@ -129,14 +129,23 @@ def plot_prob_dists_fig(setting, names, X, blr):
             # Get the name of the jth feature
             xj_name = names.features[j]
 
-            # Get the original value of the jth feature before the scaling
-            xijs_ori = [xij_ori for xij_ori in np.unique(sorted(X[:, j]))]
+            # Get the unique value of the jth feature and their indices
+            xijs, is_ = np.unique(X[:, j], return_index=True)
 
-            # Get the probabilities
-            pijs = [blr.prob_dists[class_][j][xij] for xij in np.unique(sorted(blr.prob_dists[class_][j].keys()))]
+            # Get the pairs of the value of the jth feature and their indices
+            xij_i_pairs = list(zip(xijs, is_))
+
+            # Sort the pairs above in ascending order of the value of the jth feature
+            xij_i_pairs_sorted = sorted(xij_i_pairs, key=lambda x: x[0])
+
+            # Get the sorted value of the jth feature
+            xijs_sorted = [xij for xij, i in xij_i_pairs_sorted]
+
+            # Get the corresponding probabilities
+            pijs = [blr.prob_dists[class_][j][i] for xij, i in xij_i_pairs_sorted]
 
             # Get the pandas dataframe
-            df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Probability'])
+            df = pd.DataFrame(list(zip(xijs_sorted, pijs)), columns=[xj_name, 'Probability'])
 
             # Plot the histogram
             df.plot(x=xj_name,
@@ -154,8 +163,8 @@ def plot_prob_dists_fig(setting, names, X, blr):
             # Set the y-axis label
             plt.ylabel('Probability')
 
-            if len(xijs_ori) > 50:
-                plt.tick_params(labelbottom='off')
+            if len(xijs_sorted) > 50:
+                plt.tick_params(labelbottom=False)
 
             plt.tight_layout()
             prob_dists_fig = (setting.prob_dists_fig_dir + setting.prob_dists_fig_name + '_' + class_ori + '_' + xj_name
@@ -192,17 +201,23 @@ def write_prob_dists_file(setting, names, X, blr):
                 # Get the name of the jth feature
                 xj_name = names.features[j]
 
-                # Get the original value of the jth feature before the scaling
-                xijs_ori = [xij_ori for xij_ori in np.unique(sorted(X[:, j]))]
+                # Get the unique value of the jth feature and their indices
+                xijs, is_ = np.unique(X[:, j], return_index=True)
 
-                # Get the probabilities
-                pijs = [blr.prob_dists[class_][j][xij] for xij in
-                        np.unique(sorted(blr.prob_dists[class_][j].keys()))]
+                # Get the pairs of the value of the jth feature and their indices
+                xij_i_pairs = list(zip(xijs, is_))
 
-                for idx in range(len(pijs)):
-                    pij = pijs[idx]
-                    xij_ori = xijs_ori[idx]
-                    f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
+                # Sort the pairs above in ascending order of the value of the jth feature
+                xij_i_pairs_sorted = sorted(xij_i_pairs, key=lambda x: x[0])
+
+                # Get the sorted value of the jth feature
+                xijs_sorted = [xij for xij, i in xij_i_pairs_sorted]
+
+                # Get the corresponding probabilities
+                pijs = [blr.prob_dists[class_][j][i] for xij, i in xij_i_pairs_sorted]
+
+                for xij, pij in list(zip(xijs_sorted, pijs)):
+                    f.write(class_ori + ',' + xj_name + ',' + str(xij) + ',' + str(pij) + '\n')
 
 
 def write_cv_results_file(setting, cv_results):
@@ -221,18 +236,7 @@ def write_cv_results_file(setting, cv_results):
     cv_results_file = setting.cv_results_file_dir + setting.cv_results_file_name + setting.cv_results_file_type
 
     # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
-    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['mean_test_score',
-                                                                    'std_test_score',
-                                                                    'mean_train_score',
-                                                                    'std_train_score',
-                                                                    'mean_fit_time',
-                                                                    'std_fit_time'],
-                                                                ascending=[False,
-                                                                           True,
-                                                                           False,
-                                                                           True,
-                                                                           True,
-                                                                           True])
+    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
 

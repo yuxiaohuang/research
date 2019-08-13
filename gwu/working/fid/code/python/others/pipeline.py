@@ -105,6 +105,16 @@ def get_results(setting, names, data, gs, clf_name):
         # Write the probability distribution file
         write_prob_dists_file(setting, names, data.X, data.y, gs.best_estimator_, clf_name)
 
+    if (setting.prob_dists_fig_dir is not None
+        and clf_name == 'GaussianNB'):
+        # Plot the probability distribution figures
+        plot_prob_dists_gnb_fig(setting, names, data.X, data.y, gs.best_estimator_, clf_name)
+
+    if (setting.prob_dists_file_dir is not None
+        and clf_name == 'GaussianNB'):
+        # Write the probability distribution file
+        write_prob_dists_gnb_file(setting, names, data.X, data.y, gs.best_estimator_, clf_name)
+
     if (setting.feature_importances_fig_dir is not None
         and clf_name == 'RandomForestClassifier'):
         # Plot the feature importances figure
@@ -182,7 +192,7 @@ def plot_prob_dists_fig(setting, names, X, y, clf, clf_name):
             plt.ylabel('Probability')
 
             if len(xijs_ori) > 50:
-                plt.tick_params(labelbottom='off')
+                plt.tick_params(labelbottom=False)
 
             plt.tight_layout()
             prob_dists_fig = (prob_dists_fig_dir + setting.prob_dists_fig_name + '_' + class_ori + '_' + xj_name
@@ -279,6 +289,168 @@ def write_prob_dists_file(setting, names, X, y, clf, clf_name):
                     f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
 
 
+def plot_prob_dists_gnb_fig(setting, names, X, y, clf, clf_name):
+    """
+    Plot the probability distribution figures.
+    :param setting: the Setting object
+    :param names: the Names object
+    :param X: the feature matrix
+    :param y: the target vector
+    :param clf: the classifier
+    :param clf_name: the name of the classifier
+    :return:
+    """
+
+    # Get the directory of the probability distribution figure
+    prob_dists_fig_dir = setting.prob_dists_fig_dir + clf_name + '/'
+
+    # Make directory
+    directory = os.path.dirname(prob_dists_fig_dir)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Get the dictionary of probability distribution
+    prob_dists = get_prob_dists_gnb(X, y, clf, clf_name)
+
+    for class_ in range(len(np.unique(y))):
+        # Get the original value of class_ before the encoding
+        class_ori = str(setting.encoder.inverse_transform(np.array([class_]))[0])
+
+        for j in sorted(prob_dists[class_].keys()):
+            # Get the name of the jth feature
+            xj_name = names.features[j]
+
+            # Get the original value of the jth feature before the scaling
+            xijs_ori = [xij for xij in sorted(prob_dists[class_][j].keys())]
+
+            # Get the probabilities
+            pijs = [prob_dists[class_][j][xij] for xij in
+                    sorted(prob_dists[class_][j].keys())]
+
+            # Get the dataframe
+            df = pd.DataFrame(list(zip(xijs_ori, pijs)), columns=[xj_name, 'Probability'])
+
+            # Plot the histogram
+            df.plot(x=xj_name,
+                    y='Probability',
+                    kind='bar',
+                    yticks=[0, 0.25, 0.5, 0.75, 1],
+                    ylim=(0, 1),
+                    figsize=(20, 10),
+                    title=class_ori,
+                    legend=False,
+                    color='b')
+
+            # Set the x-axis label
+            plt.xlabel(xj_name)
+            # Set the y-axis label
+            plt.ylabel('Probability')
+
+            if len(xijs_ori) > 50:
+                plt.tick_params(labelbottom=False)
+
+            plt.tight_layout()
+            prob_dists_fig = (prob_dists_fig_dir + setting.prob_dists_fig_name + '_' + class_ori + '_' + xj_name
+                             + setting.prob_dists_fig_type)
+            plt.savefig(prob_dists_fig)
+
+
+def get_prob_dists_gnb(X, y, clf, clf_name):
+    """
+    Get the dictionary of probability distribution
+    :param X: the feature matrix
+    :param clf: the classifier
+    :param clf_name: the name of the classifier
+    :return: the dictionary of probability distribution
+    """
+
+    prob_dists = {}
+
+    for j in range(X.shape[1]):
+        # Get the copy of X
+        X_copy = np.array(X)
+        # Standardize the data
+        X_copy = clf.named_steps['scaler'].fit_transform(X_copy)
+
+        # Get the unique value and the corresponding index of the jth feature
+        xijs, idxs = np.unique(X[:, j], return_index=True)
+
+        for i in idxs:
+            # The sum of probability across each class
+            sum = 0
+
+            for class_ in sorted(np.unique(y)):
+                if class_ not in prob_dists:
+                    prob_dists[class_] = {}
+                if j not in prob_dists[class_]:
+                    prob_dists[class_][j] = {}
+
+                # Get p(class_ | Xj = Xij)
+                prob = np.exp(-((X_copy[i, j] - clf.named_steps[clf_name].theta_[class_, j]) ** 2 / (2 * clf.named_steps[clf_name].sigma_[class_, j] ** 2))) / (np.sqrt(2 * (np.pi) * clf.named_steps[clf_name].sigma_[class_, j] ** 2))
+
+                # Update prob_dists
+                prob_dists[class_][j][X[i, j]] = prob
+
+                # Update sum
+                sum += prob
+
+            for class_ in sorted(np.unique(y)):
+                # Update prob_dists
+                prob_dists[class_][j][X[i, j]] /= sum
+
+    return prob_dists
+
+
+def write_prob_dists_gnb_file(setting, names, X, y, clf, clf_name):
+    """
+    Write the probability distribution file
+    :param setting: the Setting object
+    :param names: the Names object
+    :param X: the feature matrix
+    :param y: the target vector
+    :param clf: the classifier
+    :param clf_name: the name of the classifier
+    :return:
+    """
+
+    # Get the directory of the probability distribution file
+    prob_dists_file_dir = setting.prob_dists_file_dir + clf_name + '/'
+    # Get the pathname of the probability distribution file
+    prob_dists_file = prob_dists_file_dir + setting.prob_dists_file_name + setting.prob_dists_file_type
+
+    # Make directory
+    directory = os.path.dirname(prob_dists_file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Get the dictionary of probability distribution
+    prob_dists = get_prob_dists_gnb(X, y, clf, clf_name)
+
+    with open(prob_dists_file, 'w') as f:
+        # Write header
+        f.write("Class,Feature,Value,Probability" + '\n')
+
+        for class_ in range(len(np.unique(y))):
+            # Get the original value of class_ before the encoding
+            class_ori = str(setting.encoder.inverse_transform(np.array([class_]))[0])
+
+            for j in sorted(prob_dists[class_].keys()):
+                # Get the name of the jth feature
+                xj_name = names.features[j]
+
+                # Get the original value of the jth feature before the scaling
+                xijs_ori = [xij_ori for xij_ori in np.unique(sorted(X[:, j]))]
+
+                # Get the probabilities
+                pijs = [prob_dists[class_][j][xij] for xij in
+                        np.unique(sorted(prob_dists[class_][j].keys()))]
+
+                for idx in range(len(pijs)):
+                    pij = pijs[idx]
+                    xij_ori = xijs_ori[idx]
+                    f.write(class_ori + ',' + xj_name + ',' + str(xij_ori) + ',' + str(pij) + '\n')
+
+
 def plot_feature_importances_fig(setting, names, clf, clf_name):
     """
     Plot the feature importances figure
@@ -321,7 +493,7 @@ def plot_feature_importances_fig(setting, names, clf, clf_name):
     plt.axes().xaxis.label.set_visible(False)
 
     if len(names.features) > 50:
-        plt.tick_params(labelbottom='off')
+        plt.tick_params(labelbottom=False)
 
     plt.tight_layout()
     plt.savefig(feature_importances_fig)
@@ -373,18 +545,7 @@ def write_cv_results_file(setting, cv_results, clf_name):
         os.makedirs(directory)
 
     # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
-    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['mean_test_score',
-                                                                    'std_test_score',
-                                                                    'mean_train_score',
-                                                                    'std_train_score',
-                                                                    'mean_fit_time',
-                                                                    'std_fit_time'],
-                                                                ascending=[False,
-                                                                           True,
-                                                                           False,
-                                                                           True,
-                                                                           True,
-                                                                           True])
+    cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
 
     cv_results.to_csv(path_or_buf=cv_results_file)
 

@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
 
 class Setting:
     """The Setting class"""
@@ -35,7 +36,8 @@ class Setting:
         self.classifiers = ({'RandomForestClassifier': RandomForestClassifier(random_state=self.random_state,
                                                                               n_jobs=self.n_jobs),
                              'LogisticRegression': LogisticRegression(random_state=self.random_state,
-                                                                      n_jobs=self.n_jobs)})
+                                                                      n_jobs=self.n_jobs),
+                             'GaussianNB': GaussianNB()})
 
         # The dictionary of parameter grids
         self.param_grids = ({'RandomForestClassifier': [{'RandomForestClassifier__n_estimators': [10 ** i for i in range(1, 4)],
@@ -44,7 +46,7 @@ class Setting:
                                                          'RandomForestClassifier__min_samples_leaf': [10 ** i for i in range(0, 3)],
                                                          'RandomForestClassifier__max_features': ['auto', 'log2']}],
                              'LogisticRegression': [{'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
-                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 4)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
                                                      'LogisticRegression__solver': ['newton-cg',
                                                                                     'lbfgs',
                                                                                     'liblinear',
@@ -53,13 +55,14 @@ class Setting:
                                                      'LogisticRegression__max_iter': [50 * i for i in range(1, 5)],
                                                      'LogisticRegression__multi_class': ['ovr']},
                                                     {'LogisticRegression__tol': [10 ** i for i in range(-5, -2)],
-                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 4)],
+                                                     'LogisticRegression__C': [10 ** i for i in range(-3, 1)],
                                                      'LogisticRegression__solver': ['newton-cg',
                                                                                     'lbfgs',
                                                                                     'sag',
                                                                                     'saga'],
                                                      'LogisticRegression__max_iter': [50 * i for i in range(1, 5)],
-                                                     'LogisticRegression__multi_class': ['multinomial']}]})
+                                                     'LogisticRegression__multi_class': ['multinomial']}],
+                             'GaussianNB': [{'GaussianNB__priors': [None]}]})
 
         # The pathname of the probability distribution figure directory
         self.prob_dists_fig_dir = result_dir + 'prob_dists_fig/'

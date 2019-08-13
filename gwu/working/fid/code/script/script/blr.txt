@@ -1,4 +1,4 @@
 ###-----------------------------------------------------------------------------------------
 ### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
 
-python -W ignore /home/yuxiaohuang/research/gwu/fid/code/python/blr/pipeline.py /home/yuxiaohuang/research/gwu/fid/data/ /home/yuxiaohuang/research/gwu/fid/result/blr/ /home/yuxiaohuang/research/gwu/fid/code/python/
+python -W ignore /home/yuxiaohuang/research/gwu/aaai_20/fid/code/python/blr/pipeline.py /home/yuxiaohuang/research/gwu/aaai_20/fid/data/ /home/yuxiaohuang/research/gwu/aaai_20/fid/result/blr/ /home/yuxiaohuang/research/gwu/aaai_20/fid/code/python/

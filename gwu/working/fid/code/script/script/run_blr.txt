@@ -1,7 +1,7 @@
 ###-----------------------------------------------------------------------------------------
 ### Run script for our algorithms###-----------------------------------------------------------------------------------------
 
-mkdir -p /home/yuxiaohuang/research/gwu/fid/result/blr/
+mkdir -p /home/yuxiaohuang/research/gwu/aaai_20/fid/result/blr/
 
-(time /home/yuxiaohuang/research/gwu/fid/code/script/script/blr.txt) 2> /home/yuxiaohuang/research/gwu/fid/result/blr/time.txt
+(time /home/yuxiaohuang/research/gwu/aaai_20/fid/code/script/script/blr.txt) 2> /home/yuxiaohuang/research/gwu/aaai_20/fid/result/blr/time.txt
 

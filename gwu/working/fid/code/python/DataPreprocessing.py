@@ -152,7 +152,6 @@ class DataPreprocessing():
                                     vals = [float(val) if val.isdigit() is True else val for val in vals]
                                     self.get_para_vals(names, para_name, vals)
 
-
         # Get the features
         names.features = [feature for feature in names.columns
                           if (feature != names.target and feature not in names.exclude_features)]
