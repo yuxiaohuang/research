@@ -58,13 +58,13 @@ def pipeline_one_dataset(dp, data_files, names_file):
                                          setting.min_bin_num,
                                          setting.max_bin_num,
                                          setting.eta,
+                                         setting.tol,
                                          setting.random_state,
                                          setting.n_jobs))])
 
     # Hyperparameter tuning using GridSearchCV
     gs = GridSearchCV(estimator=pipe_blr,
-                      param_grid=[{'blr__max_iter': setting.max_iters,
-                                   'blr__bin_num_percent': setting.bin_num_percents,
+                      param_grid=[{'blr__bin_num_percent': setting.bin_num_percents,
                                    'blr__eta': setting.etas}],
                       scoring=setting.scoring,
                       n_jobs=setting.n_jobs,

@@ -23,14 +23,11 @@ class Setting:
         # The maximum number of iterations
         self.max_iter = 100
 
-        # The grid of maximum number of iterations
-        self.max_iters = [50 * i for i in range(1, 5)]
-
         # The percentage of the number of bins out of the number of unique value of a feature
-        self.bin_num_percent = 1
+        self.bin_num_percent = 0
 
         # The grid of percentages of the number of bins out of the number of unique value of a feature
-        self.bin_num_percents = [10 ** i for i in range(-3, 1)]
+        self.bin_num_percents = [0] + [10 ** i for i in range(-3, 1)]
 
         # The minimum number of bins
         self.min_bin_num = 1
@@ -43,6 +40,9 @@ class Setting:
 
         # The grid of learning rates
         self.etas = [10 ** i for i in range(-3, 1)]
+
+        # The tolerance for stopping criteria
+        self.tol = 10 ** -4
 
         # The random state
         self.random_state = 0

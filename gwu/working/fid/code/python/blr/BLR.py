@@ -11,11 +11,11 @@ class BLR(BaseEstimator, ClassifierMixin):
     The BLR (Binarized Logistic Regression) model
     """
 
-    def __init__(self, max_iter=100, bin_num_percent=1, min_bin_num=1, max_bin_num=100, eta=1, random_state=0, n_jobs=10):
+    def __init__(self, max_iter=100, bin_num_percent=0, min_bin_num=1, max_bin_num=100, eta=1, tol=10 ** -4, random_state=0, n_jobs=10):
         # The maximum number of iteration, 100 by default
         self.max_iter = max_iter
 
-        # The percentage of the number of bins out of the number of unique value of a feature, 1 by default
+        # The percentage of the number of bins out of the number of unique value of a feature, 0 by default
         self.bin_num_percent = bin_num_percent
 
         # The minimum number of bins
@@ -26,6 +26,9 @@ class BLR(BaseEstimator, ClassifierMixin):
 
         # The learning rate, 1 by default
         self.eta = eta
+
+        # The tolerance for stopping criteria, 10 ** -4 by default
+        self.tol = tol
 
         # The random state, 0 by default
         self.random_state = random_state
@@ -57,15 +60,15 @@ class BLR(BaseEstimator, ClassifierMixin):
         """
 
         # Initialize the attributes
-        self.init_attributes(X)
+        self.init_attributes(X[:100, :])
 
         # Gradient descent for each class of the target
         # Set backend="threading" to share memory between parent and threads
-        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X, y, class_)
-                                                          for class_ in sorted(np.unique(y)))
+        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X[:100, :], y[:100], class_)
+                                                          for class_ in sorted(np.unique(y[:100])))
 
         # Normalize the dictionary of probability distributions
-        self.normalize_prob_dists(X)
+        self.normalize_prob_dists(X[:100, :])
 
     def init_attributes(self, X):
         """
@@ -161,12 +164,23 @@ class BLR(BaseEstimator, ClassifierMixin):
         # Get the indicator vector
         f = self.get_f(y, class_)
 
-        for _ in range(self.max_iter):
+        for iter in range(self.max_iter):
             # Get the probability vector
             p = self.get_p(X, W0, W1)
 
             # Update the weight matrices
             W0, W1 = self.update_W(X, W0, W1, f, p)
+
+            if iter > 0:
+                # Get the sum of the absolute difference between p and p_old
+                sum_abs_diff = np.sum(abs(p - p_old))
+
+                # If the sum of the absolute difference is smaller than the threshold
+                if sum_abs_diff < self.tol:
+                    break
+
+            # Initialize / Update the old probability vector
+            p_old = np.array(p)
 
         # Get the dictionary of weights
         self.get_weights(X, class_, W0, W1)
