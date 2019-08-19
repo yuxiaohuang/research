@@ -11,7 +11,15 @@ class BLR(BaseEstimator, ClassifierMixin):
     The BLR (Binarized Logistic Regression) model
     """
 
-    def __init__(self, max_iter=100, bin_num_percent=0, min_bin_num=1, max_bin_num=100, eta=1, tol=10 ** -4, random_state=0, n_jobs=10):
+    def __init__(self,
+                 max_iter=100,
+                 bin_num_percent=0,
+                 min_bin_num=1,
+                 max_bin_num=100,
+                 eta=1,
+                 tol=10 ** -4,
+                 random_state=0,
+                 n_jobs=10):
         # The maximum number of iteration, 100 by default
         self.max_iter = max_iter
 
@@ -60,15 +68,15 @@ class BLR(BaseEstimator, ClassifierMixin):
         """
 
         # Initialize the attributes
-        self.init_attributes(X[:100, :])
+        self.init_attributes(X)
 
         # Gradient descent for each class of the target
         # Set backend="threading" to share memory between parent and threads
-        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X[:100, :], y[:100], class_)
-                                                          for class_ in sorted(np.unique(y[:100])))
+        Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X, y, class_)
+                                                          for class_ in sorted(np.unique(y)))
 
         # Normalize the dictionary of probability distributions
-        self.normalize_prob_dists(X[:100, :])
+        self.normalize_prob_dists(X)
 
     def init_attributes(self, X):
         """
@@ -279,8 +287,8 @@ class BLR(BaseEstimator, ClassifierMixin):
             for bin in self.rows[j].keys():
                 # Get the is such that X[i, j] belongs to bin
                 is_ = self.rows[j][bin]
-                W0[is_, j] += np.sum(delta_W0[is_, j])
-                W1[is_, j] += np.sum(delta_W1[is_, j])
+                W0[is_, j] += np.mean(delta_W0[is_, j])
+                W1[is_, j] += np.mean(delta_W1[is_, j])
 
         return [W0, W1]
 
