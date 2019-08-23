@@ -20,15 +20,14 @@ def print_table_acc():
                 'drug_consumption': '4'}
 
     methods = {'GaussianNB': 'GNB',
-               'LogisticRegression': 'LR'}
+               'LogisticRegression': 'LR',
+               'RandomForestClassifier': 'RF'}
 
     files = glob.glob(result_dir + '**/*.csv', recursive=True)
 
     # Get the score file of others
     files_others = [file for file in files if
-                    ('/GaussianNB/' in os.path.abspath(file)
-                     or '/LogisticRegression/' in os.path.abspath(file))
-                    and '/cv_results_file/' in os.path.abspath(file)]
+                    '/others/' in os.path.abspath(file) and '/cv_results_file/' in os.path.abspath(file)]
 
     # Get the score file of blr
     files_blr = [file for file in files if
@@ -61,6 +60,7 @@ def print_table_acc():
 
                 if len(dataset_method_score_files_blr) > 0:
                     nobs_blr, mean_blr, std_blr = get_nobs_mean_std(dataset_method_score_files_blr)
+                    print(dataset, mean_blr, std_blr)
                 else:
                     nobs_blr, mean_blr, std_blr = None, None, None
 

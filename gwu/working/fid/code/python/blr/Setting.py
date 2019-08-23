@@ -35,6 +35,10 @@ class Setting:
         # The maximum number of bins
         self.max_bin_num = 100
 
+        # The maximum number of samples in a batch
+        # self.max_batch_sample_num = 100
+        self.max_batch_sample_num = 1000
+
         # The learning rate
         self.eta = 1
 
@@ -42,6 +46,7 @@ class Setting:
         self.etas = [10 ** i for i in range(-3, 1)]
 
         # The tolerance for stopping criteria
+        # self.tol = 10 ** -4
         self.tol = 10 ** -4
 
         # The random state

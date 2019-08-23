@@ -57,6 +57,7 @@ def pipeline_one_dataset(dp, data_files, names_file):
                                          setting.bin_num_percent,
                                          setting.min_bin_num,
                                          setting.max_bin_num,
+                                         setting.max_batch_sample_num,
                                          setting.eta,
                                          setting.tol,
                                          setting.random_state,
@@ -238,7 +239,7 @@ def write_cv_results_file(setting, cv_results):
     # Sort cv_results in ascending order of 'rank_test_score' and 'std_test_score'
     cv_results = pd.DataFrame.from_dict(cv_results).sort_values(by=['rank_test_score', 'std_test_score'])
 
-    cv_results.to_csv(path_or_buf=cv_results_file)
+    cv_results.to_csv(path_or_buf=cv_results_file, header=True)
 
 
 def write_best_params_file(setting, best_params):
@@ -256,7 +257,7 @@ def write_best_params_file(setting, best_params):
 
     best_params_file = setting.best_params_file_dir + setting.best_params_file_name + setting.best_params_file_type
 
-    pd.Series(best_params).to_csv(path=best_params_file)
+    pd.Series(best_params).to_csv(path=best_params_file, header=True)
 
 
 if __name__ == "__main__":

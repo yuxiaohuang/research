@@ -2,9 +2,11 @@
 
 
 import numpy as np
+import math
 
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.model_selection import StratifiedKFold
 
 class BLR(BaseEstimator, ClassifierMixin):
     """
@@ -16,6 +18,7 @@ class BLR(BaseEstimator, ClassifierMixin):
                  bin_num_percent=0,
                  min_bin_num=1,
                  max_bin_num=100,
+                 max_batch_sample_num=100,
                  eta=1,
                  tol=10 ** -4,
                  random_state=0,
@@ -32,6 +35,9 @@ class BLR(BaseEstimator, ClassifierMixin):
         # The maximum number of bins
         self.max_bin_num = max_bin_num
 
+        # The maximum number of samples in a batch
+        self.max_batch_sample_num = max_batch_sample_num
+
         # The learning rate, 1 by default
         self.eta = eta
 
@@ -47,14 +53,20 @@ class BLR(BaseEstimator, ClassifierMixin):
         # The dictionary of bins
         self.bins = {}
 
-        # The dictionary of rows
-        self.rows = {}
+        # The bin matrix
+        self.B = None
+
+        # The dictionary of bin numbers
+        self.bin_nums = {}
 
         # The dictionary of weights
         self.weights = {}
 
         # The dictionary of probability distributions
         self.prob_dists = {}
+
+        # The dictionary of mini-batch
+        self.mini_batch = {}
 
         # The random number generator
         self.rgen = None
@@ -68,28 +80,32 @@ class BLR(BaseEstimator, ClassifierMixin):
         """
 
         # Initialize the attributes
-        self.init_attributes(X)
+        self.init_attributes(X, y)
 
         # Gradient descent for each class of the target
         # Set backend="threading" to share memory between parent and threads
         Parallel(n_jobs=self.n_jobs, backend="threading")(delayed(self.gradient_descent)(X, y, class_)
                                                           for class_ in sorted(np.unique(y)))
 
-        # Normalize the dictionary of probability distributions
-        self.normalize_prob_dists(X)
+        # Get the dictionary of probability distributions
+        self.get_prob_dists(X, y)
 
-    def init_attributes(self, X):
+    def init_attributes(self, X, y):
         """
         # Initialize the attributes
         :param X: the feature matrix
+        :param y: the target vector
         :return:
         """
 
         # The dictionary of bins
         self.bins = {}
 
-        # The dictionary of rows
-        self.rows = {}
+        # The bin matrix
+        self.B = np.zeros(X.shape)
+
+        # The dictionary of bin numbers
+        self.bin_nums = {}
 
         # The dictionary of weights
         self.weights = {}
@@ -97,11 +113,20 @@ class BLR(BaseEstimator, ClassifierMixin):
         # The dictionary of probability distributions
         self.prob_dists = {}
 
+        # The dictionary of mini-batch
+        self.mini_batch = {}
+
         # Get the dictionary of bins
         self.get_bins(X)
 
-        # Get the dictionary of rows
-        self.get_rows(X)
+        # Get the bin matrix
+        self.get_B(X)
+
+        # Get the dictionary of bin numbers
+        self.get_bin_nums(X)
+
+        # Get the dictionary of mini-batch
+        self.get_mini_batch(X, y)
 
         # Get the random number generator
         self.rgen = np.random.RandomState(seed=self.random_state)
@@ -120,7 +145,7 @@ class BLR(BaseEstimator, ClassifierMixin):
             # Get the bin number
             bin_num = np.clip(int(self.bin_num_percent * xijs_num),
                               self.min_bin_num,
-                              min(self.max_bin_num, xijs_num, max(int(X.shape[0] / (2 * X.shape[1])), 1)))
+                              min(self.max_bin_num, xijs_num, max(int(self.max_batch_sample_num / (2 * X.shape[1])), 1)))
 
             # Get the hist and bin_edges
             hist, bin_edges = np.histogram(X[:, j], bins=bin_num)
@@ -128,16 +153,14 @@ class BLR(BaseEstimator, ClassifierMixin):
             # Remove empty bins
             self.bins[j] = np.hstack((bin_edges[:1], bin_edges[np.where(hist != 0)[0] + 1]))
 
-    def get_rows(self, X):
+    def get_B(self, X):
         """
-        Get the dictionary of rows
+        Get the bin matrix
         :param X: the feature matrix
         :return:
         """
 
         for j in range(X.shape[1]):
-            self.rows[j] = {}
-
             for i in range(X.shape[0]):
                 # Get the bin where X[i, j] belongs
                 if X[i, j] >= max(self.bins[j]):
@@ -150,9 +173,44 @@ class BLR(BaseEstimator, ClassifierMixin):
                     # Put X[i, j] to the first bin where X[i, j] is smaller than the upper bound of the bin
                     bin = np.where(X[i, j] < self.bins[j])[0][0] - 1
 
-                if bin not in self.rows[j].keys():
-                    self.rows[j][bin] = []
-                self.rows[j][bin].append(i)
+                self.B[i, j] = bin
+
+    def get_bin_nums(self, X):
+        """
+        Get the dictionary of bin numbers
+        :param X: the feature matrix
+        :return:
+        """
+
+        for j in range(X.shape[1]):
+            self.bin_nums[j] = np.unique(self.B[:, j])
+
+    def get_mini_batch(self, X, y):
+        """
+        Get the dictionary of mini-batch
+        :param X: the feature matrix
+        :param y: the target vector
+        :return:
+        """
+
+        # Initialize the fold number
+        fold = 0
+
+        # Get the number of splits
+        n_splits = int(math.ceil(X.shape[0] / self.max_batch_sample_num))
+
+        # If only 1 fold
+        if n_splits <= 1:
+            self.mini_batch[fold] = np.array(range(X.shape[0]))
+        else:
+            skf = StratifiedKFold(n_splits=n_splits, random_state=self.random_state)
+
+            for train_idx, test_idx in skf.split(X, y):
+                # Get the mini-batch for the fold
+                self.mini_batch[fold] = test_idx
+
+                # Update the fold
+                fold += 1
 
     def gradient_descent(self, X, y, class_):
         """
@@ -166,35 +224,47 @@ class BLR(BaseEstimator, ClassifierMixin):
         # Initialize the weight dictionary
         self.init_weights(X, class_)
 
-        # Initialize the weight matrices
-        W0, W1 = self.get_W(X, class_)
+        # Initialize the flag variable, indicating the convergence of gradient descent
+        converge = False
 
-        # Get the indicator vector
-        f = self.get_f(y, class_)
+        # Initialize the old probability vector
+        p_old = None
 
-        for iter in range(self.max_iter):
-            # Get the probability vector
-            p = self.get_p(X, W0, W1)
+        for _ in range(self.max_iter):
+            for fold in sorted(self.mini_batch.keys()):
+                # Get the mini-batch
+                mini_batch = self.mini_batch[fold]
 
-            # Update the weight matrices
-            W0, W1 = self.update_W(X, W0, W1, f, p)
+                # Initialize the weight matrices
+                W0, W1 = self.get_W(X[mini_batch, :], mini_batch, class_)
 
-            if iter > 0:
-                # Get the sum of the absolute difference between p and p_old
-                sum_abs_diff = np.sum(abs(p - p_old))
+                # Get the indicator vector
+                f = self.get_f(y[mini_batch], class_)
 
-                # If the sum of the absolute difference is smaller than the threshold
-                if sum_abs_diff < self.tol:
-                    break
+                # Get the probability vector
+                p = self.get_p(X[mini_batch, :], W0, W1)
 
-            # Initialize / Update the old probability vector
-            p_old = np.array(p)
+                # Update the weight matrices
+                W0, W1 = self.update_W(X[mini_batch, :], mini_batch, W0, W1, f, p)
 
-        # Get the dictionary of weights
-        self.get_weights(X, class_, W0, W1)
+                # Get the dictionary of weights
+                self.get_weights(X[mini_batch, :], mini_batch, class_, W0, W1)
 
-        # Get the dictionary of probability distributions
-        self.get_prob_dists(X, class_, W0, W1)
+                if p_old is not None:
+                    # Get the absolute difference between p and p_old
+                    abs_diff = abs(np.mean(p) - np.mean(p_old))
+
+                    # If the absolute difference is smaller than the threshold
+                    if abs_diff < self.tol:
+                        # Gradient descent has converged
+                        converge = True
+                        break
+
+                # Update the old probability vector
+                p_old = np.array(p)
+
+            if converge is True:
+                break
 
     def init_weights(self, X, class_):
         """
@@ -209,14 +279,15 @@ class BLR(BaseEstimator, ClassifierMixin):
         for j in range(X.shape[1]):
             self.weights[class_][j] = {}
 
-            for bin in self.rows[j].keys():
+            for bin in np.unique(self.B[:, j]):
                 r0, r1 = self.rgen.normal(loc=0.0, scale=0.01, size=2)
                 self.weights[class_][j][bin] = [r0, r1]
 
-    def get_W(self, X, class_):
+    def get_W(self, X, mini_batch, class_):
         """
         Get the weight matrices
         :param X: the feature matrix
+        :param mini_batch: the mini-batch
         :param class_: a class of the target
         :return: the weight matrices
         """
@@ -224,10 +295,11 @@ class BLR(BaseEstimator, ClassifierMixin):
         W0, W1 = np.zeros(X.shape), np.zeros(X.shape)
 
         for j in range(X.shape[1]):
-            for bin in self.rows[j].keys():
-                # Get the is such that X[i, j] belongs to bin
-                is_ = self.rows[j][bin]
-                W0[is_, j], W1[is_, j] = self.weights[class_][j][bin]
+            for i in range(X.shape[0]):
+                # Get the bin
+                bin = self.B[mini_batch[i], j]
+
+                W0[i, j], W1[i, j] = self.weights[class_][j][bin]
 
         return [W0, W1]
 
@@ -269,10 +341,11 @@ class BLR(BaseEstimator, ClassifierMixin):
 
         return np.sum(np.multiply(X, W1) + W0, axis=1)
 
-    def update_W(self, X, W0, W1, f, p):
+    def update_W(self, X, mini_batch, W0, W1, f, p):
         """
         Update the weight matrices
         :param X: the feature matrix
+        :param mini_batch: the mini-batch
         :param W0: the weight matrix
         :param W1: the weight matrix
         :param f: the indicator vector
@@ -284,9 +357,9 @@ class BLR(BaseEstimator, ClassifierMixin):
         delta_W0, delta_W1 = self.get_delta_W(X, f, p)
 
         for j in range(X.shape[1]):
-            for bin in self.rows[j].keys():
+            for bin in self.bin_nums[j]:
                 # Get the is such that X[i, j] belongs to bin
-                is_ = self.rows[j][bin]
+                is_ = np.where(self.B[mini_batch, j] == bin)
                 W0[is_, j] += np.mean(delta_W0[is_, j])
                 W1[is_, j] += np.mean(delta_W1[is_, j])
 
@@ -306,7 +379,7 @@ class BLR(BaseEstimator, ClassifierMixin):
 
         return [delta_W0 * self.eta, delta_W1 * self.eta]
 
-    def get_weights(self, X, class_, W0, W1):
+    def get_weights(self, X, mini_batch, class_, W0, W1):
         """
         Get the dictionary of weights
         :param X: the feature matrix
@@ -317,51 +390,47 @@ class BLR(BaseEstimator, ClassifierMixin):
         """
 
         for j in range(X.shape[1]):
-            for bin in self.rows[j].keys():
-                # Get the first i such that X[i, j] belongs to bin
-                i = self.rows[j][bin][0]
-                w0, w1 = W0[i, j], W1[i, j]
+            for bin in self.bin_nums[j]:
+                # Get the is such that X[i, j] belongs to bin
+                is_ = np.where(self.B[mini_batch, j] == bin)
+                w0, w1 = np.mean(W0[is_, j]), np.mean(W1[is_, j])
                 self.weights[class_][j][bin] = [w0, w1]
 
-    def get_prob_dists(self, X, class_, W0, W1):
+    def get_prob_dists(self, X, y):
         """
         Get the dictionary of probability distributions
         :param X: the feature matrix
-        :param class_: a class of the target
-        :param W0: the weight matrix
-        :param W1: the weight matrix
+        :param y: the target vector
         :return:
         """
 
-        self.prob_dists[class_] = {}
+        for class_ in sorted(np.unique(y)):
+            self.prob_dists[class_] = {}
 
-        for j in range(X.shape[1]):
-            self.prob_dists[class_][j] = {}
+            # Get the weight matrices
+            W0, W1 = self.get_W(X, np.array(range(X.shape[0])), class_)
 
-            # Get the jth feature
-            Xj = np.zeros(X.shape)
-            Xj[:, j] = X[:, j]
+            for j in range(X.shape[1]):
+                self.prob_dists[class_][j] = {}
 
-            # Get the jth W0
-            W0j = np.zeros(W0.shape)
-            W0j[:, j] = W0[:, j]
+                # Get the jth feature
+                Xj = np.zeros(X.shape)
+                Xj[:, j] = X[:, j]
 
-            # Get the probability vector
-            p = self.get_p(Xj, W0j, W1)
+                # Get the jth W0
+                W0j = np.zeros(W0.shape)
+                W0j[:, j] = W0[:, j]
 
-            # Get the unique value of the jth feature and their indices
-            xijs, is_ = np.unique(X[:, j], return_index=True)
+                # Get the probability vector
+                p = self.get_p(Xj, W0j, W1)
 
-            for i in is_:
-                self.prob_dists[class_][j][i] = p[i]
+                # Get the unique value of the jth feature and their indices
+                xijs, is_ = np.unique(X[:, j], return_index=True)
 
-    def normalize_prob_dists(self, X):
-        """
-        Normalize the dictionary of probability distributions
-        :param X: the feature matrix
-        :return:
-        """
+                for i in is_:
+                    self.prob_dists[class_][j][i] = p[i]
 
+        # Normalize the dictionary of probability distributions
         for j in range(X.shape[1]):
             # Get the unique value of the jth feature and their indices
             xijs, is_ = np.unique(X[:, j], return_index=True)
@@ -393,8 +462,8 @@ class BLR(BaseEstimator, ClassifierMixin):
         :return: the predicted probability matrix
         """
 
-        # Get the dictionary of rows
-        self.get_rows(X)
+        # Get the bin matrix
+        self.get_B(X)
 
         PP = np.zeros((X.shape[0], len(sorted(self.weights.keys()))))
 
@@ -403,7 +472,7 @@ class BLR(BaseEstimator, ClassifierMixin):
             class_ = sorted(self.weights.keys())[k]
 
             # Get the weight matrices
-            W0, W1 = self.get_W(X, class_)
+            W0, W1 = self.get_W(X, np.array(range(X.shape[0])), class_)
 
             # Get the probability vector
             p = self.get_p(X, W0, W1)
