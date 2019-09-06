@@ -1,0 +1,7 @@
+###-----------------------------------------------------------------------------------------
+### Run script for other algorithms###-----------------------------------------------------------------------------------------
+
+mkdir -p ./fid/result/others/
+
+(time ./fid/code/script/script/others.txt) 2> ./fid/result/others/time.txt
+

@@ -1,0 +1,5 @@
+###-----------------------------------------------------------------------------------------
+### Run script for printing table (accuracy)###-----------------------------------------------------------------------------------------
+
+python ./fid/code/supplementary/python/print_table_acc.py ./fid/result/ 0 0.01 ./fid/result/supplementary/table/table_file_acc.txt
+

@@ -1,0 +1,4 @@
+###-----------------------------------------------------------------------------------------
+### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
+
+python -W ignore ./fid/code/python/fiblr/pipeline.py ./fid/data/ ./fid/result/fiblr/ ./fid/code/python/

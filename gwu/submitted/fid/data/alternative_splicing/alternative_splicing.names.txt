@@ -1,0 +1,52 @@
+
+###--------------------------------------------------------------------------------------------------------
+### Some names of the dataset
+###--------------------------------------------------------------------------------------------------------
+
+###--------------------------------------------------------------------------------------------------------
+### The header, None by default
+###--------------------------------------------------------------------------------------------------------
+
+header = 0
+
+###--------------------------------------------------------------------------------------------------------
+### The delimiter
+###--------------------------------------------------------------------------------------------------------
+    
+delim_whitespace = 
+
+###--------------------------------------------------------------------------------------------------------
+### The separator
+###--------------------------------------------------------------------------------------------------------
+        
+sep = 
+
+###--------------------------------------------------------------------------------------------------------
+### The place holder for missing values, '?' by default
+###--------------------------------------------------------------------------------------------------------
+
+place_holder_for_missing_vals = 
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) columns, must be specified
+###--------------------------------------------------------------------------------------------------------
+
+columns = coords, label, MYC_body_UTA, CTCF_body_UTA, POLR2A_body_UTA, ARID3A_body_Stanford, ATF1_body_HMS, ATF3_body_HMS, BACH1_body_Stanford, BDP1_body_HMS, BHLHE40_body_Stanford, BRF1_body_HMS, BRF2_body_HMS, SMARCA4_body_Stanford, CCNT2_body_HMS, CUX1_body_Stanford, FOS_body_Yale, CEBPB_body_Stanford, CHD2_body_Stanford, JUN_body_Stanford, JUN_body_Yale, JUN_body_Yale.1, JUN_body_Yale.2, JUN_body_Stanford.1, JUN_body_Yale.3, MYC_body_Yale, MYC_body_Yale.1, MYC_body_Stanford, MYC_body_Yale.2, MYC_body_Stanford.1, MYC_body_Yale.3, RCOR1_body_Stanford, RCOR1_body_Stanford.1, E2F4_body_USC, CTCF_body_Stanford, E2F6_body_USC, ELK1_body_Stanford, GATA1_body_USC, GATA1_body_Stanford, GATA2_body_USC, GTF2B_body_HMS, GTF2F1_body_Stanford, HCFC1_body_Stanford, HMGN3_body_HMS, SMARCB1_body_Stanford, IRF1_body_Stanford, IRF1_body_Stanford.1, IRF1_body_Stanford.2, IRF1_body_Stanford.3, TRIM28_body_USC, JUND_body_Stanford, MAFF_body_Stanford, MAFK_body_Stanford, MAX_body_Stanford, MAX_body_Yale, MXI1_body_Stanford, NFE2_body_Yale, NFYA_body_Stanford, NFYB_body_Stanford, NRF1_body_Stanford, EP300_body_Stanford, EP300_body_Stanford.1, POLR2A_body_Yale, POLR2A_body_Yale.1, POLR2A_body_Stanford, POLR2A_body_Yale.2, POLR2A_body_Stanford.1, POLR2A_body_Yale.3, POLR2AphosphoS2_body_Stanford, POLR2AphosphoS2_body_Stanford.1, POLR3G_body_Stanford, RAD21_body_Yale, RFX5_body_Stanford, POLR3A_body_HMS, SETDB1_body_USC, SETDB1_body_USC.1, SIRT6_body_HMS, STAT1_body_Yale, SMC3_body_Stanford, STAT1_body_Yale.1, STAT1_body_Stanford, STAT1_body_Stanford.1, STAT2_body_Yale, STAT2_body_Yale.1, TAL1_body_Stanford, TBL1XR1_body_Stanford, TBL1XR1_body_Stanford.1, TBP_body_Stanford, GTF3C2_body_HMS, NR2C2_body_USC, UBTF_body_Stanford, UBTF_body_Stanford.1, USF2_body_Stanford, XRCC4_body_Yale, YY1_body_USC, ZNF143_body_Stanford, ZNF263_body_USC, ZNF274_body_USC, ZNF274_body_USC.1, ZNF384_body_Stanford, ZMIZ1_body_Stanford, eGFP.FOS_body_UChicago, eGFP.GATA2_body_UChicago, eGFP.HDAC8_body_UChicago, eGFP.JUNB_body_UChicago, eGFP.JUND_body_UChicago, eGFP.NR4A1_body_UChicago, CTCF_body_UW, CTCF_body_UW.1, CHD1_body_ENCODE, CTCF_body_ENCODE, EZH2_body_ENCODE, HDAC1_body_ENCODE, HDAC2_body_ENCODE, HDAC6_body_ENCODE, EP300_body_ENCODE, PHF8_body_ENCODE, KDM5B_body_ENCODE, POLR2A_body_ENCODE, RBBP5_body_ENCODE, SAP30_body_ENCODE, ATF3_body_ENCODE, BCL3_body_ENCODE, CBX3_body_ENCODE, CEBPB_body_ENCODE, CTCF_body_ENCODE.1, CTCFL_body_ENCODE, E2F6_body_ENCODE, EGR1_body_ENCODE, ELF1_body_ENCODE, ETS1_body_ENCODE, FOSL1_body_ENCODE, GABPA_body_ENCODE, GATA2_body_ENCODE, HDAC2_body_ENCODE.1, MAX_body_ENCODE, MEF2A_body_ENCODE, NR2F2_body_ENCODE, REST_body_ENCODE, PML_body_ENCODE, POLR2AphosphoS5_body_ENCODE, POLR2A_body_ENCODE.1, SPI1_body_ENCODE, RAD21_body_ENCODE, SIN3A_body_ENCODE, SIX5_body_ENCODE, SP1_body_ENCODE, SP2_body_ENCODE, SRF_body_ENCODE, STAT5A_body_ENCODE, TAF1_body_ENCODE, TAF7_body_ENCODE, TEAD4_body_ENCODE, THAP1_body_ENCODE, USF1_body_ENCODE, YY1_body_ENCODE, YY1_body_ENCODE.1, ZBTB33_body_ENCODE, ZBTB7A_body_ENCODE, ARID3A_body_ENCODE, ATF1_body_ENCODE, ATF3_body_ENCODE.1, BACH1_body_ENCODE, BDP1_body_ENCODE, BHLHE40_body_ENCODE, BRF1_body_ENCODE, BRF2_body_ENCODE, SMARCA4_body_ENCODE, CCNT2_body_ENCODE, CEBPB_body_ENCODE.1, FOS_body_ENCODE, CHD2_body_ENCODE, JUN_body_ENCODE, JUN_body_ENCODE.1, JUN_body_ENCODE.2, JUN_body_ENCODE.3, JUN_body_ENCODE.4, MYC_body_ENCODE, MYC_body_ENCODE.1, MYC_body_ENCODE.2, MYC_body_ENCODE.3, MYC_body_ENCODE.4, MYC_body_ENCODE.5, RCOR1_body_ENCODE, RCOR1_body_ENCODE.1, CTCF_body_ENCODE.2, E2F4_body_ENCODE, E2F6_body_ENCODE.1, ELK1_body_ENCODE, GATA1_body_ENCODE, GATA2_body_ENCODE.1, GTF2B_body_ENCODE, GTF2F1_body_ENCODE, HMGN3_body_ENCODE, SMARCB1_body_ENCODE, IRF1_body_ENCODE, IRF1_body_ENCODE.1, IRF1_body_ENCODE.2, IRF1_body_ENCODE.3, JUND_body_ENCODE, TRIM28_body_ENCODE, MAFF_body_ENCODE, MAFK_body_ENCODE, MAX_body_ENCODE.1, MXI1_body_ENCODE, NFE2_body_ENCODE, NFYA_body_ENCODE, NFYB_body_ENCODE, NRF1_body_ENCODE, EP300_body_ENCODE.1, POLR2A_body_ENCODE.2, POLR2A_body_ENCODE.3, POLR2A_body_ENCODE.4, POLR2A_body_ENCODE.5, POLR2A_body_ENCODE.6, POLR2A_body_ENCODE.7, POLR2AphosphoS2_body_ENCODE, POLR3G_body_ENCODE, RAD21_body_ENCODE.1, RFX5_body_ENCODE, POLR3A_body_ENCODE, SETDB1_body_ENCODE, SETDB1_body_ENCODE.1, SIRT6_body_ENCODE, SMC3_body_ENCODE, STAT1_body_ENCODE, STAT1_body_ENCODE.1, STAT1_body_ENCODE.2, STAT1_body_ENCODE.3, STAT2_body_ENCODE, STAT2_body_ENCODE.1, TAL1_body_ENCODE, TBL1XR1_body_ENCODE, TBL1XR1_body_ENCODE.1, TBP_body_ENCODE, GTF3C2_body_ENCODE, NR2C2_body_ENCODE, UBTF_body_ENCODE, UBTF_body_ENCODE.1, USF2_body_ENCODE, YY1_body_ENCODE.2, ZNF143_body_ENCODE, ZNF263_body_ENCODE, ZNF274_body_ENCODE, ZNF274_body_ENCODE.1, MYC_body_ENCODE.6, CTCF_body_ENCODE.3, POLR2A_body_ENCODE.8, CTCF_body_ENCODE.4, POLR2AphosphoS2_body_ENCODE.1, eGFP.FOS_body_ENCODE, eGFP.GATA2_body_ENCODE, eGFP.HDAC8_body_ENCODE, eGFP.JUNB_body_ENCODE, eGFP.JUND_body_ENCODE, H3K27ac_body_Broad, H3K27me3_body_Broad, H3K36me3_body_Broad, H3K4me1_body_Broad, H3K4me2_body_Broad, H3K4me3_body_Broad, H3K79me2_body_Broad, H3K9ac_body_Broad, H3K9me1_body_Broad, H3K9me3_body_Broad, H4K20me1_body_Broad, H3K27me3_body_UW, H3K27me3_body_UW.1, H3K36me3_body_UW, H3K36me3_body_UW.1, H3K4me3_body_UW, H3K4me3_body_UW.1
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) target, must be specified
+###--------------------------------------------------------------------------------------------------------
+
+target = label
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) features that should be excluded, empty by default
+###--------------------------------------------------------------------------------------------------------
+
+exclude_features = coords
+
+###--------------------------------------------------------------------------------------------------------
+### The (name of the) categorical features, empty by default
+###--------------------------------------------------------------------------------------------------------
+
+categorical_features = 
