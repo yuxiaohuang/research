@@ -1,0 +1,7 @@
+class, interaction
+F,color_PURPLE & act_DIP
+F,act_DIP & size_LARGE
+F,size_LARGE & age_CHILD
+F,age_CHILD & color_PURPLE
+T,color_YELLOW & size_SMALL
+T,act_STRETCH & age_ADULT

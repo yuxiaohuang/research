@@ -1,0 +1,15 @@
+class, interaction
+e,odor_n & gill-size_b & ring-number_o
+e,gill-size_b & ring-number_o & stalk-root_c
+e,gill-size_b & gill-spacing_w
+e,gill-spacing_w & stalk-shape_t
+e,habitat_p & ring-type_p
+e,ring-type_p & stalk-surface-below-ring_y
+e,cap-shape_s
+e,odor_n & stalk-root_e
+p,odor_f
+p,gill-color_b
+p,odor_p
+p,odor_c
+p,spore-print-color_r
+p,stalk-surface-above-ring_k & gill-spacing_c

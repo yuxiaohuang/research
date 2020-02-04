@@ -1,0 +1,107 @@
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### Parameter file for AnotherLogisticAlgorithm (ALA) classifier
+        ###--------------------------------------------------------------------------------------------------------
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the data file
+        ###--------------------------------------------------------------------------------------------------------
+
+        data_files = /home/yuxiaohuang/research/gwu/arc/data/voting-records/house-votes-84.data.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the names file
+        ###--------------------------------------------------------------------------------------------------------
+
+        names_file = /home/yuxiaohuang/research/gwu/arc/data/voting-records/house-votes-84.names.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The header
+        ###--------------------------------------------------------------------------------------------------------
+
+        header = None
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The delimiter
+        ###--------------------------------------------------------------------------------------------------------
+
+        delim_whitespace = False
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The separator
+        ###--------------------------------------------------------------------------------------------------------
+
+        sep = ,
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The place holder for missing values
+        ###--------------------------------------------------------------------------------------------------------
+
+        place_holder_for_missing_vals = ?
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) columns
+        ###--------------------------------------------------------------------------------------------------------
+
+        columns = target, handicapped-infants, water-project-cost-sharing, adoption-of-the-budget-resolution, physician-fee-freeze, el-salvador-aid, religious-groups-in-schools, anti-satellite-test-ban, aid-to-nicaraguan-contras, mx-missile, immigration, synfuels-corporation-cutback, education-spending, superfund-right-to-sue, crime, duty-free-exports, export-administration-act-south-africa
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) target
+        ###--------------------------------------------------------------------------------------------------------
+
+        target = target
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features
+        ###--------------------------------------------------------------------------------------------------------
+
+        features = handicapped-infants_n, handicapped-infants_y, water-project-cost-sharing_n, water-project-cost-sharing_y, adoption-of-the-budget-resolution_n, adoption-of-the-budget-resolution_y, physician-fee-freeze_n, physician-fee-freeze_y, el-salvador-aid_n, el-salvador-aid_y, religious-groups-in-schools_n, religious-groups-in-schools_y, anti-satellite-test-ban_n, anti-satellite-test-ban_y, aid-to-nicaraguan-contras_n, aid-to-nicaraguan-contras_y, mx-missile_n, mx-missile_y, immigration_n, immigration_y, synfuels-corporation-cutback_n, synfuels-corporation-cutback_y, education-spending_n, education-spending_y, superfund-right-to-sue_n, superfund-right-to-sue_y, crime_n, crime_y, duty-free-exports_n, duty-free-exports_y, export-administration-act-south-africa_n, export-administration-act-south-africa_y
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features that should be excluded
+        ###--------------------------------------------------------------------------------------------------------
+
+        exclude_features = 
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) categorical features
+        ###--------------------------------------------------------------------------------------------------------
+
+        categorical_features = handicapped-infants, water-project-cost-sharing, adoption-of-the-budget-resolution, physician-fee-freeze, el-salvador-aid, religious-groups-in-schools, anti-satellite-test-ban, aid-to-nicaraguan-contras, mx-missile, immigration, synfuels-corporation-cutback, education-spending, superfund-right-to-sue, crime, duty-free-exports, export-administration-act-south-africa
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The label encoder
+        ###--------------------------------------------------------------------------------------------------------
+
+        encoder = <class 'sklearn.preprocessing.label.LabelEncoder'>
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The k-fold cross validation
+        ###--------------------------------------------------------------------------------------------------------
+        
+        n_splits = 10
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The scaler
+        ###--------------------------------------------------------------------------------------------------------
+        
+        scaler = <class 'sklearn.preprocessing.data.StandardScaler'>
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The random state
+        ###--------------------------------------------------------------------------------------------------------
+
+        random_state = 0
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The minimum number of samples required for calculating importance
+        ###--------------------------------------------------------------------------------------------------------
+
+        min_samples_importance = 30
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)
+        ###--------------------------------------------------------------------------------------------------------
+
+        n_jobs = 10
+        
