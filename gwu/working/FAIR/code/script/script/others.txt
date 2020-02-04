@@ -1,4 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Pipeline for other algorithms###-----------------------------------------------------------------------------------------
-
-python -W ignore /home/yuxiaohuang/research/gwu/FAIR/code/python/others/pipeline.py /home/yuxiaohuang/research/gwu/FAIR/data/ /home/yuxiaohuang/research/gwu/FAIR/result/others/ /home/yuxiaohuang/research/gwu/FAIR/code/python/

@@ -1,4 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
-
-python -W ignore ./RandomPARC/code/python/ours/pipeline.py ./RandomPARC/data/ ./RandomPARC/result/ours/ ./RandomPARC/code/python/

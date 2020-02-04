@@ -1,5 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Run script for printing table (accuracy)###-----------------------------------------------------------------------------------------
-
-python /home/yuxiaohuang/research/gwu/aaai_20/fid/code/supplementary/python/print_table_acc.py /home/yuxiaohuang/research/gwu/aaai_20/fid/result/ 3 0.01 /home/yuxiaohuang/research/gwu/aaai_20/fid/result/supplementary/table_file_acc.txt
-

@@ -1,7 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Run script for other algorithms###-----------------------------------------------------------------------------------------
-
-mkdir -p ./RandomPARC/result/others/
-
-(time ./RandomPARC/code/script/script/others.txt) 2> ./RandomPARC/result/others/time.txt
-

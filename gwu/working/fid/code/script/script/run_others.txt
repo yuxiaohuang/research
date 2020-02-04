@@ -1,7 +1,0 @@
-###-----------------------------------------------------------------------------------------
-### Run script for other algorithms###-----------------------------------------------------------------------------------------
-
-mkdir -p /home/yuxiaohuang/research/gwu/aaai_20/fid/result/others/
-
-(time /home/yuxiaohuang/research/gwu/aaai_20/fid/code/script/script/others.txt) 2> /home/yuxiaohuang/research/gwu/aaai_20/fid/result/others/time.txt
-
