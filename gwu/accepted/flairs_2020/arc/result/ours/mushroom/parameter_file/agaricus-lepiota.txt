@@ -1,0 +1,107 @@
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### Parameter file for AnotherLogisticAlgorithm (ALA) classifier
+        ###--------------------------------------------------------------------------------------------------------
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the data file
+        ###--------------------------------------------------------------------------------------------------------
+
+        data_files = /home/yuxiaohuang/research/gwu/arc/data/mushroom/agaricus-lepiota.data.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the names file
+        ###--------------------------------------------------------------------------------------------------------
+
+        names_file = /home/yuxiaohuang/research/gwu/arc/data/mushroom/agaricus-lepiota.names.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The header
+        ###--------------------------------------------------------------------------------------------------------
+
+        header = None
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The delimiter
+        ###--------------------------------------------------------------------------------------------------------
+
+        delim_whitespace = False
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The separator
+        ###--------------------------------------------------------------------------------------------------------
+
+        sep = ,
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The place holder for missing values
+        ###--------------------------------------------------------------------------------------------------------
+
+        place_holder_for_missing_vals = ?
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) columns
+        ###--------------------------------------------------------------------------------------------------------
+
+        columns = target, cap-shape, cap-surface, cap-color, bruises?, odor, gill-attachment, gill-spacing, gill-size, gill-color, stalk-shape, stalk-root, stalk-surface-above-ring, stalk-surface-below-ring, stalk-color-above-ring, stalk-color-below-ring, veil-type, veil-color, ring-number, ring-type, spore-print-color, population, habitat
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) target
+        ###--------------------------------------------------------------------------------------------------------
+
+        target = target
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features
+        ###--------------------------------------------------------------------------------------------------------
+
+        features = cap-shape_b, cap-shape_c, cap-shape_f, cap-shape_k, cap-shape_s, cap-shape_x, cap-surface_f, cap-surface_g, cap-surface_s, cap-surface_y, cap-color_b, cap-color_c, cap-color_e, cap-color_g, cap-color_n, cap-color_p, cap-color_r, cap-color_u, cap-color_w, cap-color_y, bruises?_f, bruises?_t, odor_a, odor_c, odor_f, odor_l, odor_m, odor_n, odor_p, odor_s, odor_y, gill-attachment_a, gill-attachment_f, gill-spacing_c, gill-spacing_w, gill-size_b, gill-size_n, gill-color_b, gill-color_e, gill-color_g, gill-color_h, gill-color_k, gill-color_n, gill-color_o, gill-color_p, gill-color_r, gill-color_u, gill-color_w, gill-color_y, stalk-shape_e, stalk-shape_t, stalk-root_b, stalk-root_c, stalk-root_e, stalk-root_r, stalk-surface-above-ring_f, stalk-surface-above-ring_k, stalk-surface-above-ring_s, stalk-surface-above-ring_y, stalk-surface-below-ring_f, stalk-surface-below-ring_k, stalk-surface-below-ring_s, stalk-surface-below-ring_y, stalk-color-above-ring_b, stalk-color-above-ring_c, stalk-color-above-ring_e, stalk-color-above-ring_g, stalk-color-above-ring_n, stalk-color-above-ring_o, stalk-color-above-ring_p, stalk-color-above-ring_w, stalk-color-above-ring_y, stalk-color-below-ring_b, stalk-color-below-ring_c, stalk-color-below-ring_e, stalk-color-below-ring_g, stalk-color-below-ring_n, stalk-color-below-ring_o, stalk-color-below-ring_p, stalk-color-below-ring_w, stalk-color-below-ring_y, veil-type_p, veil-color_n, veil-color_o, veil-color_w, veil-color_y, ring-number_n, ring-number_o, ring-number_t, ring-type_e, ring-type_f, ring-type_l, ring-type_n, ring-type_p, spore-print-color_b, spore-print-color_h, spore-print-color_k, spore-print-color_n, spore-print-color_o, spore-print-color_r, spore-print-color_u, spore-print-color_w, spore-print-color_y, population_a, population_c, population_n, population_s, population_v, population_y, habitat_d, habitat_g, habitat_l, habitat_m, habitat_p, habitat_u, habitat_w
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features that should be excluded
+        ###--------------------------------------------------------------------------------------------------------
+
+        exclude_features = 
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) categorical features
+        ###--------------------------------------------------------------------------------------------------------
+
+        categorical_features = cap-shape, cap-surface, cap-color, bruises?, odor, gill-attachment, gill-spacing, gill-size, gill-color, stalk-shape, stalk-root, stalk-surface-above-ring, stalk-surface-below-ring, stalk-color-above-ring, stalk-color-below-ring, veil-type, veil-color, ring-number, ring-type, spore-print-color, population, habitat
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The label encoder
+        ###--------------------------------------------------------------------------------------------------------
+
+        encoder = <class 'sklearn.preprocessing.label.LabelEncoder'>
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The k-fold cross validation
+        ###--------------------------------------------------------------------------------------------------------
+        
+        n_splits = 10
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The scaler
+        ###--------------------------------------------------------------------------------------------------------
+        
+        scaler = <class 'sklearn.preprocessing.data.StandardScaler'>
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The random state
+        ###--------------------------------------------------------------------------------------------------------
+
+        random_state = 0
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The minimum number of samples required for calculating importance
+        ###--------------------------------------------------------------------------------------------------------
+
+        min_samples_importance = 30
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)
+        ###--------------------------------------------------------------------------------------------------------
+
+        n_jobs = 10
+        
