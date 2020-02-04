@@ -1,7 +1,0 @@
-class, interaction
-F,size_LARGE & act_DIP
-F,act_DIP & color_PURPLE
-F,color_PURPLE & age_CHILD
-F,age_CHILD & size_LARGE
-T,size_SMALL & color_YELLOW
-T,act_STRETCH & age_ADULT
