@@ -1,0 +1,19 @@
+class, interaction
+e,odor_n & gill-size_b & ring-number_o
+e,gill-size_b & ring-number_o & stalk-surface-above-ring_s & stalk-shape_e
+e,ring-number_o & stalk-surface-above-ring_s & stalk-shape_e & odor_n & cap-surface_f
+e,stalk-surface-above-ring_s & stalk-shape_e & odor_n & cap-surface_f
+e,stalk-shape_e & odor_n & cap-surface_f & stalk-surface-below-ring_s
+e,cap-surface_f & stalk-surface-below-ring_s & bruises?_t
+e,stalk-surface-below-ring_s & bruises?_t & spore-print-color_w & ring-type_e
+e,gill-spacing_w & odor_n & gill-size_b
+e,odor_n & gill-size_b & spore-print-color_w
+e,stalk-color-below-ring_n & gill-spacing_w
+e,gill-spacing_w & stalk-shape_t
+e,stalk-color-above-ring_w & stalk-color-below-ring_w & stalk-root_b & ring-number_o & stalk-surface-below-ring_f & gill-size_n
+p,odor_f
+p,gill-color_b
+p,odor_p
+p,odor_c
+p,spore-print-color_r
+p,odor_m

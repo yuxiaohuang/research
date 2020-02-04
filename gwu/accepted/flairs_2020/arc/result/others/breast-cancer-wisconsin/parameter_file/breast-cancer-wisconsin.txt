@@ -1,0 +1,107 @@
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### Parameter file for AnotherLogisticAlgorithm (ALA) classifier
+        ###--------------------------------------------------------------------------------------------------------
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the data file
+        ###--------------------------------------------------------------------------------------------------------
+
+        data_files = /home/yuxiaohuang/research/gwu/arc/data/breast-cancer-wisconsin/breast-cancer-wisconsin.data.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The pathname of the names file
+        ###--------------------------------------------------------------------------------------------------------
+
+        names_file = /home/yuxiaohuang/research/gwu/arc/data/breast-cancer-wisconsin/breast-cancer-wisconsin.names.txt
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The header
+        ###--------------------------------------------------------------------------------------------------------
+
+        header = None
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The delimiter
+        ###--------------------------------------------------------------------------------------------------------
+
+        delim_whitespace = False
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The separator
+        ###--------------------------------------------------------------------------------------------------------
+
+        sep = ,
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The place holder for missing values
+        ###--------------------------------------------------------------------------------------------------------
+
+        place_holder_for_missing_vals = ?
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) columns
+        ###--------------------------------------------------------------------------------------------------------
+
+        columns = Sample code number, Clump Thickness, Uniformity of Cell Size, Uniformity of Cell Shape, Marginal Adhesion, Single Epithelial Cell Size, Bare Nuclei, Bland Chromatin, Normal Nucleoli, Mitoses, target
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) target
+        ###--------------------------------------------------------------------------------------------------------
+
+        target = target
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features
+        ###--------------------------------------------------------------------------------------------------------
+
+        features = Clump Thickness_1, Clump Thickness_2, Clump Thickness_3, Clump Thickness_4, Clump Thickness_5, Clump Thickness_6, Clump Thickness_7, Clump Thickness_8, Clump Thickness_9, Clump Thickness_10, Uniformity of Cell Size_1, Uniformity of Cell Size_2, Uniformity of Cell Size_3, Uniformity of Cell Size_4, Uniformity of Cell Size_5, Uniformity of Cell Size_6, Uniformity of Cell Size_7, Uniformity of Cell Size_8, Uniformity of Cell Size_9, Uniformity of Cell Size_10, Uniformity of Cell Shape_1, Uniformity of Cell Shape_2, Uniformity of Cell Shape_3, Uniformity of Cell Shape_4, Uniformity of Cell Shape_5, Uniformity of Cell Shape_6, Uniformity of Cell Shape_7, Uniformity of Cell Shape_8, Uniformity of Cell Shape_9, Uniformity of Cell Shape_10, Marginal Adhesion_1, Marginal Adhesion_2, Marginal Adhesion_3, Marginal Adhesion_4, Marginal Adhesion_5, Marginal Adhesion_6, Marginal Adhesion_7, Marginal Adhesion_8, Marginal Adhesion_9, Marginal Adhesion_10, Single Epithelial Cell Size_1, Single Epithelial Cell Size_2, Single Epithelial Cell Size_3, Single Epithelial Cell Size_4, Single Epithelial Cell Size_5, Single Epithelial Cell Size_6, Single Epithelial Cell Size_7, Single Epithelial Cell Size_8, Single Epithelial Cell Size_9, Single Epithelial Cell Size_10, Bare Nuclei_1, Bare Nuclei_10, Bare Nuclei_2, Bare Nuclei_3, Bare Nuclei_4, Bare Nuclei_5, Bare Nuclei_6, Bare Nuclei_7, Bare Nuclei_8, Bare Nuclei_9, Bland Chromatin_1, Bland Chromatin_2, Bland Chromatin_3, Bland Chromatin_4, Bland Chromatin_5, Bland Chromatin_6, Bland Chromatin_7, Bland Chromatin_8, Bland Chromatin_9, Bland Chromatin_10, Normal Nucleoli_1, Normal Nucleoli_2, Normal Nucleoli_3, Normal Nucleoli_4, Normal Nucleoli_5, Normal Nucleoli_6, Normal Nucleoli_7, Normal Nucleoli_8, Normal Nucleoli_9, Normal Nucleoli_10, Mitoses_1, Mitoses_2, Mitoses_3, Mitoses_4, Mitoses_5, Mitoses_6, Mitoses_7, Mitoses_8, Mitoses_10
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) features that should be excluded
+        ###--------------------------------------------------------------------------------------------------------
+
+        exclude_features = Sample code number
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The (name of the) categorical features
+        ###--------------------------------------------------------------------------------------------------------
+
+        categorical_features = Clump Thickness, Uniformity of Cell Size, Uniformity of Cell Shape, Marginal Adhesion, Single Epithelial Cell Size, Bare Nuclei, Bland Chromatin, Normal Nucleoli, Mitoses
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The label encoder
+        ###--------------------------------------------------------------------------------------------------------
+
+        encoder = <class 'sklearn.preprocessing.label.LabelEncoder'>
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The k-fold cross validation
+        ###--------------------------------------------------------------------------------------------------------
+        
+        n_splits = 10
+        
+        ###--------------------------------------------------------------------------------------------------------
+        ### The scaler
+        ###--------------------------------------------------------------------------------------------------------
+        
+        scaler = <class 'sklearn.preprocessing.data.StandardScaler'>
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The random state
+        ###--------------------------------------------------------------------------------------------------------
+
+        random_state = 0
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The minimum number of samples required for calculating importance
+        ###--------------------------------------------------------------------------------------------------------
+
+        min_samples_importance = 30
+
+        ###--------------------------------------------------------------------------------------------------------
+        ### The number of jobs to run in parallel, -1 indicates (all CPUs are used)
+        ###--------------------------------------------------------------------------------------------------------
+
+        n_jobs = 10
+        

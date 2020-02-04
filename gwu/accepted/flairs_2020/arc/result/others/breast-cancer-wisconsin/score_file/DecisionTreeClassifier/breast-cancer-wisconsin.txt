@@ -1,0 +1,15 @@
+The mean of the cross validation scores: 0.96
+The std of the cross validation scores: 0.03
+The min of the cross validation scores: 0.91
+The max of the cross validation scores: 0.99
+The list of the cross validation scores: 
+0, 0.91
+1, 0.95
+2, 0.96
+3, 0.93
+4, 0.95
+5, 0.98
+6, 0.99
+7, 0.99
+8, 0.98
+9, 0.99

@@ -1,0 +1,10 @@
+class, interaction
+negative,middle-middle-square_o & bottom-right-square_o & top-left-square_o
+negative,bottom-right-square_o & middle-left-square_x & bottom-left-square_o & bottom-middle-square_o
+negative,bottom-left-square_o & middle-middle-square_o & top-right-square_o
+negative,middle-middle-square_o & middle-right-square_o & middle-left-square_o
+negative,middle-right-square_o & top-right-square_o & bottom-right-square_o
+negative,top-right-square_o & top-left-square_o & top-middle-square_o
+negative,top-left-square_o & bottom-left-square_o & middle-left-square_o
+negative,bottom-middle-square_o & middle-middle-square_o & top-middle-square_o
+positive,middle-middle-square_x & bottom-right-square_b & top-left-square_b

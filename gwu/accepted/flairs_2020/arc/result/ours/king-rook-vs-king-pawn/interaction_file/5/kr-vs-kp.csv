@@ -1,0 +1,14 @@
+class, interaction
+nowin,F21_f & F33_t & F18_t & F34_t
+nowin,F18_t & F34_t & F6_f & F10_f & F32_t
+nowin,F6_f & F21_f & F16_t
+nowin,F21_f & F16_t & F24_t
+nowin,F10_t & F21_f
+nowin,F21_f & F33_t & F7_t
+nowin,F33_t & F21_f & F27_t
+won,F21_t
+won,F33_f & F10_f & F32_f & F35_t & F23_f & F15_n & F12_f
+won,F10_f & F32_f & F23_f & F15_n & F12_f & F4_f & F36_n & F6_t & F35_f & F33_f
+won,F32_f & F23_f & F12_f & F4_f & F36_n & F6_t & F33_f & F10_f
+won,F4_f & F36_n & F6_t & F33_f & F10_f
+won,F33_f & F13_l & F11_t & F15_w & F31_t
