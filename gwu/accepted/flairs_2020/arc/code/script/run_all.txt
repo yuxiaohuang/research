@@ -5,7 +5,7 @@ count=0;
 
 n_jobs=10;
 
-for file in /home/yuxiaohuang/research/gwu/arc/code/script/script/run*.txt;         
+for file in ./arc/code/script/script/run*.txt;         
     do $file &
     let count+=1
     [[ $((count % n_jobs)) -eq 0 ]] && wait

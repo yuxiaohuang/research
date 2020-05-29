@@ -1,4 +1,4 @@
 ###-----------------------------------------------------------------------------------------
 ### Pipeline for our algorithms###-----------------------------------------------------------------------------------------
 
-python -W ignore /home/yuxiaohuang/research/gwu/arc/code/python/ours/pipeline.py /home/yuxiaohuang/research/gwu/arc/data/ /home/yuxiaohuang/research/gwu/arc/result/ours/ /home/yuxiaohuang/research/gwu/arc/code/python/
+python -W ignore ./arc/code/python/ours/pipeline.py ./arc/data/ ./arc/result/ours/ ./arc/code/python/

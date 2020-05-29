@@ -1,7 +1,7 @@
 ###-----------------------------------------------------------------------------------------
 ### Run script for other algorithms###-----------------------------------------------------------------------------------------
 
-mkdir -p /home/yuxiaohuang/research/gwu/arc/result/others/
+mkdir -p ./arc/result/others/
 
-(time /home/yuxiaohuang/research/gwu/arc/code/script/script/others.txt) 2> /home/yuxiaohuang/research/gwu/arc/result/others/time.txt
+(time ./arc/code/script/script/others.txt) 2> ./arc/result/others/time.txt
 
